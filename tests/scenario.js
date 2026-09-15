@@ -32,4 +32,14 @@ result = run(['scenario', 'plan', 'coding', '--state', state, '--json']);
 const plan = JSON.parse(result.out);
 must(plan.missing.indexOf('run-agent-eval') !== -1 && plan.ready === false, 'scenario plan reports missing capabilities');
 
+result = run(['scenario', 'bench', 'coding', '--seed', '11', '--json']);
+const bench = JSON.parse(result.out);
+must(result.code === 0 && bench.synthetic === true && bench.proof_status === 'inconclusive_synthetic', 'scenario proof harness must not claim synthetic proof');
+must(bench.strategies.length === 3 && bench.strategies.some(function (item) { return item.id === 'autoarmory'; }), 'scenario proof strategies');
+
+const realFile = path.join(temp, 'real-outcomes.jsonl');
+fs.writeFileSync(realFile, JSON.stringify({ capability_id: 'evaluator.junit', result: 'success', cost: 0.01, latency_ms: 100, verified: true, source: 'integration' }) + String.fromCharCode(10), 'utf8');
+result = run(['scenario', 'bench', 'coding', '--real', realFile, '--min', '30', '--json']);
+const real = JSON.parse(result.out);
+must(result.code === 1 && real.proof_status === 'insufficient_data', 'scenario proof must refuse insufficient real data');
 console.log('Scenario profile tests passed');
