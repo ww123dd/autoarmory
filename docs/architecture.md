@@ -43,7 +43,7 @@ The root CLI exposes `autoarmory canary ...` for the vendored SkillCanary contro
 
 ## Observation adapters
 
-Observation accepts files, directories and stdin. `observe - --format log|junit|github|jsonl` lets external CLI and runner output enter the pipeline without AutoArmory running that command itself. This keeps execution authority with the user while preserving reproducible incident input.
+Observation accepts files, directories, stdin, article text and OTel GenAI spans. `observe - --format log|junit|github|jsonl` lets external CLI and runner output enter the pipeline without AutoArmory running that command itself. This keeps execution authority with the user while preserving reproducible incident input.
 
 ## Gate execution
 

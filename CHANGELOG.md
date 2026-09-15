@@ -9,6 +9,7 @@
 - Merged SkillCanary into the AutoArmory monorepo as `packages/skillcanary` with a unified `autoarmory canary` command.
 - Added capability registry, health, routing, portfolio, outcome learning, drift, conformance and retirement.
 - Added guarded policy calibration and off-policy evaluation.
+- Added article and OTel GenAI incident adapters, a failure-mode taxonomy and external agent-evaluation standards mapping.
 
 ## 0.2.0
 

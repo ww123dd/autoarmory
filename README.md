@@ -61,6 +61,18 @@ autoarmory policy off-policy --outcomes .selfforge/capability-outcomes.jsonl --m
 autoarmory report --output autoarmory-report.md
 ```
 
+## Article, issue and trace learning
+
+Real failure evidence can enter AutoArmory from articles, issue history, runner logs, JUnit, GitHub JSON and OTel GenAI spans. Article mode extracts evidence lines into the failure taxonomy instead of treating the whole article as an incident.
+
+```bash
+autoarmory observe article.md --format article --output .selfforge/incidents.jsonl
+autoarmory observe telemetry.json --format otel --output .selfforge/otel-incidents.jsonl
+autoarmory propose .selfforge/incidents.jsonl --output .selfforge/candidates.jsonl
+```
+
+The taxonomy and action mapping are documented in [Failure Modes](docs/failure-modes.md). External evaluation standards are mapped in [Agent Evaluation Standards](docs/standards/agent-evaluation-standards.md).
+
 ## Real CLI input
 
 `observe -` reads artifacts from stdin, so real runner and CLI output can be observed without AutoArmory executing the external command itself:

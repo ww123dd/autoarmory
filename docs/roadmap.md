@@ -32,6 +32,7 @@
 - [x] constrained routing and Pareto portfolio
 - [x] change-point detection and conformance checks
 - [x] guarded calibration and off-policy evaluation
+- [x] article and OTel incident adapters with failure taxonomy
 - [ ] automatic proposal generation from issue history
 - [ ] shadow evaluation
 - [ ] canary and rollback records

@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readText, sha256, redact, walkFiles } = require('./util');
+const { matchFailureModes, severityForMode } = require('./failure-modes');
 
 const SIGNALS = [
   { mode: 'test_failure', severity: 'high', re: /(FAIL|failed|assertion|expected .* received|test.*failed)/i },
@@ -91,6 +92,24 @@ function decodeXml(value) {
     .replace(/&amp;/g, '&');
 }
 
+function incidentsFromArticle(text, file) {
+  const output = [];
+  const seen = new Set();
+  const lines = String(text).split(/\r?\n/);
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index].trim();
+    if (!line) continue;
+    for (const failure of matchFailureModes(line)) {
+      const source = sourceRef(file);
+      const id = 'inc-' + sha256(source + ':' + (index + 1) + ':' + failure.mode).slice(0, 12);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      output.push({ schema_version: 'selfforge/incident/v1', id: id, source: source, line: index + 1, failure_mode: failure.mode, severity: severityForMode(failure.mode), evidence: redact(line).slice(0, 500), status: 'observed', observed_at: new Date().toISOString() });
+    }
+  }
+  return output;
+}
+
 function parseJUnitText(content, source) {
   const output = [];
   const pattern = /<testcase\b([^>]*?)(?:\/>|>([\s\S]*?)<\/testcase>)/g;
@@ -147,12 +166,51 @@ function parseGithub(file) {
   return parseGithubText(readText(file), file);
 }
 
+function attrMap(attributes) {
+  const map = {};
+  for (const attribute of attributes || []) {
+    if (!attribute || !attribute.key) continue;
+    const value = attribute.value || {};
+    map[attribute.key] = value.stringValue !== undefined ? value.stringValue : (value.intValue !== undefined ? value.intValue : (value.boolValue !== undefined ? value.boolValue : value.doubleValue));
+  }
+  return map;
+}
+
+function parseOtelText(content, source) {
+  const data = JSON.parse(content);
+  const spans = [];
+  for (const resource of data.resourceSpans || []) {
+    for (const scope of resource.scopeSpans || []) {
+      for (const span of scope.spans || []) spans.push(span);
+    }
+  }
+  const ref = sourceRef(source || 'stdin');
+  const output = [];
+  spans.forEach(function (span, index) {
+    const attrs = attrMap(span.attributes);
+    const status = span.status || {};
+    const errorType = attrs['error.type'] || '';
+    const errorMessage = attrs['error.message'] || status.message || '';
+    if (status.code !== 2 && !errorType) return;
+    const tool = attrs['gen_ai.tool.name'] || '';
+    const haystack = String(errorType + ' ' + errorMessage + ' ' + tool).toLowerCase();
+    let mode = 'runtime_error';
+    if (tool && (haystack.indexOf('unknown tool') !== -1 || haystack.indexOf('tool not found') !== -1 || haystack.indexOf('not_found') !== -1)) mode = 'tool_selection_error';
+    else if (haystack.indexOf('parameter') !== -1 || haystack.indexOf('argument') !== -1 || haystack.indexOf('invalid') !== -1) mode = 'tool_parameter_error';
+    const evidence = JSON.stringify({ name: span.name || '', operation: attrs['gen_ai.operation.name'] || '', agent: attrs['gen_ai.agent.name'] || '', tool: tool, error_type: errorType, message: errorMessage });
+    output.push({ schema_version: 'selfforge/incident/v1', id: 'inc-' + sha256(ref + ':otel:' + (span.traceId || index) + ':' + (span.spanId || index) + ':' + mode).slice(0, 12), source: ref, line: index + 1, failure_mode: mode, severity: severityForMode(mode), evidence: redact(evidence).slice(0, 500), status: 'observed', observed_at: new Date().toISOString() });
+  });
+  return output;
+}
+
 function observeText(text, options) {
   const opts = options || {};
   const format = opts.format || 'auto';
   const source = opts.source || 'stdin';
   if (format === 'junit') return parseJUnitText(text, source);
   if (format === 'github') return parseGithubText(text, source);
+  if (format === 'otel') return parseOtelText(text, source);
+  if (format === 'article' || format === 'markdown') return incidentsFromArticle(text, source);
   if (format === 'jsonl' || format === 'log') return incidentsFromText(text, source);
   const trimmed = String(text).trim();
   if (/<testsuite|<testcase/i.test(trimmed)) return parseJUnitText(text, source);
@@ -164,6 +222,8 @@ function observeText(text, options) {
 
 function observe(input, options) {
   const opts = options || {};
+  if (opts.format === 'otel') return parseOtelText(readText(path.resolve(input)), path.resolve(input));
+  if (opts.format === 'article' || opts.format === 'markdown') return incidentsFromArticle(readText(path.resolve(input)), path.resolve(input));
   if (opts.format === 'junit') return parseJUnit(path.resolve(input));
   if (opts.format === 'github') return parseGithub(path.resolve(input));
   const files = collect(path.resolve(input));
@@ -181,4 +241,4 @@ function observe(input, options) {
   return incidents;
 }
 
-module.exports = { observe, observeText, incidentsFromFile, incidentsFromText, parseJUnit, parseJUnitText, parseGithub, parseGithubText };
+module.exports = { observe, observeText, incidentsFromFile, incidentsFromText, incidentsFromArticle, parseOtelText, parseJUnit, parseJUnitText, parseGithub, parseGithubText };
