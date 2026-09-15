@@ -1,56 +1,70 @@
-# SelfForge
+# AutoArmory
 
-**Self-evolution runtime for agent skills and tools.**
+**Auto-battle control plane for agent capabilities.**
 
-SelfForge is the self-improvement layer. SkillCanary remains the evidence, provenance and change-gate control plane. SelfForge consumes real incidents, proposes changes, sends candidates through a gate, records outcomes and recommends the next action.
+**Every module is a weapon. Every promotion is earned by evidence.**
+
+AutoArmory manages the layer above platform-native tools: cross-vendor capability discovery, evidence, routing, composition, degradation, replacement and retirement. SkillCanary remains the stable evidence, provenance and change-gate control plane.
 
 ```text
 observe -> incident -> candidate -> gate -> decision -> learn
 ```
 
+## Capability Manager
+
+**Capability Manager** is AutoArmory's decision engine. It treats every runner, evaluator, scanner, MCP gateway, registry, memory layer, provenance adapter and policy module as a capability asset.
+
+Each capability is a weapon. Each routing decision is a loadout. Each verified outcome is a battle report.
+
+```text
+capability -> constraints -> route -> compose -> outcome -> update -> degrade/replace/retire
+```
+
+This repository currently implements the evidence, gate, outcome and state-machine foundations. The registry, routing, portfolio and retirement design is defined in [Capability Manager design](docs/superpowers/specs/2026-09-15-capability-manager-design.md) and will be implemented as an internal subsystem before it becomes a separate package.
+
 ## Why separate
 
 - SkillCanary should remain stable, small and compatible.
-- SelfForge can experiment with algorithms, memory, active learning and policy.
-- SelfForge must be able to improve SkillCanary, but SkillCanary must not depend on SelfForge.
+- AutoArmory can experiment with capability routing, memory, active learning and policy.
+- AutoArmory must be able to improve SkillCanary, but SkillCanary must not depend on AutoArmory.
 
 ## Commands
 
 ```bash
-selfforge init
-selfforge observe logs/ --output .selfforge/incidents.jsonl
-pytest 2>&1 | selfforge observe - --format log --output .selfforge/incidents.jsonl
-gh issue list --repo owner/repo --json number,title,body,url | selfforge observe - --format github --output .selfforge/incidents.jsonl
-selfforge propose .selfforge/incidents.jsonl --output .selfforge/candidates.jsonl
-selfforge gate .selfforge/candidate.json --skillcanary ../20260914_SkillCanary --cases examples/skillcanary-cases.json
-selfforge record --candidate cand-1 --action add_case --reward 1.5 --verified true --gate .selfforge/gate.json --evidence .selfforge/outcome-evidence.json
-selfforge transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --state .selfforge
-selfforge transition .selfforge/candidate.json --to shadow --gate .selfforge/gate.json --state .selfforge
-selfforge learn .selfforge/decisions.jsonl
-selfforge environment --write
-selfforge experiment compare before.json after.json
-selfforge policy .selfforge/decisions.jsonl
-selfforge acquire .selfforge/candidates.jsonl --top 10
-selfforge evolve logs/ --format auto --skillcanary ../20260914_SkillCanary --cases path/to/cases.json
-selfforge doctor
-selfforge report --output selfforge-report.md
+autoarmory init
+autoarmory observe logs/ --output .selfforge/incidents.jsonl
+pytest 2>&1 | autoarmory observe - --format log --output .selfforge/incidents.jsonl
+gh issue list --repo owner/repo --json number,title,body,url | autoarmory observe - --format github --output .selfforge/incidents.jsonl
+autoarmory propose .selfforge/incidents.jsonl --output .selfforge/candidates.jsonl
+autoarmory gate .selfforge/candidate.json --skillcanary ../20260914_SkillCanary --cases examples/skillcanary-cases.json
+autoarmory record --candidate cand-1 --action add_case --reward 1.5 --verified true --gate .selfforge/gate.json --evidence .selfforge/outcome-evidence.json
+autoarmory transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --state .selfforge
+autoarmory transition .selfforge/candidate.json --to shadow --gate .selfforge/gate.json --state .selfforge
+autoarmory learn .selfforge/decisions.jsonl
+autoarmory environment --write
+autoarmory experiment compare before.json after.json
+autoarmory policy .selfforge/decisions.jsonl
+autoarmory acquire .selfforge/candidates.jsonl --top 10
+autoarmory evolve logs/ --format auto --skillcanary ../20260914_SkillCanary --cases path/to/cases.json
+autoarmory doctor
+autoarmory report --output autoarmory-report.md
 ```
 
 ## Real CLI input
 
-`observe -` reads artifacts from stdin, so real runner and CLI output can be observed without SelfForge executing the external command itself:
+`observe -` reads artifacts from stdin, so real runner and CLI output can be observed without AutoArmory executing the external command itself:
 
 ```bash
-pytest 2>&1 | selfforge observe - --format log --output .selfforge/incidents.jsonl
-gh issue list --repo owner/repo --json number,title,body,url | selfforge observe - --format github --output .selfforge/incidents.jsonl
-cat junit.xml | selfforge observe - --format junit --output .selfforge/incidents.jsonl
+pytest 2>&1 | autoarmory observe - --format log --output .selfforge/incidents.jsonl
+gh issue list --repo owner/repo --json number,title,body,url | autoarmory observe - --format github --output .selfforge/incidents.jsonl
+cat junit.xml | autoarmory observe - --format junit --output .selfforge/incidents.jsonl
 ```
 
 ## Gate boundary
 
-`selfforge gate` and `selfforge evolve` both call the real SkillCanary gate. The operation is fail-closed: a missing SkillCanary CLI, invalid gate output, local structural error, or any SkillCanary gate error marks the candidate `rejected`. SelfForge does not promote or execute a candidate by itself.
+`autoarmory gate` and `autoarmory evolve` both call the real SkillCanary gate. The operation is fail-closed: a missing SkillCanary CLI, invalid gate output, local structural error, or any SkillCanary gate error marks the candidate `rejected`. AutoArmory does not promote or execute a candidate by itself.
 
-A gate-ready candidate carries a `change` object. SelfForge fills the shared change fields (`id`, `target`, `expected_transition`, `prediction`) from the candidate, then passes the resulting `skillcanary/change/v1` record to `skillcanary gate`. Case targets must provide a cases file; deterministic targets do not.
+A gate-ready candidate carries a `change` object. AutoArmory fills the shared change fields (`id`, `target`, `expected_transition`, `prediction`) from the candidate, then passes the resulting `skillcanary/change/v1` record to `skillcanary gate`. Case targets must provide a cases file; deterministic targets do not.
 
 Candidate promotion follows a recorded state machine: `candidate -> gated -> shadow -> canary -> promoted`, with `rejected` available before promotion and `retired` after it. Gate proof is mandatory for `gated` and `shadow`; outcome evidence is mandatory for `canary` and `promoted`.
 
@@ -62,9 +76,13 @@ Run the real adapter conformance suite with a sibling SkillCanary checkout:
 npm run test:conformance
 ```
 
+## Legacy compatibility
+
+The public package and CLI are `autoarmory`. The `selfforge` and `self-forge` commands remain as compatibility aliases, and the on-disk `.selfforge/` state directory plus `selfforge/*` schema namespaces remain stable so existing records do not break.
+
 ## Boundaries
 
-SelfForge does not:
+AutoArmory does not:
 
 - run agents;
 - scan for vulnerabilities;
@@ -75,6 +93,6 @@ SelfForge does not:
 The dependency direction is one-way:
 
 ```text
-SelfForge -> SkillCanary contracts and gate
-SkillCanary -X-> SelfForge
+AutoArmory -> SkillCanary contracts and gate
+SkillCanary -X-> AutoArmory
 ```

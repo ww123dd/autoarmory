@@ -6,8 +6,10 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const cli = path.join(root, 'bin', 'selfforge.js');
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'selfforge-'));
+const cli = path.join(root, 'bin', 'autoarmory.js');
+const legacyCli = path.join(root, 'bin', 'selfforge.js');
+const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-'));
 
 function run(args, cwd, input) {
   const result = spawnSync(process.execPath, [cli].concat(args), { cwd: cwd || root, encoding: 'utf8', input: input });
@@ -22,7 +24,12 @@ function firstJsonl(file) {
 }
 
 let result = run(['version']);
-must(result.code === 0 && result.out.trim() === '0.2.0', 'version');
+must(result.code === 0 && result.out.trim() === '0.3.0', 'version');
+must(pkg.name === 'autoarmory' && pkg.bin.autoarmory === 'bin/autoarmory.js' && pkg.bin.selfforge === 'bin/selfforge.js', 'AutoArmory package and legacy aliases');
+const legacyVersion = spawnSync(process.execPath, [legacyCli, 'version'], { cwd: root, encoding: 'utf8' });
+must(legacyVersion.status === 0 && legacyVersion.stdout.trim() === pkg.version, 'legacy selfforge CLI alias');
+result = run(['--help']);
+must(result.code === 0 && /AutoArmory/.test(result.out), 'help must use AutoArmory brand');
 
 const stateDir = path.join(temp, 'project');
 fs.mkdirSync(stateDir, { recursive: true });
@@ -210,4 +217,4 @@ result = run(['evolve', path.join(root, 'examples', 'incidents.jsonl'), '--state
 const evolveOutput = JSON.parse(result.out);
 must(result.code === 1 && evolveOutput.rejected === evolveOutput.candidates && evolveOutput.gated === 0, 'evolve must not mark candidates gated when SkillCanary is unavailable');
 
-console.log('SelfForge tests passed');
+console.log('AutoArmory tests passed');

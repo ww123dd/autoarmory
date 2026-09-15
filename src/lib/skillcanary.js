@@ -76,7 +76,7 @@ function gate(candidate, options) {
 
   const baseDir = opts.baseDir || (opts.candidateFile ? path.dirname(path.resolve(opts.candidateFile)) : process.cwd());
   const change = toChange(candidate, baseDir);
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'selfforge-gate-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-gate-'));
   try {
     const changeFile = path.join(tempDir, 'change.json');
     writeJson(changeFile, change);

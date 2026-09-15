@@ -14,6 +14,6 @@ module.exports = function run(argv) {
     'decisions.jsonl': ''
   };
   for (const [name, value] of Object.entries(files)) { const file = path.join(state, name); if (!fs.existsSync(file)) { if (typeof value === 'string') fs.writeFileSync(file, value, 'utf8'); else writeJson(file, value); } }
-  process.stdout.write('SelfForge initialized at ' + state + '\n');
+  process.stdout.write('AutoArmory initialized at ' + state + '\n');
   return 0;
 };

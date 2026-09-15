@@ -24,6 +24,13 @@
 
 ## 0.3
 
+- [x] public rebrand to AutoArmory with legacy CLI aliases
+- [x] Capability Manager architecture specification
+- [ ] canonical capability, routing-request, routing-decision and outcome contracts
+- [ ] capability registry plus health and conformance surfaces
+- [ ] constrained routing and Pareto portfolio
+- [ ] change-point detection and active conformance
+- [ ] off-policy evaluation after real outcome volume is available
 - [ ] automatic proposal generation from issue history
 - [ ] shadow evaluation
 - [ ] canary and rollback records

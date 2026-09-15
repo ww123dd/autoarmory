@@ -80,4 +80,4 @@ must(result.ok === true, 'case candidate with cases.json must pass through Skill
 result = gate(candidate('cand-conformance-missing'), { path: path.join(os.tmpdir(), 'missing-skillcanary-' + Date.now()), cwd: root, baseDir: root });
 must(result.ok === false && /SkillCanary CLI not found/.test(result.errors.join(' ')), 'missing SkillCanary must fail closed');
 
-console.log('SelfForge SkillCanary conformance passed: ' + expectedVersion);
+console.log('AutoArmory SkillCanary conformance passed: ' + expectedVersion);

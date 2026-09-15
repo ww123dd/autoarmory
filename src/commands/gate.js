@@ -8,7 +8,7 @@ module.exports = function run(argv) {
   const args = parseArgs(argv);
   const file = args._[0];
   if (!file) {
-    process.stderr.write('Usage: selfforge gate <candidate.json> [--skillcanary <repo>] [--cases <cases.json>] [--require-provenance] [--json]\n');
+    process.stderr.write('Usage: autoarmory gate <candidate.json> [--skillcanary <repo>] [--cases <cases.json>] [--require-provenance] [--json]\n');
     return 2;
   }
   const candidate = readJson(path.resolve(file));

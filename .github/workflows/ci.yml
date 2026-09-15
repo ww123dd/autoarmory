@@ -1,4 +1,4 @@
-name: SelfForge CI
+name: AutoArmory CI
 
 on:
   push:
@@ -13,14 +13,14 @@ jobs:
         with:
           node-version: 20
       - run: npm test
-      - run: node bin/selfforge.js observe examples/incidents.jsonl --json
-      - run: printf 'FAIL: runner failure\n' | node bin/selfforge.js observe - --format log --json | grep test_failure
-      - run: node bin/selfforge.js learn examples/decisions.jsonl --json
-      - run: node bin/selfforge.js environment --write
+      - run: node bin/autoarmory.js observe examples/incidents.jsonl --json
+      - run: printf 'FAIL: runner failure\n' | node bin/autoarmory.js observe - --format log --json | grep test_failure
+      - run: node bin/autoarmory.js learn examples/decisions.jsonl --json
+      - run: node bin/autoarmory.js environment --write
       - name: Verify gate fails closed without SkillCanary
         run: |
-          if node bin/selfforge.js evolve examples/incidents.jsonl --state /tmp/selfforge-state --skillcanary /nonexistent --json > /tmp/selfforge-evolve.json; then
+          if node bin/autoarmory.js evolve examples/incidents.jsonl --state /tmp/autoarmory-state --skillcanary /nonexistent --json > /tmp/autoarmory-evolve.json; then
             echo "expected evolve to fail closed" >&2
             exit 1
           fi
-          grep '"gated": 0' /tmp/selfforge-evolve.json
+          grep '"gated": 0' /tmp/autoarmory-evolve.json

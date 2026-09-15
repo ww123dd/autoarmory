@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Rebranded the public package and CLI to AutoArmory.
+- Kept `selfforge` and `self-forge` as compatibility CLI aliases.
+- Kept `.selfforge/` state storage and `selfforge/*` schema namespaces stable for backward compatibility.
+- Added the Capability Manager architecture specification.
+
 ## 0.2.0
 
 - Added JUnit, GitHub issue, log and JSONL observation.

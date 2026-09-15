@@ -1,6 +1,7 @@
 # Non-goals
 
-SelfForge does not:
+AutoArmory does not:
+- become a generic Agent manager;
 
 - replace SkillCanary;
 - run agents;

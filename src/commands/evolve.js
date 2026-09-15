@@ -45,7 +45,7 @@ module.exports = function run(argv) {
   };
   if (args.json) printJson(result);
   else {
-    process.stdout.write('SelfForge evolve\n');
+    process.stdout.write('AutoArmory evolve\n');
     process.stdout.write('  incidents=' + result.incidents + ' candidates=' + result.candidates + ' gated=' + result.gated + ' rejected=' + result.rejected + '\n');
     for (const item of result.next) process.stdout.write('  ' + item.id + '  ' + item.action + '  score=' + item.score.toFixed(2) + '  risk=' + item.risk + '\n');
   }

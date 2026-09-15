@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "SelfForge policy recommendation",
+  "title": "AutoArmory policy recommendation",
   "type": "object",
   "required": [
     "schema_version",

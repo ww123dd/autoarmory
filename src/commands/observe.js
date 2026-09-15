@@ -8,7 +8,7 @@ const { observe, observeText } = require('../lib/observe');
 module.exports = function run(argv) {
   const args = parseArgs(argv);
   const input = args._[0] || args.input;
-  if (!input) { process.stderr.write('Usage: selfforge observe <file|dir|-> [--format auto|junit|github|jsonl|log] [--output incidents.jsonl] [--json]\n'); return 2; }
+  if (!input) { process.stderr.write('Usage: autoarmory observe <file|dir|-> [--format auto|junit|github|jsonl|log] [--output incidents.jsonl] [--json]\n'); return 2; }
   const format = args.format || 'auto';
   const incidents = input === '-'
     ? observeText(fs.readFileSync(0, 'utf8'), { format: format, source: 'stdin' })

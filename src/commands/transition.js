@@ -29,7 +29,7 @@ module.exports = function run(argv) {
       candidate = readJsonl(candidateFile).find(function (item) { return item.id === candidateId; }) || null;
     }
   }
-  if (!candidateId) return fail('Usage: selfforge transition <candidate.json> --to <state> [--gate gate.json] [--evidence evidence.json] [--reason text]', !!args.json);
+  if (!candidateId) return fail('Usage: autoarmory transition <candidate.json> --to <state> [--gate gate.json] [--evidence evidence.json] [--reason text]', !!args.json);
   if (!args.to) return fail('transition requires --to <state>', !!args.json);
 
   const transitionFile = path.join(stateDir, 'transitions.jsonl');
