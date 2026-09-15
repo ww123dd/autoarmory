@@ -3,11 +3,9 @@
 const fs = require('fs');
 const path = require('path');
 const { readJsonl, writeJsonl } = require('./util');
+const verify = require('./verify');
 
-const RUN_RESULTS = ['pass', 'fail'];
 const STATUSES = ['unverified', 'verified', 'expired', 'bypassed', 'closed'];
-const HASH = /^[a-f0-9]{64}$/i;
-
 function files(stateDir) {
   return {
     cases: path.join(stateDir, 'cases.jsonl'),
@@ -23,14 +21,15 @@ function requireFields(value, fields, label) {
   for (const field of fields) if (value[field] === undefined || value[field] === null || value[field] === '') errors.push(label + '.' + field + ' is required');
   return errors;
 }
-function requireHashes(value, label) {
-  const errors = [];
-  for (const field of ['input_sha256', 'output_sha256']) {
-    if (typeof value[field] !== 'string' || !HASH.test(value[field])) errors.push(label + '.' + field + ' must be a sha256 hex string');
-  }
-  return errors;
-}
 function recordExists(rows, id, label) { return rows.some(function (item) { return item.id === id; }) ? [label + ' already exists: ' + id] : []; }
+function verificationFailure(result) {
+  const detail = (result.checks || []).filter(function (item) { return item.status !== 'pass'; }).map(function (item) { return item.id + ': ' + item.detail; }).join('; ');
+  return 'mechanism run verification failed: ' + (result.reason || 'not verified') + (detail ? ' [' + detail + ']' : '');
+}
+function observedValues(result) {
+  return (result.refs || []).map(function (item) { return item.fresh && item.fresh.observed; }).filter(function (value) { return value !== undefined && value !== null; });
+}
+function sameValue(left, right) { return verify.canonicalize(left) === verify.canonicalize(right); }
 
 function admitCase(stateDir, value) {
   const errors = requireFields(value, ['schema_version', 'id', 'incident_id', 'title', 'expected_transition', 'failure_mode', 'severity', 'evidence', 'reproducible', 'owner'], 'case');
@@ -61,28 +60,55 @@ function registerMechanism(stateDir, value) {
   return { ok: true, mechanism: record };
 }
 
-function recordMechanismRun(stateDir, value) {
+function recordMechanismRun(stateDir, value, options) {
+  const input = value || {};
+  const opts = options || {};
   const state = files(stateDir);
   const mechanisms = read(state.mechanisms);
   const cases = read(state.cases);
-  const errors = requireFields(value, ['schema_version', 'id', 'mechanism_id', 'case_id', 'actor', 'verified_by', 'verified', 'result', 'evidence', 'counterexample', 'input_sha256', 'output_sha256', 'environment_fingerprint', 'exit_code', 'started_at', 'finished_at'], 'mechanism_run');
-  if (value.schema_version !== 'autoarmory/mechanism-run/v1') errors.push('schema_version must be autoarmory/mechanism-run/v1');
-  if (!mechanisms.some(function (item) { return item.id === value.mechanism_id; })) errors.push('mechanism not found: ' + value.mechanism_id);
-  if (!cases.some(function (item) { return item.id === value.case_id; })) errors.push('case not found: ' + value.case_id);
-  if (!RUN_RESULTS.includes(value.result)) errors.push('mechanism_run.result must be pass or fail');
-  if (value.verified !== true) errors.push('mechanism run must be independently verified');
-  if (!value.verified_by || value.verified_by === value.actor) errors.push('verification must be independent: verified_by must differ from actor');
-  if (!Array.isArray(value.evidence) || value.evidence.length === 0) errors.push('mechanism_run.evidence must be a non-empty array');
-  if (!value.counterexample || typeof value.counterexample !== 'object' || Array.isArray(value.counterexample) || Object.keys(value.counterexample).length === 0) errors.push('mechanism_run.counterexample must be a non-empty object');
-  if (!Number.isInteger(value.exit_code)) errors.push('mechanism_run.exit_code must be an integer');
-  errors.push.apply(errors, requireHashes(value, 'mechanism_run'));
+  const errors = requireFields(input, ['schema_version', 'id', 'mechanism_id', 'case_id', 'actor', 'evidence_refs', 'counterexample', 'environment_fingerprint', 'started_at', 'finished_at'], 'mechanism_run');
+  if (input.schema_version !== 'autoarmory/mechanism-run/v1') errors.push('schema_version must be autoarmory/mechanism-run/v1');
+  if (!mechanisms.some(function (item) { return item.id === input.mechanism_id; })) errors.push('mechanism not found: ' + input.mechanism_id);
+  if (!cases.some(function (item) { return item.id === input.case_id; })) errors.push('case not found: ' + input.case_id);
+  if (!Array.isArray(input.evidence_refs) || input.evidence_refs.length === 0) errors.push('mechanism_run.evidence_refs must be a non-empty array');
+  if (!input.counterexample || typeof input.counterexample !== 'object' || Array.isArray(input.counterexample) || Object.keys(input.counterexample).length === 0) errors.push('mechanism_run.counterexample must be a non-empty object');
+  if (input.regression !== undefined && typeof input.regression !== 'boolean') errors.push('mechanism_run.regression must be boolean when present');
+
+  const verification = verify.verifyRecord(input, {
+    repo: opts.repo || stateDir,
+    case_id: input.case_id,
+    mechanism_id: input.mechanism_id,
+    run_id: input.id,
+    trials: opts.trials,
+    require_record: false
+  });
+  if (verification.status !== 'verified') errors.push(verificationFailure(verification));
+  if (verification.status === 'verified' && input.counterexample && Object.prototype.hasOwnProperty.call(input.counterexample, 'observed')) {
+    const observed = observedValues(verification);
+    if (observed.length > 0 && !observed.some(function (item) { return sameValue(item, input.counterexample.observed); })) {
+      errors.push('mechanism_run.counterexample.observed does not match any re-derived observation');
+    }
+  }
   if (errors.length) return { ok: false, errors: errors };
-  const record = Object.assign({}, value, { schema_version: 'autoarmory/mechanism-run/v1', recorded_at: new Date().toISOString() });
+
+  const record = Object.assign({}, input, {
+    schema_version: 'autoarmory/mechanism-run/v1',
+    input_sha256: verification.input_sha256,
+    output_sha256: verification.output_sha256,
+    exit_code: verification.exit_code,
+    result: verification.result,
+    verification_result: verification,
+    recorded_at: new Date().toISOString()
+  });
+  delete record.verification;
+  delete record.verified;
+  delete record.verified_by;
   append(state.runs, record);
   return { ok: true, run: record };
 }
 
-function closeCase(stateDir, caseId, runId) {
+function closeCase(stateDir, caseId, runId, options) {
+  const opts = options || {};
   const state = files(stateDir);
   const cases = read(state.cases);
   const runs = read(state.runs);
@@ -94,19 +120,26 @@ function closeCase(stateDir, caseId, runId) {
   if (!run) return { ok: false, errors: ['run not found: ' + runId] };
   if (run.case_id !== caseId) return { ok: false, errors: ['run does not belong to case'] };
   if (!mechanisms.some(function (entry) { return entry.id === run.mechanism_id; })) return { ok: false, errors: ['mechanism not found: ' + run.mechanism_id] };
-  if (run.verified !== true || run.verified_by === run.actor) return { ok: false, errors: ['run is not independently verified'] };
+  const verification = verify.verifyRecord(run, {
+    repo: opts.repo || stateDir,
+    case_id: caseId,
+    mechanism_id: run.mechanism_id,
+    run_id: runId,
+    trials: opts.trials,
+    require_record: true
+  });
+  if (verification.status !== 'verified') return { ok: false, errors: [verificationFailure(verification)] };
   if (run.result !== 'pass') return { ok: false, errors: ['run did not pass'] };
   if (run.regression === true) return { ok: false, errors: ['run introduced a regression'] };
   if (!run.counterexample || typeof run.counterexample !== 'object' || Object.keys(run.counterexample).length === 0) return { ok: false, errors: ['run is missing a counterexample'] };
-  const hashErrors = requireHashes(run, 'mechanism_run');
-  if (hashErrors.length) return { ok: false, errors: hashErrors };
   if (closures.some(function (entry) { return entry.case_id === caseId && entry.run_id === runId; })) return { ok: false, errors: ['case already closed for this run'] };
   const closure = { schema_version: 'autoarmory/closure/v1', id: 'close-' + runId, case_id: caseId, mechanism_id: run.mechanism_id, run_id: runId, status: 'closed', closed_at: new Date().toISOString() };
   append(state.closures, closure);
   return { ok: true, closure: closure };
 }
 
-function status(stateDir, mechanismId) {
+function status(stateDir, mechanismId, options) {
+  const opts = options || {};
   const state = files(stateDir);
   const mechanism = read(state.mechanisms).find(function (item) { return item.id === mechanismId; });
   if (!mechanism) return { ok: false, errors: ['mechanism not found: ' + mechanismId] };
@@ -116,17 +149,24 @@ function status(stateDir, mechanismId) {
   let verdict = 'unverified';
   let reason = 'no mechanism run recorded';
   if (latest) {
-    const invalid = latest.verified !== true || latest.verified_by === latest.actor || latest.result !== 'pass' || latest.regression === true;
+    const checkResult = verify.verifyRecord(latest, {
+      repo: opts.repo || stateDir,
+      case_id: latest.case_id,
+      mechanism_id: mechanismId,
+      run_id: latest.id,
+      trials: opts.trials,
+      require_record: true
+    });
     const ageDays = (Date.now() - Date.parse(latest.finished_at || latest.recorded_at)) / 86400000;
     const staleDays = Number(mechanism.verification_stale_days || 30);
-    if (invalid) { verdict = 'bypassed'; reason = 'latest run failed, regressed, or lacked independent verification'; }
+    if (checkResult.status !== 'verified') { verdict = 'unverified'; reason = verificationFailure(checkResult); }
+    else if (latest.result !== 'pass' || latest.regression === true) { verdict = 'bypassed'; reason = 'latest run failed or regressed'; }
     else if (ageDays > staleDays) { verdict = 'expired'; reason = 'latest run is older than verification_stale_days'; }
     else if (closures.some(function (item) { return item.case_id === latest.case_id; })) { verdict = 'closed'; reason = 'latest verified run closed the case'; }
-    else { verdict = 'verified'; reason = 'latest run is independently verified and has not been closed'; }
+    else { verdict = 'verified'; reason = 'latest run verification passed and has not been closed'; }
   }
   return { ok: true, schema_version: 'autoarmory/mechanism-status/v1', mechanism_id: mechanismId, status: verdict, reason: reason, latest_run_id: latest ? latest.id : null, verified_at: latest ? (latest.finished_at || latest.recorded_at) : null };
 }
-
 function listMechanisms(stateDir) { return read(files(stateDir).mechanisms); }
 
 module.exports = { STATUSES, files, admitCase, registerMechanism, recordMechanismRun, closeCase, status, listMechanisms };

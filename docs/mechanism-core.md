@@ -7,18 +7,38 @@ Scope: case admission, mechanism registration, independent replay, closure, and 
 
 - `case`: a reproducible failure with an expected transition.
 - `mechanism`: a control asset that covers one or more failure modes.
-- `mechanism_run`: a replay with input/output hashes, environment fingerprint, exit code, and independent verification.
-- `closure`: proof that a verified, non-regressing mechanism run closed a case.
+- `mechanism_run`: a replay with `evidence_refs`, re-derived input/output digests, environment fingerprint, exit code, counterexample, and a judge-produced verification result.
+- `closure`: proof that a freshly verified, non-regressing mechanism run closed a case.
 
 ## Commands
 
 The case, mechanism, and run records are produced by the internal mechanism library and consumed by existing workflows. The user-facing action is closure:
 
 ```bash
-autoarmory close --case case-id --run run-id --state .selfforge
+autoarmory close --case case-id --run run-id --state .selfforge --repo <repo-root>
 ```
 
 `close` returns the resulting verdict, so no separate status command is required.
+
+## External fact verification
+
+`src/lib/verify.js` defines `verifyRefs` / `verifyRecord` / `captureRefs`.
+
+A record is verified only when the judge can re-derive the fact now:
+
+- the record points to an `evidence_ref` whose `verifier` is registered in `verifiers.lock.json`;
+- the verifier is explicitly `readonly`;
+- the adapter is inside the repository and its SHA-256 matches the pinned adapter digest;
+- the adapter is re-run and produces fresh `input_sha256`, `output_sha256`, and `exit_code`;
+- those fresh values match the recorded ref;
+- the same output digest reproduces across the configured trials (`Pass^k` style stability check);
+- the run's top-level digests, exit code, and result match the re-derived facts.
+
+Missing refs, unknown verifiers, non-readonly adapters, missing recorded hashes, adapter drift, non-zero adapter exits, or a missing pinned assertion all produce `unverifiable` or `mismatch`; they never produce `verified`.
+
+`verified_by`, `independent: true`, and a stored `verification_result` are not trust roots. `closeCase` and `status` re-run the verifier at read time. A caller that writes `result: pass` while the verifier re-derives `exit_code: 1` is rejected.
+
+Boundary: this proves that the registered adapter re-derives the recorded fact under the committed lock. It does not prove that a bridge or external system is honest beyond that adapter/lock boundary, and it cannot protect against rewritten history.
 
 ## Verdicts
 
@@ -29,9 +49,10 @@ unverified | verified | expired | bypassed | closed
 `closeCase` rejects a run unless it:
 
 - belongs to the case and mechanism;
-- is independently verified (`verified_by !== actor`);
-- passed;
+- has verified `evidence_refs` after a fresh re-derivation;
+- has re-derived input/output SHA-256 hashes and `exit_code`;
+- passed according to the re-derived exit code;
 - did not introduce a regression;
-- records both input and output SHA-256 hashes;- records a non-empty counterexample.
+- records a non-empty counterexample.
 
-The first slice does not run external tools. It records replay evidence supplied by the caller and only judges whether that evidence is sufficient to close a case.
+The first slice does not execute external tools as part of the control plane. It re-runs only registered, read-only verifier adapters whose digest is pinned in the trust root.
