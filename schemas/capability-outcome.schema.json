@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory capability outcome",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "decision_id",
+    "capability_id",
+    "task_type",
+    "result",
+    "reward",
+    "cost",
+    "latency_ms",
+    "environment_fingerprint",
+    "evidence",
+    "verified",
+    "source",
+    "observed_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "autoarmory/outcome/v1"
+    },
+    "decision_id": {
+      "type": "string"
+    },
+    "capability_id": {
+      "type": "string"
+    },
+    "task_type": {
+      "type": "string"
+    },
+    "result": {
+      "enum": [
+        "success",
+        "failure",
+        "partial"
+      ]
+    },
+    "reward": {
+      "type": "number"
+    },
+    "cost": {
+      "type": "number",
+      "minimum": 0
+    },
+    "latency_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "failure_mode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "environment_fingerprint": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "object"
+    },
+    "verified": {
+      "type": "boolean"
+    },
+    "source": {
+      "type": "string"
+    },
+    "propensity": {
+      "type": "number"
+    },
+    "observed_at": {
+      "type": "string"
+    }
+  }
+}

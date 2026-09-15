@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory capability",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "vendor",
+    "kind",
+    "version",
+    "capabilities",
+    "permissions",
+    "cost",
+    "latency_ms",
+    "reliability",
+    "risk",
+    "trust_level",
+    "conformance_level",
+    "health",
+    "freshness",
+    "evidence_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "autoarmory/capability/v1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vendor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "runner",
+        "evaluator",
+        "scanner",
+        "mcp-gateway",
+        "registry",
+        "observability",
+        "provenance",
+        "memory",
+        "ci",
+        "policy"
+      ]
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "permissions": {
+      "type": "object"
+    },
+    "cost": {
+      "type": "object"
+    },
+    "latency_ms": {
+      "type": "object"
+    },
+    "reliability": {
+      "type": "object"
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "trust_level": {
+      "enum": [
+        "untrusted",
+        "candidate",
+        "verified",
+        "trusted"
+      ]
+    },
+    "conformance_level": {
+      "enum": [
+        "imported",
+        "normalized",
+        "verified",
+        "live",
+        "ci-gated"
+      ]
+    },
+    "health": {
+      "enum": [
+        "unknown",
+        "healthy",
+        "degraded",
+        "offline"
+      ]
+    },
+    "freshness": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array"
+    }
+  }
+}

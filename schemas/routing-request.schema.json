@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory routing request",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_type",
+    "risk",
+    "data_sensitivity",
+    "cost_budget",
+    "latency_slo_ms",
+    "write_required",
+    "security_level"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "autoarmory/routing-request/v1"
+    },
+    "task_type": {
+      "type": "string"
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "data_sensitivity": {
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ]
+    },
+    "cost_budget": {
+      "type": "number",
+      "minimum": 0
+    },
+    "latency_slo_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "write_required": {
+      "type": "boolean"
+    },
+    "security_level": {
+      "enum": [
+        "standard",
+        "elevated",
+        "restricted"
+      ]
+    },
+    "context": {
+      "type": "object"
+    }
+  }
+}

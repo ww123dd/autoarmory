@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory replacement suggestion",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "candidate_id",
+    "capability_id",
+    "action",
+    "reason",
+    "evidence_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "autoarmory/replacement-suggestion/v1"
+    },
+    "candidate_id": {
+      "type": "string"
+    },
+    "capability_id": {
+      "type": "string"
+    },
+    "action": {
+      "enum": [
+        "replace",
+        "degrade",
+        "retire",
+        "probe",
+        "retest"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array"
+    }
+  }
+}

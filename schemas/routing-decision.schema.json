@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory routing decision",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "request_id",
+    "selected",
+    "rejected",
+    "fallback_chain",
+    "reason",
+    "policy_version",
+    "seed",
+    "evidence_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "autoarmory/routing-decision/v1"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "selected": {
+      "type": "array"
+    },
+    "rejected": {
+      "type": "array"
+    },
+    "fallback_chain": {
+      "type": "array"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "policy_version": {
+      "type": "string"
+    },
+    "seed": {
+      "type": "number"
+    },
+    "evidence_refs": {
+      "type": "array"
+    }
+  }
+}
