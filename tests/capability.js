@@ -95,4 +95,32 @@ must(result.code === 0 && restrictedDecision.selected[0].id === 'runner.restrict
 result = run(['capability', 'portfolio', '--state', state, '--json']);
 const frontier = JSON.parse(result.out);
 must(result.code === 0 && frontier.frontier.some(function (item) { return item.id === 'runner.fast'; }) && frontier.frontier.some(function (item) { return item.id === 'runner.cheap'; }), 'portfolio returns Pareto modules');
+function outcome(overrides) {
+  return Object.assign({
+    schema_version: 'autoarmory/outcome/v1', decision_id: 'route-test', capability_id: 'runner.fast', task_type: 'run-agent-eval', result: 'success', reward: 1, cost: 0.01, latency_ms: 900, failure_mode: null, environment_fingerprint: 'test-env', evidence: { case: 'c1' }, verified: true, source: 'integration', propensity: 0.5, observed_at: '2026-09-15T00:00:00.000Z'
+  }, overrides || {});
+}
+const successOutcome = writeJson('outcome-success.json', outcome());
+result = run(['capability', 'outcome', successOutcome, '--state', state, '--json']);
+must(result.code === 0 && JSON.parse(result.out).applied === true, 'verified outcome updates reliability');
+
+result = run(['capability', 'list', '--state', state, '--json']);
+let listed = JSON.parse(result.out).find(function (item) { return item.id === 'runner.fast'; });
+must(listed.reliability.alpha === 10 && listed.reliability.beta === 1, 'outcome increments Beta alpha');
+
+const unverified = writeJson('outcome-unverified.json', outcome({ result: 'failure', verified: false }));
+result = run(['capability', 'outcome', unverified, '--state', state, '--json']);
+must(result.code === 0 && JSON.parse(result.out).applied === false, 'unverified outcome does not update reliability');
+
+for (let i = 0; i < 3; i++) run(['capability', 'outcome', writeJson('drift-success-' + i + '.json', outcome({ capability_id: 'runner.cheap', result: 'success' })), '--state', state, '--json']);
+for (let i = 0; i < 3; i++) run(['capability', 'outcome', writeJson('drift-failure-' + i + '.json', outcome({ capability_id: 'runner.cheap', result: 'failure' })), '--state', state, '--json']);
+result = run(['capability', 'drift', 'runner.cheap', '--state', state, '--json']);
+must(result.code === 0 && JSON.parse(result.out).status === 'alert', 'drift alert: ' + result.out + result.err);
+
+result = run(['capability', 'conformance', 'runner.fast', '--state', state, '--json']);
+must(result.code === 0 && JSON.parse(result.out).ok === true, 'conformance pass');
+
+result = run(['capability', 'retire', 'runner.cheap', '--reason', 'Repeated drift and failures.', '--state', state, '--json']);
+const retirement = JSON.parse(result.out);
+must(result.code === 0 && retirement.action === 'retire' && fs.readFileSync(path.join(state, 'replacement-suggestions.jsonl'), 'utf8').includes('runner.cheap'), 'retirement suggestion');
 console.log('Capability registry tests passed');

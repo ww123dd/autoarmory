@@ -5,7 +5,7 @@ const { parseArgs, readJson, readJsonl, writeJsonl, printJson } = require('../li
 const capability = require('../lib/capability');
 
 function usage() {
-  process.stderr.write('Usage: autoarmory capability <register|list|health|route|portfolio> [options]\n');
+  process.stderr.write('Usage: autoarmory capability <register|list|health|route|portfolio|outcome|drift|conformance|retire> [options]\n');
   return 2;
 }
 
@@ -59,6 +59,39 @@ module.exports = function run(argv) {
     const result = capability.portfolio(capability.readCapabilities(file));
     if (args.json) printJson(result); else for (const item of result.frontier) process.stdout.write('  ' + item.id + '  reliability=' + item.reliability.toFixed(3) + '  cost=' + item.cost + '  p95=' + item.latency_p95 + '\n');
     return result.frontier.length ? 0 : 1;
+  }
+
+  if (sub === 'outcome') {
+    const input = args._[1];
+    if (!input) return usage();
+    const result = capability.recordOutcome(file, path.join(state, 'capability-outcomes.jsonl'), readJson(path.resolve(input)));
+    if (args.json) printJson(result); else if (result.ok) process.stdout.write('Recorded outcome for ' + result.capability.id + ' applied=' + result.applied + '\n'); else process.stderr.write(result.errors.join('\n') + '\n');
+    return result.ok ? 0 : 1;
+  }
+
+  if (sub === 'drift') {
+    const id = args._[1] || null;
+    const result = capability.detectDrift(readJsonl(path.join(state, 'capability-outcomes.jsonl')), { capability_id: id || undefined, threshold: Number(args.threshold || 0.3) });
+    if (args.json) printJson(result); else process.stdout.write('  ' + result.status + '  samples=' + result.samples + '\n');
+    return result.status === 'insufficient_data' ? 1 : 0;
+  }
+
+  if (sub === 'conformance') {
+    const id = args._[1];
+    if (!id) return usage();
+    const item = capability.readCapabilities(file).find(function (entry) { return entry.id === id; });
+    if (!item) { process.stderr.write('capability not found: ' + id + '\n'); return 1; }
+    const result = capability.conformanceCheck(item);
+    if (args.json) printJson(result); else process.stdout.write('  ' + (result.ok ? 'PASS' : 'FAIL') + '  ' + id + '\n');
+    return result.ok ? 0 : 1;
+  }
+
+  if (sub === 'retire') {
+    const id = args._[1];
+    if (!id || !args.reason) return usage();
+    const result = capability.retireCapability(file, path.join(state, 'replacement-suggestions.jsonl'), id, args.reason);
+    if (args.json) printJson(result.ok ? result.suggestion : result); else if (result.ok) process.stdout.write('Retired ' + id + '\n'); else process.stderr.write(result.errors.join('\n') + '\n');
+    return result.ok ? 0 : 1;
   }
 
   return usage();

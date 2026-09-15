@@ -179,4 +179,84 @@ function portfolio(capabilities) {
   return { schema_version: 'autoarmory/portfolio/v1', frontier: frontier.map(function (item) { return { id: item.id, reliability: item.reliability, cost: item.cost, latency_p95: item.latency_p95, risk: item.risk, freshness: item.freshness }; }) };
 }
 
-module.exports = { KINDS, RISKS, TRUST_LEVELS, CONFORMANCE_LEVELS, HEALTH_LEVELS, normalizeCapability, validateCapability, readCapabilities, registerCapability, healthRows, filterCapabilities, route, portfolio, sampleBeta, reliabilityMean };
+
+function validateOutcome(value) {
+  const errors = [];
+  if (!value || typeof value !== 'object') return ['outcome must be an object'];
+  if (value.schema_version !== 'autoarmory/outcome/v1') errors.push('schema_version must be autoarmory/outcome/v1');
+  if (typeof value.decision_id !== 'string' || !value.decision_id) errors.push('missing decision_id');
+  if (typeof value.capability_id !== 'string' || !value.capability_id) errors.push('missing capability_id');
+  if (['success', 'failure', 'partial'].indexOf(value.result) === -1) errors.push('result must be success, failure or partial');
+  if (!Number.isFinite(Number(value.reward))) errors.push('reward must be a number');
+  if (typeof value.verified !== 'boolean') errors.push('verified must be a boolean');
+  if (typeof value.source !== 'string' || !value.source) errors.push('source is required');
+  return errors;
+}
+
+function recordOutcome(registryFile, outcomesFile, value) {
+  const errors = validateOutcome(value);
+  if (errors.length) return { ok: false, errors: errors };
+  const capabilities = readCapabilities(registryFile);
+  const index = capabilities.findIndex(function (item) { return item.id === value.capability_id; });
+  if (index === -1) return { ok: false, errors: ['capability not found: ' + value.capability_id] };
+  const outcomes = fs.existsSync(outcomesFile) ? readJsonl(outcomesFile) : [];
+  outcomes.push(value);
+  writeJsonl(outcomesFile, outcomes);
+  const capability = capabilities[index];
+  if (value.verified === true) {
+    if (value.result === 'success') capability.reliability.alpha += 1;
+    else if (value.result === 'failure') capability.reliability.beta += 1;
+    else { capability.reliability.alpha += 0.5; capability.reliability.beta += 0.5; }
+    capability.updated_at = new Date().toISOString();
+    capabilities[index] = capability;
+    writeJsonl(registryFile, capabilities);
+  }
+  return { ok: true, applied: value.verified === true, capability: capability, outcome: value };
+}
+
+function detectDrift(outcomes, options) {
+  const opts = options || {};
+  const list = (outcomes || []).filter(function (item) { return !opts.capability_id || item.capability_id === opts.capability_id; });
+  const min = Number(opts.min || 6);
+  if (list.length < min) return { schema_version: 'autoarmory/drift/v1', status: 'insufficient_data', samples: list.length, min: min };
+  const half = Math.floor(list.length / 2);
+  const older = list.slice(0, half);
+  const recent = list.slice(half);
+  const success = function (item) { return item.result ? item.result === 'success' : Number(item.reward) > 0; };
+  const baseline = older.filter(success).length / older.length;
+  const current = recent.filter(success).length / recent.length;
+  const drop = baseline - current;
+  let cusum = 0;
+  let maxCusum = 0;
+  for (const item of recent) { cusum = Math.max(0, cusum + (success(item) ? -1 : 1)); maxCusum = Math.max(maxCusum, cusum); }
+  const threshold = Number(opts.threshold || 0.3);
+  const alert = drop >= threshold || maxCusum >= 3;
+  return { schema_version: 'autoarmory/drift/v1', status: alert ? 'alert' : 'ok', capability_id: opts.capability_id || null, samples: list.length, baseline: baseline, recent: current, drop: drop, max_cusum: maxCusum, threshold: threshold };
+}
+
+function conformanceCheck(capability, options) {
+  const opts = options || {};
+  const errors = validateCapability(capability);
+  const warnings = [];
+  const ageDays = (Date.now() - Date.parse(capability.freshness)) / 86400000;
+  if (ageDays > Number(opts.max_age_days || 30)) errors.push('freshness is older than ' + Number(opts.max_age_days || 30) + ' days');
+  if (capability.conformance_level === 'imported') warnings.push('capability is still imported and not normalized');
+  if (!capability.evidence_refs || capability.evidence_refs.length === 0) warnings.push('no evidence_refs declared');
+  return { schema_version: 'autoarmory/conformance/v1', id: capability.id, ok: errors.length === 0, level: capability.conformance_level, errors: errors, warnings: warnings };
+}
+
+function retireCapability(registryFile, suggestionsFile, id, reason) {
+  const capabilities = readCapabilities(registryFile);
+  const index = capabilities.findIndex(function (item) { return item.id === id; });
+  if (index === -1) return { ok: false, errors: ['capability not found: ' + id] };
+  capabilities[index].health = 'offline';
+  capabilities[index].updated_at = new Date().toISOString();
+  writeJsonl(registryFile, capabilities);
+  const suggestion = { schema_version: 'autoarmory/replacement-suggestion/v1', candidate_id: 'retire-' + require('./util').sha256(id + ':' + reason + ':' + Date.now()).slice(0, 12), capability_id: id, action: 'retire', reason: reason, evidence_refs: [] };
+  const suggestions = fs.existsSync(suggestionsFile) ? readJsonl(suggestionsFile) : [];
+  suggestions.push(suggestion);
+  writeJsonl(suggestionsFile, suggestions);
+  return { ok: true, suggestion: suggestion, capability: capabilities[index] };
+}
+
+module.exports = { KINDS, RISKS, TRUST_LEVELS, CONFORMANCE_LEVELS, HEALTH_LEVELS, normalizeCapability, validateCapability, readCapabilities, registerCapability, healthRows, filterCapabilities, route, portfolio, sampleBeta, reliabilityMean, validateOutcome, recordOutcome, detectDrift, conformanceCheck, retireCapability };
