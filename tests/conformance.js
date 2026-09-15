@@ -80,4 +80,9 @@ must(result.ok === true, 'case candidate with cases.json must pass through Skill
 result = gate(candidate('cand-conformance-missing'), { path: path.join(os.tmpdir(), 'missing-skillcanary-' + Date.now()), cwd: root, baseDir: root });
 must(result.ok === false && /SkillCanary CLI not found/.test(result.errors.join(' ')), 'missing SkillCanary must fail closed');
 
+const capability = require('../src/lib/capability');
+const capabilityLines = fs.readFileSync(path.join(root, 'examples', 'capabilities.jsonl'), 'utf8').trim().split(String.fromCharCode(10)).filter(Boolean).map(function (line) { return JSON.parse(line); });
+must(capabilityLines.length === 4, 'four capability conformance fixtures are required');
+for (const item of capabilityLines) must(capability.validateCapability(capability.normalizeCapability(item)).length === 0, 'invalid capability fixture: ' + item.id);
+must(capability.portfolio(capabilityLines.map(capability.normalizeCapability)).frontier.length > 0, 'capability portfolio conformance');
 console.log('AutoArmory SkillCanary conformance passed: ' + expectedVersion);
