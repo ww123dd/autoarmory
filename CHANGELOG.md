@@ -10,6 +10,7 @@
 - Added capability registry, health, routing, portfolio, outcome learning, drift, conformance and retirement.
 - Added guarded policy calibration and off-policy evaluation.
 - Added article and OTel GenAI incident adapters, a failure-mode taxonomy and external agent-evaluation standards mapping.
+- Added a deterministic self-evaluation command with Pass^k checks and explicit self-assessment bias disclosure.
 
 ## 0.2.0
 

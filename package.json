@@ -27,7 +27,8 @@
     "evolve:example": "node bin/autoarmory.js evolve examples/incidents.jsonl --cases examples/skillcanary-cases.json --json",
     "test:conformance": "node tests/conformance.js",
     "test:canary": "node packages/skillcanary/tests/run.js",
-    "test:articles": "node tests/failure-modes.js"
+    "test:articles": "node tests/failure-modes.js",
+    "test:self-eval": "node tests/self-eval.js"
   },
   "engines": {
     "node": ">=18"

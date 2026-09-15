@@ -73,6 +73,14 @@ autoarmory propose .selfforge/incidents.jsonl --output .selfforge/candidates.jso
 
 The taxonomy and action mapping are documented in [Failure Modes](docs/failure-modes.md). External evaluation standards are mapped in [Agent Evaluation Standards](docs/standards/agent-evaluation-standards.md).
 
+## Self-evaluation
+
+```bash
+autoarmory self-eval --runs 3 --output self-eval.json
+```
+
+This runs the core suites as Pass^k checks, plus conformance, capability contracts, docs and repository integrity. It is explicitly a self-evaluation, not an independent audit: the report always discloses self-assessment bias.
+
 ## Real CLI input
 
 `observe -` reads artifacts from stdin, so real runner and CLI output can be observed without AutoArmory executing the external command itself:
