@@ -65,7 +65,7 @@ function recordMechanismRun(stateDir, value) {
   const state = files(stateDir);
   const mechanisms = read(state.mechanisms);
   const cases = read(state.cases);
-  const errors = requireFields(value, ['schema_version', 'id', 'mechanism_id', 'case_id', 'actor', 'verified_by', 'verified', 'result', 'evidence', 'input_sha256', 'output_sha256', 'environment_fingerprint', 'exit_code', 'started_at', 'finished_at'], 'mechanism_run');
+  const errors = requireFields(value, ['schema_version', 'id', 'mechanism_id', 'case_id', 'actor', 'verified_by', 'verified', 'result', 'evidence', 'counterexample', 'input_sha256', 'output_sha256', 'environment_fingerprint', 'exit_code', 'started_at', 'finished_at'], 'mechanism_run');
   if (value.schema_version !== 'autoarmory/mechanism-run/v1') errors.push('schema_version must be autoarmory/mechanism-run/v1');
   if (!mechanisms.some(function (item) { return item.id === value.mechanism_id; })) errors.push('mechanism not found: ' + value.mechanism_id);
   if (!cases.some(function (item) { return item.id === value.case_id; })) errors.push('case not found: ' + value.case_id);
@@ -73,6 +73,7 @@ function recordMechanismRun(stateDir, value) {
   if (value.verified !== true) errors.push('mechanism run must be independently verified');
   if (!value.verified_by || value.verified_by === value.actor) errors.push('verification must be independent: verified_by must differ from actor');
   if (!Array.isArray(value.evidence) || value.evidence.length === 0) errors.push('mechanism_run.evidence must be a non-empty array');
+  if (!value.counterexample || typeof value.counterexample !== 'object' || Array.isArray(value.counterexample) || Object.keys(value.counterexample).length === 0) errors.push('mechanism_run.counterexample must be a non-empty object');
   if (!Number.isInteger(value.exit_code)) errors.push('mechanism_run.exit_code must be an integer');
   errors.push.apply(errors, requireHashes(value, 'mechanism_run'));
   if (errors.length) return { ok: false, errors: errors };
@@ -96,6 +97,7 @@ function closeCase(stateDir, caseId, runId) {
   if (run.verified !== true || run.verified_by === run.actor) return { ok: false, errors: ['run is not independently verified'] };
   if (run.result !== 'pass') return { ok: false, errors: ['run did not pass'] };
   if (run.regression === true) return { ok: false, errors: ['run introduced a regression'] };
+  if (!run.counterexample || typeof run.counterexample !== 'object' || Object.keys(run.counterexample).length === 0) return { ok: false, errors: ['run is missing a counterexample'] };
   const hashErrors = requireHashes(run, 'mechanism_run');
   if (hashErrors.length) return { ok: false, errors: hashErrors };
   if (closures.some(function (entry) { return entry.case_id === caseId && entry.run_id === runId; })) return { ok: false, errors: ['case already closed for this run'] };

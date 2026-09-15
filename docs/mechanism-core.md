@@ -32,6 +32,6 @@ unverified | verified | expired | bypassed | closed
 - is independently verified (`verified_by !== actor`);
 - passed;
 - did not introduce a regression;
-- records both input and output SHA-256 hashes.
+- records both input and output SHA-256 hashes;- records a non-empty counterexample.
 
 The first slice does not run external tools. It records replay evidence supplied by the caller and only judges whether that evidence is sufficient to close a case.
