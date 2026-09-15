@@ -126,6 +126,7 @@ function filterCapabilities(capabilities, request) {
     else if ((item.capabilities || []).indexOf(request.task_type) === -1) reason = 'does not provide task_type ' + request.task_type;
     else if ((RISK_RANK[item.risk] || 99) > (RISK_RANK[request.risk] || 99)) reason = 'risk exceeds request limit';
     else if (request.write_required && !item.permissions.write) reason = 'missing write permission';
+    else if ((request.write_required || item.risk === 'high' || item.risk === 'critical') && request.human_approval !== true) reason = 'requires human approval';
     else if (request.data_sensitivity === 'restricted' && item.permissions.network) reason = 'restricted data cannot use a network capability';
     else if (request.security_level === 'restricted' && item.trust_level !== 'trusted') reason = 'restricted security requires trusted capability';
     else if (request.security_level === 'elevated' && item.trust_level === 'untrusted') reason = 'elevated security rejects untrusted capability';
@@ -203,7 +204,7 @@ function recordOutcome(registryFile, outcomesFile, value) {
   outcomes.push(value);
   writeJsonl(outcomesFile, outcomes);
   const capability = capabilities[index];
-  if (value.verified === true) {
+  if (value.verified === true && value.source !== 'fixture') {
     if (value.result === 'success') capability.reliability.alpha += 1;
     else if (value.result === 'failure') capability.reliability.beta += 1;
     else { capability.reliability.alpha += 0.5; capability.reliability.beta += 0.5; }
@@ -211,7 +212,7 @@ function recordOutcome(registryFile, outcomesFile, value) {
     capabilities[index] = capability;
     writeJsonl(registryFile, capabilities);
   }
-  return { ok: true, applied: value.verified === true, capability: capability, outcome: value };
+  return { ok: true, applied: value.verified === true && value.source !== 'fixture', reason: value.source === 'fixture' ? 'fixture outcome does not update reliability' : null, capability: capability, outcome: value };
 }
 
 function detectDrift(outcomes, options) {

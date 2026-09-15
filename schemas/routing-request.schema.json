@@ -55,6 +55,9 @@
     },
     "context": {
       "type": "object"
+    },
+    "human_approval": {
+      "type": "boolean"
     }
   }
 }

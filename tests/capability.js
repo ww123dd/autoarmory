@@ -82,7 +82,7 @@ const routeOne = result.out;
 result = run(['capability', 'route', '--request', requestFile, '--state', state, '--seed', '7', '--json']);
 must(result.code === 0 && result.out === routeOne, 'capability route is deterministic for a seed');
 
-const writeRequest = writeJson('routing-write.json', { schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'medium', data_sensitivity: 'internal', cost_budget: 1, latency_slo_ms: 5000, write_required: true, security_level: 'standard', context: {} });
+const writeRequest = writeJson('routing-write.json', { schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'medium', data_sensitivity: 'internal', cost_budget: 1, latency_slo_ms: 5000, write_required: true, human_approval: true, security_level: 'standard', context: {} });
 result = run(['capability', 'route', '--request', writeRequest, '--state', state, '--seed', '7', '--json']);
 const writeDecision = JSON.parse(result.out);
 must(result.code === 0 && writeDecision.selected[0].id === 'runner.writer' && writeDecision.rejected.some(function (item) { return item.id === 'runner.fast' && /write permission/i.test(item.reason); }), 'routing must enforce write permission');
@@ -108,6 +108,14 @@ result = run(['capability', 'list', '--state', state, '--json']);
 let listed = JSON.parse(result.out).find(function (item) { return item.id === 'runner.fast'; });
 must(listed.reliability.alpha === 10 && listed.reliability.beta === 1, 'outcome increments Beta alpha');
 
+const fixtureOutcome = writeJson('outcome-fixture.json', outcome({ result: 'success', source: 'fixture' }));
+result = run(['capability', 'outcome', fixtureOutcome, '--state', state, '--json']);
+must(result.code === 0 && JSON.parse(result.out).applied === false, 'fixture outcome cannot update reliability');
+
+const noApprovalRequest = writeJson('routing-write-no-approval.json', { schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'medium', data_sensitivity: 'internal', cost_budget: 1, latency_slo_ms: 5000, write_required: true, security_level: 'standard', context: {} });
+result = run(['capability', 'route', '--request', noApprovalRequest, '--state', state, '--seed', '7', '--json']);
+const noApproval = JSON.parse(result.out);
+must(result.code === 1 && noApproval.rejected.some(function (item) { return item.id === 'runner.writer' && /human approval/i.test(item.reason); }), 'write routing requires human approval');
 const unverified = writeJson('outcome-unverified.json', outcome({ result: 'failure', verified: false }));
 result = run(['capability', 'outcome', unverified, '--state', state, '--json']);
 must(result.code === 0 && JSON.parse(result.out).applied === false, 'unverified outcome does not update reliability');
