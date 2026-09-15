@@ -25,12 +25,17 @@ function repo(name) {
   write(path.join(dir, 'README.md'), '# Fixture\n');
   write(path.join(dir, 'src', 'commands', 'existing.js'), "'use strict';\n");
   write(path.join(dir, 'src', 'lib', 'mechanism.js'), "'use strict';\nmodule.exports = {};\n");
+  write(path.join(dir, 'src', 'cli.js'), "const commands = { init: true };\nfunction usage() { return 'control plane portfolio capability route'; }\n");
   git(dir, ['add', '.']);
   git(dir, ['commit', '-m', 'baseline']);
   return dir;
 }
 function run(repoDir) {
   const result = spawnSync(process.execPath, [gate, '--repo', repoDir, '--staged', '--json'], { encoding: 'utf8' });
+  return { code: result.status, out: result.stdout || '', err: result.stderr || '' };
+}
+function runCommit(repoDir, ref) {
+  const result = spawnSync(process.execPath, [gate, '--repo', repoDir, '--commit', ref, '--json'], { encoding: 'utf8' });
   return { code: result.status, out: result.stdout || '', err: result.stderr || '' };
 }
 function must(condition, message) {
@@ -90,10 +95,35 @@ git(dir, ['add', 'src/commands/new.js']);
 result = run(dir);
 must(result.code === 0, 'removing a command must PASS');
 
+dir = repo('usage-text-only');
+write(path.join(dir, 'src', 'commands', 'new.js'), "'use strict';\n");
+write(path.join(dir, 'src', 'cli.js'), "const commands = { init: true };\nfunction usage() { return 'safe wording only'; }\n");
+git(dir, ['add', 'src/commands/new.js', 'src/cli.js']);
+result = run(dir);
+must(result.code === 2 && result.out.includes('new abstraction'), 'usage text removal must not bypass structural gate');
 dir = repo('strong-vocabulary');
 write(path.join(dir, 'README.md'), '# Fixture\n\nThe cross-vendor capability control plane.\n');
 git(dir, ['add', 'README.md']);
 result = run(dir);
 must(result.code === 2 && result.out.includes('strong-vocabulary'), 'strong vocabulary without claim must BLOCK');
 
-console.log('change-gate selftest passed: no-claim=BLOCK, claim-only=BLOCK, hash-only=BLOCK, removal=PASS, strong-vocab=BLOCK');
+
+
+
+dir = repo('commit-mode-new-command');
+write(path.join(dir, 'src', 'commands', 'new.js'), "'use strict';\n");
+git(dir, ['add', 'src/commands/new.js']);
+git(dir, ['commit', '-m', 'new command']);
+result = runCommit(dir, 'HEAD');
+must(result.code === 2 && result.out.includes('"mode": "commit:HEAD"') && result.out.includes('new abstraction'), 'commit replay must detect a new abstraction');
+
+dir = repo('commit-mode-removal');
+write(path.join(dir, 'src', 'commands', 'new.js'), "'use strict';\n");
+write(path.join(dir, 'src', 'cli.js'), "const commands = { newCmd: true };\nfunction usage() { return 'safe wording only'; }\n");
+git(dir, ['rm', 'src/commands/existing.js']);
+git(dir, ['add', 'src/commands/new.js', 'src/cli.js']);
+git(dir, ['commit', '-m', 'replace command']);
+result = runCommit(dir, 'HEAD');
+must(result.code === 0, 'commit replay must pass a structural replacement');
+
+console.log('change-gate selftest passed: no-claim=BLOCK, claim-only=BLOCK, hash-only=BLOCK, removal=PASS, strong-vocab=BLOCK, commit-new=BLOCK, commit-replacement=PASS');

@@ -5,6 +5,7 @@
 // to an existing mechanism. This is a pre-commit enforcement point, not a report.
 // Usage: node scripts/change-gate.js --staged [--json]
 //        node scripts/change-gate.js --range HEAD~1 [--json]
+//        node scripts/change-gate.js --commit <sha> [--json]
 // Exit: 0 PASS / 2 BLOCK
 const fs = require('fs');
 const path = require('path');
@@ -26,10 +27,31 @@ function parseStatus(text) {
   });
 }
 function added(diff) { return diff.split(/\r?\n/).filter(function (line) { return line[0] === '+' && line.slice(0, 3) !== '+++'; }).join('\n'); }
-function removed(diff) { return diff.split(/\r?\n/).filter(function (line) { return line[0] === '-' && line.slice(0, 3) !== '---'; }).join('\n'); }
-function readStagedFile(repo, file, staged, range) {
-  const spec = staged ? ':' + file : range + ':' + file;
-  return git(repo, ['show', spec]);
+function parseCliCommands(text) {
+  const match = String(text).match(/const commands = \{([^}]*)\};/);
+  const body = match ? match[1] : '';
+  return new Set(body.split(',').map(function (item) {
+    const key = item.trim().split(':')[0].trim().replace(/^"|"$/g, '');
+    return key;
+  }).filter(Boolean));
+}
+
+const repo = path.resolve(argValue('--repo', process.cwd()));
+const commit = argValue('--commit', null);
+const staged = !commit && (process.argv.includes('--staged') || !process.argv.includes('--range'));
+const range = argValue('--range', 'HEAD~1');
+const args = commit ? ['diff', commit + '^', commit] : (staged ? ['diff', '--cached'] : ['diff', range]);
+
+function readBefore(file) {
+  if (commit) return git(repo, ['show', commit + '^:' + file]);
+  if (staged) return git(repo, ['show', 'HEAD:' + file]);
+  return git(repo, ['show', range + ':' + file]);
+}
+function readAt(file) {
+  if (staged) return git(repo, ['show', ':' + file]);
+  if (commit) return git(repo, ['show', commit + ':' + file]);
+  const full = path.join(repo, file);
+  return fs.existsSync(full) ? fs.readFileSync(full, 'utf8') : '';
 }
 function claimCheck(content) {
   const checker = path.join(__dirname, 'claim-check.js');
@@ -43,14 +65,9 @@ function claimCheck(content) {
   }
 }
 
-const repo = path.resolve(argValue('--repo', process.cwd()));
-const staged = process.argv.includes('--staged') || !process.argv.includes('--range');
-const range = argValue('--range', 'HEAD~1');
-const args = staged ? ['diff', '--cached'] : ['diff', range];
 const status = parseStatus(git(repo, args.concat(['--name-status'])));
 const diff = git(repo, args.concat(['--unified=0']));
 const addedText = added(diff);
-const removedText = removed(diff);
 const abstractions = [];
 const claims = [];
 
@@ -63,20 +80,29 @@ for (const item of status) {
 }
 const packageChanged = status.some(function (item) { return item.file === 'package.json'; });
 if (packageChanged) {
-  const before = JSON.parse(git(repo, ['show', (staged ? 'HEAD' : range) + ':package.json']));
-  const after = JSON.parse(readStagedFile(repo, 'package.json', staged, range));
-  const addedScripts = Object.keys(after.scripts || {}).filter(function (name) { return !(before.scripts || {})[name] && !/^(?:test|hooks|gate|check|lint|format|build|ci)(?::|-|$)/i.test(name); });
+  const beforeSpec = commit ? commit + '^:package.json' : (staged ? 'HEAD:package.json' : range + ':package.json');
+  const before = JSON.parse(git(repo, ['show', beforeSpec]));
+  const after = JSON.parse(readAt('package.json'));
+  const addedScripts = Object.keys(after.scripts || {}).filter(function (name) {
+    return !(before.scripts || {})[name] && !/^(?:test|hooks|gate|check|lint|format|build|ci)(?::|-|$)/i.test(name);
+  });
   if (addedScripts.length) abstractions.push({ kind: 'package-script', file: 'package.json', scripts: addedScripts });
 }
 const readmeDiff = status.some(function (item) { return item.file === 'README.md'; }) ? git(repo, args.concat(['--unified=0', '--', 'README.md'])) : '';
 if (readmeDiff && /(?:control\s*plane|off[-\s]?policy|portfolio|production[-\s]?ready|reliability|verified|conformance)/i.test(added(readmeDiff))) abstractions.push({ kind: 'strong-vocabulary', file: 'README.md' });
 
 const verificationImprovement = (/input_sha256/.test(addedText) && /output_sha256/.test(addedText)) || (/environment_fingerprint/.test(addedText) && /outcome_callback/.test(addedText)) || (/closeCase/.test(addedText) && /exit_code/.test(addedText));
-const downgrade = /(?:control\s*plane|off[-\s]?policy|portfolio|capability\s+route)/i.test(removedText) || status.some(function (item) { return (item.status === 'D' || item.status.indexOf('R') === 0) && /^src\/commands\//.test(item.file); });
+const oldCommands = parseCliCommands(readBefore('src/cli.js'));
+const newCommands = parseCliCommands(readAt('src/cli.js'));
+const removedCommands = Array.from(oldCommands).filter(function (name) { return !newCommands.has(name); });
+const removedSurfaces = status.some(function (item) { return (item.status === 'D' || item.status.indexOf('R') === 0) && (/^src\/commands\//.test(item.file) || /^schemas\//.test(item.file)); });
+const downgrade = removedSurfaces || removedCommands.length > 0;
+const hardAbstractions = abstractions.filter(function (item) { return item.kind !== 'strong-vocabulary'; });
+const strongVocabulary = abstractions.some(function (item) { return item.kind === 'strong-vocabulary'; });
 const claimReports = [];
 for (const file of claims) {
   try {
-    claimReports.push(Object.assign({ file: file }, claimCheck(readStagedFile(repo, file, staged, range))));
+    claimReports.push(Object.assign({ file: file }, claimCheck(readAt(file))));
   } catch (error) {
     claimReports.push({ file: file, ok: false, output: error.message });
   }
@@ -84,23 +110,21 @@ for (const file of claims) {
 
 const blockers = [];
 const warnings = [];
-if (abstractions.length && !downgrade) {
-  blockers.push('new abstraction requires removal or replacement of an existing layer');
-}
-if (abstractions.length && !downgrade) warnings.push('blocked abstractions: ' + abstractions.map(function (item) { return item.kind + ':' + item.file; }).join(', '));
+if (hardAbstractions.length && !downgrade) blockers.push('new abstraction requires removal or replacement of an existing layer');
+if (strongVocabulary && !downgrade && !claimReports.some(function (item) { return item.ok; })) blockers.push('strong vocabulary requires a passing claim or a structural downgrade');
+if (blockers.length) warnings.push('blocked abstractions: ' + abstractions.map(function (item) { return item.kind + ':' + item.file; }).join(', '));
 if (!abstractions.length && !claims.length) warnings.push('no new abstraction detected; gate allowed the diff');
-
 const report = {
   schema_version: 'autoarmory/change-gate/v1',
   repo: repo,
-  mode: staged ? 'staged' : 'range:' + range,
+  mode: commit ? 'commit:' + commit : (staged ? 'staged' : 'range:' + range),
   abstractions: abstractions,
   claims: claimReports,
   verification_improvement: verificationImprovement,
   downgrade: downgrade,
   blockers: blockers,
   warnings: warnings,
-  verdict: blockers.length ? 'BLOCK' : 'PASS',
+  verdict: blockers.length ? 'BLOCK' : 'PASS'
 };
 if (process.argv.includes('--json')) console.log(JSON.stringify(report, null, 2));
 else {
