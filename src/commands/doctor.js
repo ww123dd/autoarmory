@@ -13,6 +13,8 @@ module.exports = function run(argv) {
   add('incidents', fs.existsSync(path.join(state, 'incidents.jsonl')) && readJsonl(path.join(state, 'incidents.jsonl')).length > 0, 'observed incidents');
   add('candidates', fs.existsSync(path.join(state, 'candidates.jsonl')) && readJsonl(path.join(state, 'candidates.jsonl')).length > 0, 'proposed candidates');
   add('environment', fs.existsSync(path.join(state, 'environment.json')), 'environment fingerprint');
+  add('capabilities', fs.existsSync(path.join(state, 'capabilities.jsonl')) && readJsonl(path.join(state, 'capabilities.jsonl')).length > 0, 'capability registry');
+  add('capability-outcomes', fs.existsSync(path.join(state, 'capability-outcomes.jsonl')) && readJsonl(path.join(state, 'capability-outcomes.jsonl')).length > 0, 'capability outcome history');
   add('decisions', fs.existsSync(path.join(state, 'decisions.jsonl')) && readJsonl(path.join(state, 'decisions.jsonl')).length > 0, 'recorded outcomes');
   add('skillcanary', !!skillcanary.resolve(args.skillcanary || undefined, dir), 'SkillCanary dependency');
   const result = { schema_version: 'selfforge/doctor/v1', ok: checks.every(function (check) { return check.ok; }), checks };

@@ -140,4 +140,16 @@ must(result.code === 1 && /synthetic/i.test(result.out + result.err), 'calibrati
 result = run(['policy', 'off-policy', '--outcomes', calibrationFile, '--min', '2', '--json']);
 const offPolicy = JSON.parse(result.out);
 must(result.code === 0 && offPolicy.status === 'evaluated' && typeof offPolicy.ips === 'number' && typeof offPolicy.effective_samples === 'number', 'off-policy evaluation');
+result = run(['report', temp]);
+must(result.code === 0 && /Capabilities:/i.test(result.out) && /Capability Outcomes:/i.test(result.out), 'report includes capability summary');
+
+result = run(['doctor', temp, '--json']);
+must(result.code === 0 && /"id": "capabilities"/.test(result.out), 'doctor checks capability registry');
+
+const exampleLines = fs.readFileSync(path.join(root, 'examples', 'capabilities.jsonl'), 'utf8').trim().split(String.fromCharCode(10)).filter(Boolean).map(function (line) { return JSON.parse(line); });
+const exampleState = path.join(temp, 'examples-state');
+fs.mkdirSync(exampleState, { recursive: true });
+result = run(['capability', 'register', path.join(root, 'examples', 'capabilities.jsonl'), '--state', exampleState, '--json']);
+must(result.code === 0 && JSON.parse(result.out).count === 4, 'capability register supports JSONL batch import');const kinds = exampleLines.map(function (item) { return item.kind; }).sort();
+must(exampleLines.length === 4 && kinds.join(',') === 'evaluator,mcp-gateway,runner,scanner', 'capability examples cover four adapter kinds');
 console.log('Capability registry tests passed');

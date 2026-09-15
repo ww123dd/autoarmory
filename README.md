@@ -20,7 +20,7 @@ Each capability is a weapon. Each routing decision is a loadout. Each verified o
 capability -> constraints -> route -> compose -> outcome -> update -> degrade/replace/retire
 ```
 
-This repository currently implements the evidence, gate, outcome and state-machine foundations. The registry, routing, portfolio and retirement design is defined in [Capability Manager design](docs/superpowers/specs/2026-09-15-capability-manager-design.md) and will be implemented as an internal subsystem before it becomes a separate package.
+Capability Manager is implemented inside AutoArmory as an internal subsystem: registry, health, routing, portfolio, outcome learning, drift detection, conformance, retirement, guarded calibration and off-policy evaluation. Its design is defined in [Capability Manager design](docs/superpowers/specs/2026-09-15-capability-manager-design.md).
 
 ## Why separate
 
@@ -47,6 +47,17 @@ autoarmory policy .selfforge/decisions.jsonl
 autoarmory acquire .selfforge/candidates.jsonl --top 10
 autoarmory evolve logs/ --format auto --skillcanary ../20260914_SkillCanary --cases path/to/cases.json
 autoarmory doctor
+autoarmory capability register examples/capabilities.jsonl
+autoarmory capability list --state .selfforge
+autoarmory capability health --state .selfforge
+autoarmory capability route --request request.json --state .selfforge
+autoarmory capability portfolio --state .selfforge
+autoarmory capability outcome outcome.json --state .selfforge
+autoarmory capability drift runner.skillgrade --state .selfforge
+autoarmory capability conformance runner.skillgrade --state .selfforge
+autoarmory capability retire legacy.runner --reason "Repeated drift and failures." --state .selfforge
+autoarmory policy calibrate --outcomes .selfforge/capability-outcomes.jsonl --min 30
+autoarmory policy off-policy --outcomes .selfforge/capability-outcomes.jsonl --min 30
 autoarmory report --output autoarmory-report.md
 ```
 

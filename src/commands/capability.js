@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const { parseArgs, readJson, readJsonl, writeJsonl, printJson } = require('../lib/util');
 const capability = require('../lib/capability');
@@ -18,9 +19,20 @@ module.exports = function run(argv) {
   if (sub === 'register') {
     const input = args._[1];
     if (!input) return usage();
-    const result = capability.registerCapability(file, readJson(path.resolve(input)), { force: !!args.force });
+    const raw = fs.readFileSync(path.resolve(input), 'utf8');
+    let values;
+    try { values = JSON.parse(raw); } catch (_) { values = raw.split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); }); }
+    if (!Array.isArray(values)) values = [values];
+    const registered = [];
+    let result = { ok: true, count: 0 };
+    for (const value of values) {
+      result = capability.registerCapability(file, value, { force: !!args.force });
+      if (!result.ok) break;
+      registered.push(result.capability);
+    }
+    if (result.ok) result = { ok: true, count: registered.length, capabilities: registered };
     if (args.json) printJson(result);
-    else if (result.ok) process.stdout.write('Registered capability ' + result.capability.id + ' -> ' + file + '\n');
+    else if (result.ok) process.stdout.write('Registered ' + registered.length + ' capability(ies) -> ' + file + '\n');
     else process.stderr.write(result.errors.join('\n') + '\n');
     return result.ok ? 0 : 1;
   }
