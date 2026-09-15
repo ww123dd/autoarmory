@@ -1,6 +1,6 @@
 # Architecture
 
-AutoArmory is an auto-battle control plane for agent capabilities.
+AutoArmory is a mechanism control plane for agent capabilities.
 
 ```text
 local signals / logs / tests / issues
@@ -56,6 +56,10 @@ Candidate state transitions are append-only records in `.selfforge/transitions.j
 ## Decision evidence
 
 A decision is only appended when it carries a successful SkillCanary gate proof. Verified decisions also carry structured outcome evidence and an environment fingerprint, so later learning can distinguish changes that worked from changes that only appeared to work in a different environment.
+
+## Mechanism Core
+
+Usage contracts define where capabilities are used. Cases are admitted only with expected/actual evidence and reproducibility. Mechanisms cover failure modes. Runs require independent verification. Closures require a verified pass with no regression. Effectiveness tracks runs, passes, closures, recurrence and drift.
 
 ## Planes
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased - Mechanism Core
+
+- Added usage contracts, reproducible case admission and mechanism registry.
+- Added independent mechanism runs, verified closure and effectiveness metrics.
+- Added `autoarmory mechanism` CLI.
+
 ## 0.3.0
 
 - Rebranded the public package and CLI to AutoArmory.

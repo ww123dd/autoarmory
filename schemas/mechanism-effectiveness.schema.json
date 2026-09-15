@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory mechanism effectiveness",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "status",
+    "runs",
+    "verified_passes",
+    "closures"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "autoarmory/mechanism-effectiveness/v1"
+    },
+    "mechanism_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "measured",
+        "insufficient_data"
+      ]
+    },
+    "runs": {
+      "type": "number"
+    },
+    "verified_passes": {
+      "type": "number"
+    },
+    "closures": {
+      "type": "number"
+    },
+    "closure_rate": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "pass_rate": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "recurrence_rate": {
+      "type": [
+        "number",
+        "null"
+      ]
+    }
+  }
+}

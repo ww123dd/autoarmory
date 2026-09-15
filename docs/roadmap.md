@@ -22,6 +22,16 @@
 - [x] decision environment fingerprints and outcome evidence
 - [x] append-only shadow -> canary -> promoted/rejected state machine
 
+## 0.4
+
+- [x] usage contracts and case admission
+- [x] mechanism registry, independent runs and verified closure
+- [x] mechanism effectiveness ledger
+- [ ] active case selection
+- [ ] process reward and calibrated verifiers
+- [ ] offline policy optimization
+- [ ] meta-evolution and mechanism retirement
+
 ## 0.3
 
 - [x] public rebrand to AutoArmory with legacy CLI aliases

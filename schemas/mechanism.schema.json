@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory mechanism",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "covered_failure_modes",
+    "trigger",
+    "action",
+    "verification",
+    "closure_criteria",
+    "permissions",
+    "owner",
+    "version"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "autoarmory/mechanism/v1"
+    },
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "covered_failure_modes": {
+      "type": "array",
+      "minItems": 1
+    },
+    "trigger": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "verification": {
+      "type": "string"
+    },
+    "closure_criteria": {
+      "type": "string"
+    },
+    "permissions": {
+      "type": "object"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    }
+  }
+}

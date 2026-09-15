@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory usage contract",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "capability_id",
+    "workflow_id",
+    "task_type",
+    "caller",
+    "success_criteria",
+    "failure_modes",
+    "permissions",
+    "environment",
+    "owner"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "autoarmory/usage-contract/v1"
+    },
+    "id": {
+      "type": "string"
+    },
+    "capability_id": {
+      "type": "string"
+    },
+    "workflow_id": {
+      "type": "string"
+    },
+    "task_type": {
+      "type": "string"
+    },
+    "caller": {
+      "type": "string"
+    },
+    "success_criteria": {
+      "type": "array",
+      "minItems": 1
+    },
+    "failure_modes": {
+      "type": "array",
+      "minItems": 1
+    },
+    "permissions": {
+      "type": "object"
+    },
+    "environment": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    }
+  }
+}

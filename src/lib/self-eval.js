@@ -8,6 +8,7 @@ const COMMANDS = [
   { id: 'tests', command: 'node tests/run.js' },
   { id: 'capability', command: 'node tests/capability.js' },
   { id: 'failure_modes', command: 'node tests/failure-modes.js' },
+  { id: 'mechanism', command: 'node tests/mechanism.js' },
   { id: 'skillcanary', command: 'node packages/skillcanary/tests/run.js' },
   { id: 'conformance', command: 'node tests/conformance.js' }
 ];
@@ -43,7 +44,7 @@ function runSelfEval(options) {
   checks.push({ id: 'monorepo', ok: fs.existsSync(path.join(repo, 'packages', 'skillcanary', 'bin', 'skillcanary.js')), detail: 'vendored SkillCanary package' });
   const fixtureCount = fs.existsSync(path.join(repo, 'examples', 'capabilities.jsonl')) ? fs.readFileSync(path.join(repo, 'examples', 'capabilities.jsonl'), 'utf8').trim().split(/\r?\n/).filter(Boolean).length : 0;
   checks.push({ id: 'capability_fixtures', ok: fixtureCount === 4, detail: 'capability fixtures=' + fixtureCount });
-  const docs = ['README.md', 'docs/failure-modes.md', 'docs/standards/agent-evaluation-standards.md', 'docs/learning/20260915-external-learning-summary.md'];
+  const docs = ['README.md', 'docs/failure-modes.md', 'docs/mechanism-core.md', 'docs/standards/agent-evaluation-standards.md', 'docs/learning/20260915-external-learning-summary.md'];
   checks.push({ id: 'docs', ok: existsAll(repo, docs), detail: docs.join(', ') });
   let worktree = { code: 0, out: '' };
   try { const result = spawnSync('git', ['status', '--porcelain'], { cwd: repo, encoding: 'utf8' }); worktree = { code: result.status, out: result.stdout || '' }; } catch (_) { worktree = { code: 1, out: 'git unavailable' }; }

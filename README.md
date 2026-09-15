@@ -1,14 +1,29 @@
 # AutoArmory
 
-**Auto-battle control plane for agent capabilities.**
+**Mechanism control plane for agent capabilities.**
 
-**Every module is a weapon. Every promotion is earned by evidence.**
+**Every module is a weapon. Every mechanism must prove it works.**
 
 AutoArmory manages the layer above platform-native tools: cross-vendor capability discovery, evidence, routing, composition, degradation, replacement and retirement. SkillCanary remains the stable evidence, provenance and change-gate control plane.
 
 ```text
 observe -> incident -> candidate -> gate -> decision -> learn
 ```
+
+## Mechanism Core
+
+AutoArmory does not manage a growing rule list. It manages mechanisms and their effectiveness. A problem is recorded, admitted only when it is a reproducible case, attached to a mechanism, verified independently, and closed only when the mechanism passes without regression.
+
+```bash
+autoarmory mechanism usage register usage.json --state .selfforge
+autoarmory mechanism case admit case.json --state .selfforge
+autoarmory mechanism register mechanism.json --state .selfforge
+autoarmory mechanism run mechanism-run.json --state .selfforge
+autoarmory mechanism close --case case-id --run run-id --state .selfforge
+autoarmory mechanism effectiveness mechanism-id --state .selfforge
+```
+
+Read the full design in [Mechanism Core](docs/mechanism-core.md).
 
 ## Capability Manager
 

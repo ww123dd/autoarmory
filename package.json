@@ -20,7 +20,7 @@
     "packages"
   ],
   "scripts": {
-    "test": "node tests/run.js && node tests/capability.js && node tests/failure-modes.js && node packages/skillcanary/tests/run.js",
+    "test": "node tests/run.js && node tests/capability.js && node tests/failure-modes.js && node tests/mechanism.js && node packages/skillcanary/tests/run.js",
     "observe:example": "node bin/autoarmory.js observe examples/incidents.jsonl --output .selfforge/incidents.jsonl",
     "propose:example": "node bin/autoarmory.js propose examples/incidents.jsonl --output .selfforge/candidates.jsonl",
     "learn:example": "node bin/autoarmory.js learn examples/decisions.jsonl",
@@ -28,7 +28,8 @@
     "test:conformance": "node tests/conformance.js",
     "test:canary": "node packages/skillcanary/tests/run.js",
     "test:articles": "node tests/failure-modes.js",
-    "test:self-eval": "node tests/self-eval.js"
+    "test:self-eval": "node tests/self-eval.js",
+    "test:mechanism": "node tests/mechanism.js"
   },
   "engines": {
     "node": ">=18"
