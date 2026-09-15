@@ -22,6 +22,8 @@ selfforge observe logs/ --output .selfforge/incidents.jsonl
 selfforge propose .selfforge/incidents.jsonl --output .selfforge/candidates.jsonl
 selfforge gate .selfforge/candidate.json --skillcanary ../20260914_SkillCanary --cases examples/skillcanary-cases.json
 selfforge record --candidate cand-1 --action add_case --reward 1.5 --verified true --gate .selfforge/gate.json --evidence .selfforge/outcome-evidence.json
+selfforge transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --state .selfforge
+selfforge transition .selfforge/candidate.json --to shadow --gate .selfforge/gate.json --state .selfforge
 selfforge learn .selfforge/decisions.jsonl
 selfforge environment --write
 selfforge experiment compare before.json after.json
@@ -37,6 +39,8 @@ selfforge report --output selfforge-report.md
 `selfforge gate` and `selfforge evolve` both call the real SkillCanary gate. The operation is fail-closed: a missing SkillCanary CLI, invalid gate output, local structural error, or any SkillCanary gate error marks the candidate `rejected`. SelfForge does not promote or execute a candidate by itself.
 
 A gate-ready candidate carries a `change` object. SelfForge fills the shared change fields (`id`, `target`, `expected_transition`, `prediction`) from the candidate, then passes the resulting `skillcanary/change/v1` record to `skillcanary gate`. Case targets must provide a cases file; deterministic targets do not.
+
+Candidate promotion follows a recorded state machine: `candidate -> gated -> shadow -> canary -> promoted`, with `rejected` available before promotion and `retired` after it. Gate proof is mandatory for `gated` and `shadow`; outcome evidence is mandatory for `canary` and `promoted`.
 
 `record` refuses to append a decision unless a successful SkillCanary gate proof is provided or found on the stored candidate. A verified decision also requires outcome evidence with artifacts or before/after observations.
 

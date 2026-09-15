@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SelfForge transition record",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "candidate_id",
+    "from",
+    "to",
+    "reason",
+    "gate",
+    "evidence",
+    "environment",
+    "at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "selfforge/transition/v1"
+    },
+    "id": {
+      "type": "string"
+    },
+    "candidate_id": {
+      "type": "string"
+    },
+    "from": {
+      "enum": [
+        "candidate",
+        "gated",
+        "shadow",
+        "canary",
+        "promoted",
+        "rejected",
+        "retired"
+      ]
+    },
+    "to": {
+      "enum": [
+        "gated",
+        "shadow",
+        "canary",
+        "promoted",
+        "rejected",
+        "retired"
+      ]
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "gate": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "evidence": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "environment": {
+      "type": "object"
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}

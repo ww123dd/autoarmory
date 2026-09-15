@@ -102,6 +102,39 @@ must(result.code === 0 && fs.existsSync(decisionsFile), 'record decision with ga
 const decision = JSON.parse(fs.readFileSync(decisionsFile, 'utf8').trim().split(String.fromCharCode(10))[0]);
 must(decision.environment && decision.environment.fingerprint && decision.gate && decision.gate.ok === true && decision.outcome_evidence && decision.outcome_evidence.kind === 'deterministic', 'decision must include environment, gate and outcome evidence');
 
+const transitionState = path.join(stateDir, '.selfforge');
+result = run(['transition', candidateFile, '--to', 'canary', '--gate', gateProofFile, '--state', transitionState, '--json']);
+must(result.code === 1 && /invalid transition/i.test(result.out + result.err), 'state machine must reject candidate -> canary');
+
+result = run(['transition', candidateFile, '--to', 'gated', '--state', transitionState, '--json']);
+must(result.code === 1 && /gate proof/i.test(result.out + result.err), 'gated transition must require a gate proof');
+
+result = run(['transition', candidateFile, '--to', 'gated', '--gate', gateProofFile, '--state', transitionState, '--json']);
+must(result.code === 0 && JSON.parse(result.out).to === 'gated', 'candidate -> gated transition');
+
+result = run(['transition', candidateFile, '--to', 'shadow', '--gate', gateProofFile, '--state', transitionState, '--json']);
+must(result.code === 0 && JSON.parse(result.out).to === 'shadow', 'gated -> shadow transition');
+
+result = run(['transition', candidateFile, '--to', 'canary', '--state', transitionState, '--json']);
+must(result.code === 1 && /outcome evidence/i.test(result.out + result.err), 'canary transition must require outcome evidence');
+
+result = run(['transition', candidateFile, '--to', 'canary', '--evidence', outcomeEvidenceFile, '--state', transitionState, '--json']);
+must(result.code === 0 && JSON.parse(result.out).to === 'canary', 'shadow -> canary transition');
+
+result = run(['transition', candidateFile, '--to', 'promoted', '--state', transitionState, '--json']);
+must(result.code === 1 && /outcome evidence/i.test(result.out + result.err), 'promoted transition must require outcome evidence');
+
+result = run(['transition', candidateFile, '--to', 'promoted', '--evidence', outcomeEvidenceFile, '--state', transitionState, '--json']);
+must(result.code === 0 && JSON.parse(result.out).to === 'promoted', 'canary -> promoted transition');
+const transitions = fs.readFileSync(path.join(transitionState, 'transitions.jsonl'), 'utf8').trim().split(String.fromCharCode(10)).filter(Boolean);
+must(transitions.length === 4 && transitions.every(function (line) { return JSON.parse(line).schema_version === 'selfforge/transition/v1'; }), 'state transitions must be recorded');
+const rejectedCandidate = JSON.parse(JSON.stringify(candidate));
+rejectedCandidate.id = 'cand-rejected-state';
+rejectedCandidate.incident_id = 'inc-rejected-state';
+const rejectedCandidateFile = path.join(temp, 'rejected-candidate.json');
+fs.writeFileSync(rejectedCandidateFile, JSON.stringify(rejectedCandidate, null, 2), 'utf8');
+result = run(['transition', rejectedCandidateFile, '--to', 'rejected', '--reason', 'Observed shadow regression is unacceptable.', '--state', transitionState, '--json']);
+must(result.code === 0 && JSON.parse(result.out).to === 'rejected', 'candidate -> rejected transition with reason');
 result = run(['evolve', path.join(root, 'examples', 'incidents.jsonl'), '--state', path.join(temp, 'evolve-default-state'), '--json']);
 must(result.code === 1 && /selfforge\/evolution\/v1/.test(result.out), 'evolve must reject candidates that do not pass the real gate');
 

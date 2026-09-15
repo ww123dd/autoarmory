@@ -19,6 +19,7 @@
 - [x] fail-closed SkillCanary gate proxy
 - [x] gate conformance for deterministic and case targets
 - [x] decision environment fingerprints and outcome evidence
+- [x] append-only shadow -> canary -> promoted/rejected state machine
 
 ## 0.3
 

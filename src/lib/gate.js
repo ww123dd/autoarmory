@@ -19,6 +19,25 @@ function gate(candidate) {
   return { ok: errors.length === 0, errors: errors, warnings: warnings, candidate_id: candidate.id };
 }
 
+function isGatePass(gate, candidateId) {
+  if (!gate || gate.schema_version !== 'selfforge/gate/v1' || gate.ok !== true) return false;
+  if (candidateId && gate.candidate_id !== candidateId) return false;
+  const remote = gate.skillcanary;
+  return !!remote &&
+    remote.schema_version === 'selfforge/skillcanary-gate/v1' &&
+    remote.command === 'gate' &&
+    remote.ok === true &&
+    remote.exit_code === 0 &&
+    typeof remote.change_sha256 === 'string' &&
+    remote.change_sha256.length === 64;
+}
+
+function hasOutcomeEvidence(evidence) {
+  if (!evidence || typeof evidence !== 'object' || !evidence.kind) return false;
+  if (Array.isArray(evidence.artifacts) && evidence.artifacts.length > 0) return true;
+  return !!evidence.before && !!evidence.after;
+}
+
 function gateCandidate(candidate, options) {
   const localResult = gate(candidate);
   const skillcanaryResult = skillcanary.gate(candidate, options);
@@ -33,4 +52,4 @@ function gateCandidate(candidate, options) {
   };
 }
 
-module.exports = { gate, gateCandidate };
+module.exports = { gate, gateCandidate, isGatePass, hasOutcomeEvidence };
