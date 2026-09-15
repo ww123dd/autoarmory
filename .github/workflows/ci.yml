@@ -14,6 +14,7 @@ jobs:
           node-version: 20
       - run: npm test
       - run: node bin/selfforge.js observe examples/incidents.jsonl --json
+      - run: printf 'FAIL: runner failure\n' | node bin/selfforge.js observe - --format log --json | grep test_failure
       - run: node bin/selfforge.js learn examples/decisions.jsonl --json
       - run: node bin/selfforge.js environment --write
       - name: Verify gate fails closed without SkillCanary

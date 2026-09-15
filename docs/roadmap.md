@@ -12,6 +12,7 @@
 ## 0.2
 
 - [x] ingest JUnit, GitHub issues, logs and JSONL
+- [x] ingest real CLI/runner output through stdin adapters
 - [x] active candidate acquisition
 - [x] sequential outcome comparison
 - [x] environment fingerprint

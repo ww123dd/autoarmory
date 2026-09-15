@@ -9,8 +9,8 @@ const root = path.resolve(__dirname, '..');
 const cli = path.join(root, 'bin', 'selfforge.js');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'selfforge-'));
 
-function run(args, cwd) {
-  const result = spawnSync(process.execPath, [cli].concat(args), { cwd: cwd || root, encoding: 'utf8' });
+function run(args, cwd, input) {
+  const result = spawnSync(process.execPath, [cli].concat(args), { cwd: cwd || root, encoding: 'utf8', input: input });
   return { code: result.status, out: result.stdout || '', err: result.stderr || '' };
 }
 function must(condition, message) {
@@ -75,6 +75,14 @@ must(result.code === 0 && /gate-rejects-invalid/.test(result.out), 'JUnit observ
 
 result = run(['observe', path.join(root, 'examples', 'github-issues.json'), '--format', 'github', '--json']);
 must(result.code === 0 && /adapter cannot parse JUnit failure/.test(result.out), 'GitHub issue observation');
+result = run(['observe', '-', '--format', 'log', '--json'], root, 'FAIL: real runner failure');
+must(result.code === 0 && /test_failure/.test(result.out), 'stdin runner log observation');
+
+result = run(['observe', '-', '--format', 'junit', '--json'], root, fs.readFileSync(path.join(root, 'examples', 'junit.xml'), 'utf8'));
+must(result.code === 0 && /gate-rejects-invalid/.test(result.out), 'stdin JUnit observation');
+
+result = run(['observe', '-', '--format', 'github', '--json'], root, JSON.stringify([{ number: 202, title: 'adapter cannot parse stdin issue', url: 'https://example.invalid/issues/202' }]));
+must(result.code === 0 && /adapter cannot parse stdin issue/.test(result.out) && /https:\/\/example.invalid\/issues\/202/.test(result.out), 'stdin GitHub issue observation');
 
 const decisionsFile = path.join(stateDir, '.selfforge', 'decisions.jsonl');
 result = run(['record', '--candidate', candidate.id, '--action', candidate.action, '--reward', '1.5', '--verified', 'true', '--state', path.join(stateDir, '.selfforge')]);

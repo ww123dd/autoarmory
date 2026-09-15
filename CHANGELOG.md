@@ -3,6 +3,7 @@
 ## 0.2.0
 
 - Added JUnit, GitHub issue, log and JSONL observation.
+- Added stdin observation for real runner logs, JUnit XML and GitHub issue JSON output.
 - Added environment fingerprints.
 - Added sequential experiment comparison.
 - Added shadow and canary plans.

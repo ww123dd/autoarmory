@@ -19,6 +19,8 @@ observe -> incident -> candidate -> gate -> decision -> learn
 ```bash
 selfforge init
 selfforge observe logs/ --output .selfforge/incidents.jsonl
+pytest 2>&1 | selfforge observe - --format log --output .selfforge/incidents.jsonl
+gh issue list --repo owner/repo --json number,title,body,url | selfforge observe - --format github --output .selfforge/incidents.jsonl
 selfforge propose .selfforge/incidents.jsonl --output .selfforge/candidates.jsonl
 selfforge gate .selfforge/candidate.json --skillcanary ../20260914_SkillCanary --cases examples/skillcanary-cases.json
 selfforge record --candidate cand-1 --action add_case --reward 1.5 --verified true --gate .selfforge/gate.json --evidence .selfforge/outcome-evidence.json
@@ -32,6 +34,16 @@ selfforge acquire .selfforge/candidates.jsonl --top 10
 selfforge evolve logs/ --format auto --skillcanary ../20260914_SkillCanary --cases path/to/cases.json
 selfforge doctor
 selfforge report --output selfforge-report.md
+```
+
+## Real CLI input
+
+`observe -` reads artifacts from stdin, so real runner and CLI output can be observed without SelfForge executing the external command itself:
+
+```bash
+pytest 2>&1 | selfforge observe - --format log --output .selfforge/incidents.jsonl
+gh issue list --repo owner/repo --json number,title,body,url | selfforge observe - --format github --output .selfforge/incidents.jsonl
+cat junit.xml | selfforge observe - --format junit --output .selfforge/incidents.jsonl
 ```
 
 ## Gate boundary
