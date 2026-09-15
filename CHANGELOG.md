@@ -10,6 +10,7 @@
 - Added candidate acquisition scoring.
 - Proxied `gate` and `evolve` to the real SkillCanary gate with fail-closed dependency handling.
 - Added the `candidate.change` contract and real adapter conformance tests.
+- Required gate proof, environment fingerprints and outcome evidence for recorded decisions.
 - Added the `evolve` orchestration command.
 
 ## 0.1.0

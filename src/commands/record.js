@@ -2,14 +2,42 @@
 
 const fs = require('fs');
 const path = require('path');
-const { parseArgs, readJson, writeJsonl, readJsonl } = require('../lib/util');
+const { parseArgs, readJson, readJsonl, writeJsonl } = require('../lib/util');
+const { fingerprint } = require('../lib/environment');
+
+function isGatePass(gate, candidateId) {
+  if (!gate || gate.schema_version !== 'selfforge/gate/v1' || gate.ok !== true) return false;
+  if (candidateId && gate.candidate_id !== candidateId) return false;
+  const remote = gate.skillcanary;
+  return !!remote &&
+    remote.schema_version === 'selfforge/skillcanary-gate/v1' &&
+    remote.command === 'gate' &&
+    remote.ok === true &&
+    remote.exit_code === 0 &&
+    typeof remote.change_sha256 === 'string' &&
+    remote.change_sha256.length === 64;
+}
+
+function hasOutcomeEvidence(evidence) {
+  if (!evidence || typeof evidence !== 'object' || !evidence.kind) return false;
+  if (Array.isArray(evidence.artifacts) && evidence.artifacts.length > 0) return true;
+  return !!evidence.before && !!evidence.after;
+}
+
+function fail(message) {
+  process.stderr.write(message + '\n');
+  return 1;
+}
 
 module.exports = function run(argv) {
   const args = parseArgs(argv);
   const state = path.resolve(args.state || '.selfforge');
+  const dir = path.resolve(args.dir || '.');
+  const positional = args._[0];
   let record;
-  if (args._[0] && fs.existsSync(path.resolve(args._[0]))) {
-    record = readJson(path.resolve(args._[0]));
+
+  if (positional && fs.existsSync(path.resolve(positional))) {
+    record = readJson(path.resolve(positional));
   } else {
     record = {
       schema_version: 'selfforge/decision/v1',
@@ -18,13 +46,40 @@ module.exports = function run(argv) {
       action: args.action || 'unknown',
       outcome: args.outcome ? JSON.parse(args.outcome) : { fixed: args.fixed === 'true', regressed: args.regressed === 'true' },
       reward: Number(args.reward || 0),
-      verified: args.verified === 'true',
-      recorded_at: new Date().toISOString()
+      verified: args.verified === 'true'
     };
   }
+
   if (!record.schema_version) record.schema_version = 'selfforge/decision/v1';
   if (!record.id) record.id = 'dec-' + Date.now();
+  if (typeof record.verified !== 'boolean') record.verified = args.verified === 'true';
+
+  let gate = record.gate;
+  if (args.gate) {
+    gate = readJson(path.resolve(args.gate));
+  } else if (!gate && record.candidate_id) {
+    const candidateFile = path.join(state, 'candidates.jsonl');
+    if (fs.existsSync(candidateFile)) {
+      const candidate = readJsonl(candidateFile).find(function (item) { return item.id === record.candidate_id; });
+      if (candidate) gate = candidate.gate;
+    }
+  }
+  if (!isGatePass(gate, record.candidate_id)) {
+    return fail('Refusing to record decision: a successful SkillCanary gate proof is required.');
+  }
+
+  let evidence = record.outcome_evidence;
+  if (args.evidence) evidence = readJson(path.resolve(args.evidence));
+  if (record.verified === true && !hasOutcomeEvidence(evidence)) {
+    return fail('Refusing to record verified decision: outcome evidence with artifacts or before/after is required.');
+  }
+
+  record.gate = gate;
+  record.environment = record.environment || fingerprint(dir);
+  record.outcome_evidence = evidence || null;
+  record.verified = record.verified === true;
   if (!record.recorded_at) record.recorded_at = new Date().toISOString();
+
   const file = path.join(state, 'decisions.jsonl');
   const existing = readJsonl(file);
   existing.push(record);

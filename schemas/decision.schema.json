@@ -8,7 +8,11 @@
     "candidate_id",
     "action",
     "outcome",
-    "reward"
+    "reward",
+    "verified",
+    "environment",
+    "gate",
+    "outcome_evidence"
   ],
   "properties": {
     "schema_version": {
@@ -32,8 +36,124 @@
     "verified": {
       "type": "boolean"
     },
+    "environment": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "fingerprint",
+        "observed_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "selfforge/environment/v1"
+        },
+        "fingerprint": {
+          "type": "string",
+          "minLength": 16
+        },
+        "observed_at": {
+          "type": "string"
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "ok",
+        "candidate_id",
+        "skillcanary"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "selfforge/gate/v1"
+        },
+        "ok": {
+          "const": true
+        },
+        "candidate_id": {
+          "type": "string"
+        },
+        "skillcanary": {
+          "type": "object",
+          "required": [
+            "schema_version",
+            "ok",
+            "command",
+            "exit_code",
+            "change_sha256"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "selfforge/skillcanary-gate/v1"
+            },
+            "ok": {
+              "const": true
+            },
+            "command": {
+              "const": "gate"
+            },
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "exit_code": {
+              "const": 0
+            },
+            "change_sha256": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64
+            }
+          }
+        }
+      }
+    },
+    "outcome_evidence": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "before": {
+          "type": "object"
+        },
+        "after": {
+          "type": "object"
+        },
+        "artifacts": {
+          "type": "array"
+        }
+      }
+    },
     "recorded_at": {
       "type": "string"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "verified": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outcome_evidence": {
+            "type": "object",
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      }
+    }
+  ]
 }

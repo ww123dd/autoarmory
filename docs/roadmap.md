@@ -18,6 +18,7 @@
 - [x] Thompson policy recommendation with uncertainty
 - [x] fail-closed SkillCanary gate proxy
 - [x] gate conformance for deterministic and case targets
+- [x] decision environment fingerprints and outcome evidence
 
 ## 0.3
 

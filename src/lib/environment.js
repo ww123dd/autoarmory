@@ -6,8 +6,8 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { sha256 } = require('./util');
 
-function command(command, args) {
-  const result = spawnSync(command, args || [], { encoding: 'utf8', shell: process.platform === 'win32' });
+function command(command, args, cwd) {
+  const result = spawnSync(command, args || [], { cwd: cwd, encoding: 'utf8', shell: process.platform === 'win32' });
   return result.status === 0 ? (result.stdout || '').trim() : null;
 }
 
@@ -20,9 +20,9 @@ function fingerprint(dir) {
     release: os.release(),
     arch: os.arch(),
     node: process.version,
-    npm: command('npm', ['--version']),
-    git_commit: command('git', ['rev-parse', 'HEAD']),
-    git_branch: command('git', ['rev-parse', '--abbrev-ref', 'HEAD']),
+    npm: command('npm', ['--version'], root),
+    git_commit: command('git', ['rev-parse', 'HEAD'], root),
+    git_branch: command('git', ['rev-parse', '--abbrev-ref', 'HEAD'], root),
     package_name: pkg.name || null,
     package_version: pkg.version || null,
     cwd: root,

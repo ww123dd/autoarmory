@@ -55,6 +55,8 @@ must(result.code === 0 && /selfforge\/doctor\/v1/.test(result.out), 'doctor');
 
 result = run(['environment', stateDir, '--write']);
 must(result.code === 0 && fs.existsSync(path.join(stateDir, '.selfforge', 'environment.json')), 'environment fingerprint');
+const environmentData = JSON.parse(fs.readFileSync(path.join(stateDir, '.selfforge', 'environment.json'), 'utf8'));
+must(environmentData.git_commit === null, 'environment fingerprint must probe the requested directory');
 
 result = run(['policy', path.join(root, 'examples', 'decisions.jsonl'), '--json']);
 must(result.code === 0 && /selfforge\/policy\/v1/.test(result.out), 'policy recommendation');
@@ -74,8 +76,31 @@ must(result.code === 0 && /gate-rejects-invalid/.test(result.out), 'JUnit observ
 result = run(['observe', path.join(root, 'examples', 'github-issues.json'), '--format', 'github', '--json']);
 must(result.code === 0 && /adapter cannot parse JUnit failure/.test(result.out), 'GitHub issue observation');
 
+const decisionsFile = path.join(stateDir, '.selfforge', 'decisions.jsonl');
 result = run(['record', '--candidate', candidate.id, '--action', candidate.action, '--reward', '1.5', '--verified', 'true', '--state', path.join(stateDir, '.selfforge')]);
-must(result.code === 0 && fs.existsSync(path.join(stateDir, '.selfforge', 'decisions.jsonl')), 'record decision');
+must(result.code === 1 && fs.readFileSync(decisionsFile, 'utf8').trim() === '', 'record must reject outcomes without a gate pass');
+
+const gateProofFile = path.join(temp, 'gate-proof.json');
+fs.writeFileSync(gateProofFile, JSON.stringify({
+  schema_version: 'selfforge/gate/v1',
+  ok: true,
+  candidate_id: candidate.id,
+  skillcanary: { schema_version: 'selfforge/skillcanary-gate/v1', ok: true, command: 'gate', version: '0.9.0', exit_code: 0, change_sha256: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' }
+}, null, 2), 'utf8');
+result = run(['record', '--candidate', candidate.id, '--action', candidate.action, '--reward', '1.5', '--verified', 'true', '--gate', gateProofFile, '--state', path.join(stateDir, '.selfforge')]);
+must(result.code === 1 && fs.readFileSync(decisionsFile, 'utf8').trim() === '', 'verified outcome must require outcome evidence');
+
+const outcomeEvidenceFile = path.join(temp, 'outcome-evidence.json');
+fs.writeFileSync(outcomeEvidenceFile, JSON.stringify({
+  kind: 'deterministic',
+  before: { count: 2 },
+  after: { count: 0 },
+  artifacts: [{ uri: 'evidence/run.json', sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }]
+}, null, 2), 'utf8');
+result = run(['record', '--candidate', candidate.id, '--action', candidate.action, '--reward', '1.5', '--verified', 'true', '--gate', gateProofFile, '--evidence', outcomeEvidenceFile, '--dir', stateDir, '--state', path.join(stateDir, '.selfforge')]);
+must(result.code === 0 && fs.existsSync(decisionsFile), 'record decision with gate and evidence');
+const decision = JSON.parse(fs.readFileSync(decisionsFile, 'utf8').trim().split(String.fromCharCode(10))[0]);
+must(decision.environment && decision.environment.fingerprint && decision.gate && decision.gate.ok === true && decision.outcome_evidence && decision.outcome_evidence.kind === 'deterministic', 'decision must include environment, gate and outcome evidence');
 
 result = run(['evolve', path.join(root, 'examples', 'incidents.jsonl'), '--state', path.join(temp, 'evolve-default-state'), '--json']);
 must(result.code === 1 && /selfforge\/evolution\/v1/.test(result.out), 'evolve must reject candidates that do not pass the real gate');

@@ -34,6 +34,10 @@ local signals / logs / tests / issues
 
 `gate` and `evolve` call `skillcanary gate --json` with a canonical `skillcanary/change/v1` request. SelfForge records the dependency version, gate exit code, gate result, warnings and a SHA-256 of the submitted change. A missing dependency or malformed gate response is a failure, not a skipped check.
 
+## Decision evidence
+
+A decision is only appended when it carries a successful SkillCanary gate proof. Verified decisions also carry structured outcome evidence and an environment fingerprint, so later learning can distinguish changes that worked from changes that only appeared to work in a different environment.
+
 ## Separation
 
 SkillCanary owns:
