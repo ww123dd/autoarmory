@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="selfforge" tests="2" failures="1">
+  <testcase name="observe-works" classname="selfforge" />
+  <testcase name="gate-rejects-invalid" classname="selfforge"><failure message="expected FAIL but got PASS" /></testcase>
+</testsuite>

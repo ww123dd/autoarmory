@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SelfForge incident",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "source",
+    "failure_mode",
+    "severity",
+    "evidence",
+    "status",
+    "observed_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "selfforge/incident/v1"
+    },
+    "id": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "line": {
+      "type": "integer"
+    },
+    "failure_mode": {
+      "type": "string"
+    },
+    "severity": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "observed",
+        "triaged",
+        "candidate",
+        "closed"
+      ]
+    },
+    "observed_at": {
+      "type": "string"
+    }
+  }
+}

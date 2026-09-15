@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SelfForge candidate",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "incident_id",
+    "action",
+    "target",
+    "expected_transition",
+    "prediction",
+    "evidence",
+    "risk",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "selfforge/candidate/v1"
+    },
+    "id": {
+      "type": "string"
+    },
+    "incident_id": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "case",
+            "deterministic"
+          ]
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "expected_transition": {
+      "enum": [
+        "FAIL->PASS",
+        "COUNT->0"
+      ]
+    },
+    "prediction": {
+      "type": "object"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "status": {
+      "enum": [
+        "candidate",
+        "gated",
+        "rejected",
+        "executed",
+        "retired"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

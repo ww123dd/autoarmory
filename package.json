@@ -1,0 +1,38 @@
+{
+  "name": "self-forge",
+  "version": "0.2.0",
+  "description": "Self-evolution runtime for agent skills and tools, built on top of SkillCanary evidence and gates.",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "selfforge": "bin/selfforge.js",
+    "self-forge": "bin/selfforge.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "schemas",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "node tests/run.js",
+    "observe:example": "node bin/selfforge.js observe examples/incidents.jsonl --output .selfforge/incidents.jsonl",
+    "propose:example": "node bin/selfforge.js propose examples/incidents.jsonl --output .selfforge/candidates.jsonl",
+    "learn:example": "node bin/selfforge.js learn examples/decisions.jsonl",
+    "evolve:example": "node bin/selfforge.js evolve examples/incidents.jsonl --json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "agent-skills",
+    "self-evolution",
+    "self-improvement",
+    "agent-reliability",
+    "skillcanary",
+    "evals"
+  ]
+}

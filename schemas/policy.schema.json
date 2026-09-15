@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SelfForge policy recommendation",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "algorithm",
+    "recommendations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "selfforge/policy/v1"
+    },
+    "algorithm": {
+      "type": "string"
+    },
+    "recommendations": {
+      "type": "array"
+    }
+  }
+}

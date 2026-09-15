@@ -1,0 +1,8 @@
+[
+  {
+    "number": 101,
+    "title": "adapter cannot parse JUnit failure",
+    "body": "The observe command needs format support.",
+    "html_url": "https://example.invalid/issues/101"
+  }
+]

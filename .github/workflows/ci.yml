@@ -1,0 +1,19 @@
+name: SelfForge CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
+      - run: node bin/selfforge.js observe examples/incidents.jsonl --json
+      - run: node bin/selfforge.js learn examples/decisions.jsonl --json
+      - run: node bin/selfforge.js environment --write
+      - run: node bin/selfforge.js evolve examples/incidents.jsonl --json

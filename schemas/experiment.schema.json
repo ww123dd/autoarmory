@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SelfForge experiment comparison",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "before",
+    "after",
+    "delta",
+    "verdict"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "selfforge/experiment/v1"
+    },
+    "before": {
+      "type": "object"
+    },
+    "after": {
+      "type": "object"
+    },
+    "delta": {
+      "type": "number"
+    },
+    "significant": {
+      "type": "boolean"
+    },
+    "verdict": {
+      "enum": [
+        "improved",
+        "regressed",
+        "inconclusive"
+      ]
+    }
+  }
+}

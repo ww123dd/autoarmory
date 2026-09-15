@@ -1,0 +1,2 @@
+{"schema_version":"selfforge/decision/v1","id":"dec-1","candidate_id":"cand-demo-1","action":"add_case","outcome":{"fixed":true,"regressed":false},"reward":1.5,"verified":true,"recorded_at":"2026-09-14T00:00:00.000Z"}
+{"schema_version":"selfforge/decision/v1","id":"dec-2","candidate_id":"cand-demo-2","action":"add_guard","outcome":{"fixed":true,"regressed":false},"reward":2,"verified":true,"recorded_at":"2026-09-14T00:00:00.000Z"}
