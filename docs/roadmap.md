@@ -39,6 +39,8 @@
 - [x] runner/scanner/MCP/OTel integration imports
 - [x] admission gate with explicit status labels
 - [x] scenario profile contracts for coding/support/research
+- [x] local control-plane API, SDK client and Team CLI integration example
+- [x] external adapter contract and descriptor schema
 - [ ] automatic proposal generation from issue history
 - [ ] shadow evaluation
 - [ ] canary and rollback records

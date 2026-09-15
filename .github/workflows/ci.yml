@@ -13,6 +13,7 @@ jobs:
         with:
           node-version: 20
       - run: npm test
+      - run: node tests/api.js
       - run: npm run test:conformance
       - run: npm run test:self-eval
       - run: node bin/autoarmory.js demo --json

@@ -14,6 +14,7 @@
 - Added the AutoArmory demo, Capability Routing Bench and SkillGrade/promptfoo/SARIF/ContextForge/OTel imports.
 - Added an admission gate with explicit observed/candidate/admitted/rejected/duplicate statuses.
 - Added coding/support/research scenario profile contracts and capability gap planning.
+- Added a local HTTP control-plane API, SDK client, Team CLI integration example, playground and adapter contract.
 
 ## 0.2.0
 

@@ -80,6 +80,15 @@ autoarmory propose .selfforge/incidents.jsonl --output .selfforge/candidates.jso
 
 The taxonomy and action mapping are documented in [Failure Modes](docs/failure-modes.md). External evaluation standards are mapped in [Agent Evaluation Standards](docs/standards/agent-evaluation-standards.md).
 
+## API, SDK and Team CLI
+
+```bash
+autoarmory serve --port 8787
+AUTOARMORY_URL=http://127.0.0.1:8787 node integrations/team-cli/route.js request.json
+```
+
+The HTTP API exposes `GET /health`, `GET /capabilities`, `POST /route`, `POST /admit`, `POST /outcome`, `GET /scenario/:id` and `GET /playground`. The SDK is at `src/sdk/client.js`; external adapters follow `docs/adapters.md`.
+
 ## Self-evaluation
 
 ```bash

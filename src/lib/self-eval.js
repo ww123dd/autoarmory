@@ -13,6 +13,7 @@ const COMMANDS = [
   { id: 'integrate', command: 'node tests/integrate.js' },
   { id: 'admission', command: 'node tests/admission.js' },
   { id: 'scenario', command: 'node tests/scenario.js' },
+  { id: 'api', command: 'node tests/api.js' },
   { id: 'skillcanary', command: 'node packages/skillcanary/tests/run.js' },
   { id: 'conformance', command: 'node tests/conformance.js' }
 ];

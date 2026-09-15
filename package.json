@@ -20,7 +20,7 @@
     "packages"
   ],
   "scripts": {
-    "test": "node tests/run.js && node tests/capability.js && node tests/failure-modes.js && node tests/demo.js && node tests/bench.js && node tests/integrate.js && node tests/admission.js && node tests/scenario.js && node packages/skillcanary/tests/run.js",
+    "test": "node tests/run.js && node tests/capability.js && node tests/failure-modes.js && node tests/demo.js && node tests/bench.js && node tests/integrate.js && node tests/admission.js && node tests/scenario.js && node tests/api.js && node packages/skillcanary/tests/run.js",
     "observe:example": "node bin/autoarmory.js observe examples/incidents.jsonl --output .selfforge/incidents.jsonl",
     "propose:example": "node bin/autoarmory.js propose examples/incidents.jsonl --output .selfforge/candidates.jsonl",
     "learn:example": "node bin/autoarmory.js learn examples/decisions.jsonl",
@@ -30,7 +30,8 @@
     "test:articles": "node tests/failure-modes.js",
     "test:self-eval": "node tests/self-eval.js",
     "demo": "node bin/autoarmory.js demo --seed 7 --output demo.md --json",
-    "bench": "node bin/autoarmory.js bench --seed 11 --output capability-routing-bench.md --json"
+    "bench": "node bin/autoarmory.js bench --seed 11 --output capability-routing-bench.md --json",
+    "serve": "node bin/autoarmory.js serve"
   },
   "engines": {
     "node": ">=18"
