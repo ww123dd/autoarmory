@@ -30,32 +30,46 @@ function observedValues(result) {
   return (result.refs || []).map(function (item) { return item.fresh && item.fresh.observed; }).filter(function (value) { return value !== undefined && value !== null; });
 }
 function sameValue(left, right) { return verify.canonicalize(left) === verify.canonicalize(right); }
+function usesVerifier(record, verifierId) {
+  return !!(record && Array.isArray(record.evidence_refs) && record.evidence_refs.some(function (ref) { return ref && ref.verifier === verifierId; }));
+}
 
 function admitCase(stateDir, value) {
-  const errors = requireFields(value, ['schema_version', 'id', 'incident_id', 'title', 'expected_transition', 'failure_mode', 'severity', 'evidence', 'reproducible', 'owner'], 'case');
-  if (value.schema_version !== 'autoarmory/case/v1') errors.push('schema_version must be autoarmory/case/v1');
-  if (!Array.isArray(value.evidence) || value.evidence.length === 0) errors.push('case.evidence must be a non-empty array');
-  if (value.reproducible !== true) errors.push('case must be reproducible before admission');
+  const input = value || {};
+  const errors = requireFields(input, ['schema_version', 'id', 'incident_id', 'title', 'expected_transition', 'failure_mode', 'severity', 'evidence', 'reproducible', 'owner'], 'case');
+  if (input.schema_version !== 'autoarmory/case/v1') errors.push('schema_version must be autoarmory/case/v1');
+  if (!Array.isArray(input.evidence) || input.evidence.length === 0) errors.push('case.evidence must be a non-empty array');
+  if (input.reproducible !== true) errors.push('case must be reproducible before admission');
   if (errors.length) return { ok: false, errors: errors };
   const state = files(stateDir);
   const rows = read(state.cases);
-  const duplicate = recordExists(rows, value.id, 'case');
+  const duplicate = recordExists(rows, input.id, 'case');
   if (duplicate.length) return { ok: false, errors: duplicate };
-  const record = Object.assign({}, value, { schema_version: 'autoarmory/case/v1', status: 'admitted', admitted_at: new Date().toISOString() });
+  const record = Object.assign({}, input, { schema_version: 'autoarmory/case/v1', status: 'admitted', admitted_at: new Date().toISOString() });
   append(state.cases, record);
   return { ok: true, case: record };
 }
 
-function registerMechanism(stateDir, value) {
-  const errors = requireFields(value, ['schema_version', 'id', 'name', 'covered_failure_modes', 'trigger', 'action', 'verification', 'closure_criteria', 'owner', 'version'], 'mechanism');
-  if (value.schema_version !== 'autoarmory/mechanism/v1') errors.push('schema_version must be autoarmory/mechanism/v1');
-  if (!Array.isArray(value.covered_failure_modes) || value.covered_failure_modes.length === 0) errors.push('mechanism.covered_failure_modes must be a non-empty array');
+function registerMechanism(stateDir, value, options) {
+  const input = value || {};
+  const opts = options || {};
+  const errors = requireFields(input, ['schema_version', 'id', 'name', 'covered_failure_modes', 'trigger', 'action', 'verification', 'verifier_id', 'closure_criteria', 'owner', 'version'], 'mechanism');
+  if (input.schema_version !== 'autoarmory/mechanism/v1') errors.push('schema_version must be autoarmory/mechanism/v1');
+  if (!Array.isArray(input.covered_failure_modes) || input.covered_failure_modes.length === 0) errors.push('mechanism.covered_failure_modes must be a non-empty array');
+  const inventory = verify.listVerifiers(opts.repo || stateDir);
+  if (!inventory.ok) {
+    errors.push('mechanism.verifier_id cannot be checked: ' + inventory.errors.join('; '));
+  } else {
+    const declared = inventory.verifiers.find(function (item) { return item.id === input.verifier_id; });
+    if (!declared) errors.push('mechanism.verifier_id is not registered: ' + input.verifier_id);
+    else if (declared.integrity !== true) errors.push('mechanism.verifier_id adapter is missing or modified: ' + input.verifier_id);
+  }
   if (errors.length) return { ok: false, errors: errors };
   const state = files(stateDir);
   const rows = read(state.mechanisms);
-  const duplicate = recordExists(rows, value.id, 'mechanism');
+  const duplicate = recordExists(rows, input.id, 'mechanism');
   if (duplicate.length) return { ok: false, errors: duplicate };
-  const record = Object.assign({}, value, { schema_version: 'autoarmory/mechanism/v1', status: value.status || 'proposed', registered_at: new Date().toISOString() });
+  const record = Object.assign({}, input, { schema_version: 'autoarmory/mechanism/v1', status: input.status || 'proposed', registered_at: new Date().toISOString() });
   append(state.mechanisms, record);
   return { ok: true, mechanism: record };
 }
@@ -66,11 +80,13 @@ function recordMechanismRun(stateDir, value, options) {
   const state = files(stateDir);
   const mechanisms = read(state.mechanisms);
   const cases = read(state.cases);
+  const mechanism = mechanisms.find(function (item) { return item.id === input.mechanism_id; }) || null;
   const errors = requireFields(input, ['schema_version', 'id', 'mechanism_id', 'case_id', 'actor', 'evidence_refs', 'counterexample', 'environment_fingerprint', 'started_at', 'finished_at'], 'mechanism_run');
   if (input.schema_version !== 'autoarmory/mechanism-run/v1') errors.push('schema_version must be autoarmory/mechanism-run/v1');
-  if (!mechanisms.some(function (item) { return item.id === input.mechanism_id; })) errors.push('mechanism not found: ' + input.mechanism_id);
+  if (!mechanism) errors.push('mechanism not found: ' + input.mechanism_id);
   if (!cases.some(function (item) { return item.id === input.case_id; })) errors.push('case not found: ' + input.case_id);
   if (!Array.isArray(input.evidence_refs) || input.evidence_refs.length === 0) errors.push('mechanism_run.evidence_refs must be a non-empty array');
+  else if (mechanism && !usesVerifier(input, mechanism.verifier_id)) errors.push('mechanism_run.evidence_refs must include the mechanism verifier: ' + mechanism.verifier_id);
   if (!input.counterexample || typeof input.counterexample !== 'object' || Array.isArray(input.counterexample) || Object.keys(input.counterexample).length === 0) errors.push('mechanism_run.counterexample must be a non-empty object');
   if (input.regression !== undefined && typeof input.regression !== 'boolean') errors.push('mechanism_run.regression must be boolean when present');
 
@@ -119,7 +135,9 @@ function closeCase(stateDir, caseId, runId, options) {
   if (!item) return { ok: false, errors: ['case not found: ' + caseId] };
   if (!run) return { ok: false, errors: ['run not found: ' + runId] };
   if (run.case_id !== caseId) return { ok: false, errors: ['run does not belong to case'] };
-  if (!mechanisms.some(function (entry) { return entry.id === run.mechanism_id; })) return { ok: false, errors: ['mechanism not found: ' + run.mechanism_id] };
+  const mechanism = mechanisms.find(function (entry) { return entry.id === run.mechanism_id; });
+  if (!mechanism) return { ok: false, errors: ['mechanism not found: ' + run.mechanism_id] };
+  if (!usesVerifier(run, mechanism.verifier_id)) return { ok: false, errors: ['run does not use mechanism verifier: ' + mechanism.verifier_id] };
   const verification = verify.verifyRecord(run, {
     repo: opts.repo || stateDir,
     case_id: caseId,
@@ -148,7 +166,9 @@ function status(stateDir, mechanismId, options) {
   const latest = runs.slice().sort(function (a, b) { return Date.parse(a.finished_at || a.recorded_at) - Date.parse(b.finished_at || b.recorded_at); }).pop();
   let verdict = 'unverified';
   let reason = 'no mechanism run recorded';
-  if (latest) {
+  if (latest && !usesVerifier(latest, mechanism.verifier_id)) {
+    reason = 'latest run does not use mechanism verifier: ' + mechanism.verifier_id;
+  } else if (latest) {
     const checkResult = verify.verifyRecord(latest, {
       repo: opts.repo || stateDir,
       case_id: latest.case_id,

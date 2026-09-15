@@ -36,7 +36,10 @@ function makeRepo(name) {
   write(adapter, adapterSource());
   write(path.join(repo, 'verifiers.lock.json'), JSON.stringify({
     schema_version: 'autoarmory/verifiers-lock/v1',
-    verifiers: [{ id: 'fixture', kind: 'fixture', readonly: true, adapter: 'scripts/verify/fixture.js', adapter_sha256: sha256File(adapter), timeout_ms: 10000 }]
+    verifiers: [
+      { id: 'fixture', kind: 'fixture', readonly: true, adapter: 'scripts/verify/fixture.js', adapter_sha256: sha256File(adapter), timeout_ms: 10000 },
+      { id: 'other', kind: 'fixture', readonly: true, adapter: 'scripts/verify/fixture.js', adapter_sha256: sha256File(adapter), timeout_ms: 10000 }
+    ]
   }, null, 2) + '\n');
   fs.mkdirSync(path.join(repo, '.selfforge'), { recursive: true });
   return { repo: repo, state: path.join(repo, '.selfforge') };
@@ -45,11 +48,11 @@ function caseRecord(id, incidentId) {
   return { schema_version: 'autoarmory/case/v1', id: id, incident_id: incidentId, title: 'Replayable failure case', expected_transition: 'COUNT->0', failure_mode: 'drift', severity: 'critical', evidence: ['fixture evidence'], reproducible: true, owner: 'codex' };
 }
 function mechanismRecord(id, staleDays) {
-  return { schema_version: 'autoarmory/mechanism/v1', id: id, name: 'Fixture guard', covered_failure_modes: ['drift'], trigger: 'fixture trigger', action: 'fixture action', verification: 'pinned fixture adapter', closure_criteria: 'exit code 0 with a counterexample', owner: 'codex', version: '1.0.0', verification_stale_days: staleDays || 30 };
+  return { schema_version: 'autoarmory/mechanism/v1', id: id, name: 'Fixture guard', covered_failure_modes: ['drift'], trigger: 'fixture trigger', action: 'fixture action', verification: 'pinned fixture adapter', verifier_id: 'fixture', closure_criteria: 'exit code 0 with a counterexample', owner: 'codex', version: '1.0.0', verification_stale_days: staleDays || 30 };
 }
-function fixtureRef(id, mode) { return { id: id, verifier: 'fixture', params: { mode: mode || 'pass' } }; }
-function capture(repo, id, mode) {
-  const captured = verify.captureRefs([fixtureRef(id, mode)], { repo: repo });
+function fixtureRef(id, mode, verifier) { return { id: id, verifier: verifier || 'fixture', params: { mode: mode || 'pass' } }; }
+function capture(repo, id, mode, verifier) {
+  const captured = verify.captureRefs([fixtureRef(id, mode, verifier)], { repo: repo });
   must(captured.status === 'captured' && captured.captured.length === 1, 'fixture capture ' + id + ' must succeed');
   return captured.captured[0];
 }
@@ -141,4 +144,18 @@ result = mechanism.recordMechanismRun(fixture.state, runRecord('run-expired', 'm
 must(result.ok, 'old but verifiable run must record');
 must(mechanism.status(fixture.state, 'mech-expired', { repo: fixture.repo }).status === 'expired', 'stale verified run must expire');
 
-console.log('mechanism tests passed: self-report=REJECT, missing-hash=REJECT, fake-pass=REJECT, derived-pass=close, derived-fail=bypassed, adapter-tamper=REJECT, missing-counterexample=REJECT, expiry=expired');
+
+fixture = makeRepo('unknown-verifier');
+const unknownMechanism = mechanismRecord('mech-unknown');
+unknownMechanism.verifier_id = 'missing-verifier';
+result = mechanism.registerMechanism(fixture.state, unknownMechanism, { repo: fixture.repo });
+must(!result.ok && /not registered/.test(result.errors.join(' ')), 'unknown verifier must be rejected at mechanism registration');
+
+fixture = makeRepo('unbound-verifier');
+must(mechanism.admitCase(fixture.state, caseRecord('case-unbound', 'inc-unbound')).ok, 'unbound case admission');
+must(mechanism.registerMechanism(fixture.state, mechanismRecord('mech-unbound')).ok, 'unbound mechanism registration');
+const otherRef = capture(fixture.repo, 'unbound-ref', 'pass', 'other');
+result = mechanism.recordMechanismRun(fixture.state, runRecord('run-unbound', 'mech-unbound', 'case-unbound', otherRef, '2026-09-15T00:00:00.000Z'), { repo: fixture.repo });
+must(!result.ok && /mechanism verifier/.test(result.errors.join(' ')), 'run using an unrelated registered verifier must be rejected');
+
+console.log('mechanism tests passed: self-report=REJECT, missing-hash=REJECT, fake-pass=REJECT, derived-pass=close, derived-fail=bypassed, adapter-tamper=REJECT, missing-counterexample=REJECT, unbound-verifier=REJECT, unknown-verifier=REJECT, expiry=expired');

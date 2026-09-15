@@ -6,7 +6,7 @@ Scope: case admission, mechanism registration, independent replay, closure, and 
 ## Core objects
 
 - `case`: a reproducible failure with an expected transition.
-- `mechanism`: a control asset that covers one or more failure modes.
+- `mechanism`: a control asset that covers one or more failure modes and declares the registered `verifier_id` used to judge it.
 - `mechanism_run`: a replay with `evidence_refs`, re-derived input/output digests, environment fingerprint, exit code, counterexample, and a judge-produced verification result.
 - `closure`: proof that a freshly verified, non-regressing mechanism run closed a case.
 
@@ -26,6 +26,8 @@ autoarmory close --case case-id --run run-id --state .selfforge --repo <repo-roo
 
 A record is verified only when the judge can re-derive the fact now:
 
+- the mechanism declares a registered `verifier_id`, and its adapter integrity is checked at registration;
+- the run's `evidence_refs` include that same `verifier`; a run that uses an unrelated registered verifier is rejected even if that unrelated verifier re-derives successfully;
 - the record points to an `evidence_ref` whose `verifier` is registered in `verifiers.lock.json`;
 - the verifier is explicitly `readonly`;
 - the adapter is inside the repository and its SHA-256 matches the pinned adapter digest;
@@ -49,7 +51,7 @@ unverified | verified | expired | bypassed | closed
 `closeCase` rejects a run unless it:
 
 - belongs to the case and mechanism;
-- has verified `evidence_refs` after a fresh re-derivation;
+- has verified `evidence_refs` from the mechanism's declared `verifier_id` after a fresh re-derivation;
 - has re-derived input/output SHA-256 hashes and `exit_code`;
 - passed according to the re-derived exit code;
 - did not introduce a regression;
