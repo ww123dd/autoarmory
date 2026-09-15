@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory Closure",
+  "type": "object",
+  "required": ["schema_version", "id", "case_id", "mechanism_id", "run_id", "status", "closed_at"],
+  "properties": {
+    "schema_version": { "const": "autoarmory/closure/v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "case_id": { "type": "string", "minLength": 1 },
+    "mechanism_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "status": { "const": "closed" },
+    "closed_at": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true
+}

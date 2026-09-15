@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AutoArmory Case",
+  "type": "object",
+  "required": ["schema_version", "id", "incident_id", "title", "expected_transition", "failure_mode", "severity", "evidence", "reproducible", "owner"],
+  "properties": {
+    "schema_version": { "const": "autoarmory/case/v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "incident_id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "expected_transition": { "type": "string", "minLength": 1 },
+    "failure_mode": { "type": "string", "minLength": 1 },
+    "severity": { "enum": ["low", "medium", "high", "critical"] },
+    "evidence": { "type": "array", "minItems": 1 },
+    "reproducible": { "const": true },
+    "owner": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true
+}
