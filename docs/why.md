@@ -15,6 +15,10 @@ Those tools do not answer the cross-vendor decision problem:
 
 AutoArmory is the decision and lifecycle layer for that question.
 
+The non-replaceable reason:
+
+> AutoArmory is the only layer that maximizes **policy-compliant execution** across vendors: it executes when the module is allowed, refuses when it is unsafe or unsupported, records the outcome, and retires what keeps failing.
+
 Use AutoArmory when:
 
 - you use more than one runner, evaluator, scanner, MCP gateway or memory provider;

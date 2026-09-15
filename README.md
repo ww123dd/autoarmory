@@ -11,7 +11,7 @@ npx autoarmory demo
 npx autoarmory bench
 ```
 
-Why this must exist: [Why AutoArmory](docs/why.md).
+Why this must exist: AutoArmory maximizes **policy-compliant execution**, not unsafe completion at any cost. It executes when the module is allowed, refuses when it is unsafe or unsupported, records the outcome, and retires what keeps failing. See [Why AutoArmory](docs/why.md).
 
 ## Capability Manager
 

@@ -25,6 +25,8 @@ must(report.schema_version === 'autoarmory/capability-routing-bench/v1', 'bench 
 must(report.synthetic === true && /synthetic/i.test(report.note), 'bench must label synthetic evidence');
 must(report.strategies.length === 3 && report.strategies.some(function (item) { return item.id === 'autoarmory'; }), 'bench strategies');
 must(report.strategies.some(function (item) { return item.id === 'autoarmory' && item.metrics.safety_violations === 0; }), 'AutoArmory routing must avoid safety violations');
+const auto = report.strategies.find(function (item) { return item.id === 'autoarmory'; });
+must(auto.metrics.policy_compliance_rate === 1 && auto.metrics.success_rate_when_executed === 1 && auto.metrics.safe_refusals === 2, 'bench must score safe refusal separately from execution success');
 must(report.recommendation && report.recommendation.length > 0, 'bench recommendation');
 
 console.log('Capability routing bench tests passed');
