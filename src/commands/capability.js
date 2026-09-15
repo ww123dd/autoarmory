@@ -56,7 +56,8 @@ module.exports = function run(argv) {
     if (!requestFile) return usage();
     const capabilities = capability.readCapabilities(file);
     const request = readJson(path.resolve(requestFile));
-    const result = capability.route(capabilities, request, { seed: Number(args.seed || 1) });
+    const routeOptions = args.seed === undefined ? {} : { seed: Number(args.seed) };
+    const result = capability.route(capabilities, request, routeOptions);
     const decisionFile = path.join(state, 'routing-decisions.jsonl');
     if (result.ok) {
       const decisions = readJsonl(decisionFile);

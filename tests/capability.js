@@ -77,10 +77,16 @@ const requestFile = writeJson('routing-request.json', {
   schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'medium', data_sensitivity: 'internal', cost_budget: 0.02, latency_slo_ms: 2000, write_required: false, security_level: 'standard', context: {}
 });
 result = run(['capability', 'route', '--request', requestFile, '--state', state, '--seed', '7', '--json']);
-must(result.code === 0 && JSON.parse(result.out).selected.length === 1, 'capability route selects a module');
-const routeOne = result.out;
+const routeOne = JSON.parse(result.out);
+must(result.code === 0 && routeOne.selected.length === 1, 'capability route selects a module');
 result = run(['capability', 'route', '--request', requestFile, '--state', state, '--seed', '7', '--json']);
-must(result.code === 0 && result.out === routeOne, 'capability route is deterministic for a seed');
+const routeTwo = JSON.parse(result.out);
+must(result.code === 0 && JSON.stringify(routeOne.selected) === JSON.stringify(routeTwo.selected) && JSON.stringify(routeOne.fallback_chain) === JSON.stringify(routeTwo.fallback_chain), 'capability route is deterministic for a seed');
+result = run(['capability', 'route', '--request', requestFile, '--state', state, '--json']);
+const unseededOne = JSON.parse(result.out);
+result = run(['capability', 'route', '--request', requestFile, '--state', state, '--json']);
+const unseededTwo = JSON.parse(result.out);
+must(result.code === 0 && unseededOne.request_id !== unseededTwo.request_id && unseededOne.seed !== unseededTwo.seed, 'unseeded route must produce unique request ids and real exploration seeds');
 
 const writeRequest = writeJson('routing-write.json', { schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'medium', data_sensitivity: 'internal', cost_budget: 1, latency_slo_ms: 5000, write_required: true, human_approval: true, security_level: 'standard', context: {} });
 result = run(['capability', 'route', '--request', writeRequest, '--state', state, '--seed', '7', '--json']);

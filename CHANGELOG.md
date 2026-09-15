@@ -15,6 +15,8 @@
 - Added an admission gate with explicit observed/candidate/admitted/rejected/duplicate statuses.
 - Added coding/support/research scenario profile contracts and capability gap planning.
 - Added a local HTTP control-plane API, SDK client, Team CLI integration example, playground and adapter contract.
+- Added an executable pre-commit change gate (`scripts/change-gate.js`) plus `npm run hooks:install` and reverse tests.
+- Hardened the local HTTP API: write endpoints are read-only by default, require `--allow-write`, and require a per-start bearer token; wildcard CORS was removed.
 
 ## 0.2.0
 

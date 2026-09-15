@@ -27,22 +27,36 @@ fs.writeFileSync(path.join(state, 'capabilities.jsonl'), JSON.stringify({
   evidence_refs: []
 }) + String.fromCharCode(10), 'utf8');
 
+const routeBody = { request: { schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'low', data_sensitivity: 'internal', cost_budget: 1, latency_slo_ms: 1000, write_required: false, security_level: 'standard', human_approval: false, context: {} }, seed: 7 };
+
 (async function () {
-  const server = await startServer({ host: '127.0.0.1', port: 0, state: state });
-  const base = 'http://127.0.0.1:' + server.address().port;
+  let server = await startServer({ host: '127.0.0.1', port: 0, state: state });
+  let base = 'http://127.0.0.1:' + server.address().port;
   try {
     let response = await fetch(base + '/health');
     let json = await response.json();
-    if (!json.ok) throw new Error('health');
+    if (!json.ok || json.write_enabled !== false) throw new Error('read-only health');
     response = await fetch(base + '/capabilities');
     json = await response.json();
     if (!json.some(function (item) { return item.id === 'runner.api'; })) throw new Error('capabilities');
-    response = await fetch(base + '/route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ request: { schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'low', data_sensitivity: 'internal', cost_budget: 1, latency_slo_ms: 1000, write_required: false, security_level: 'standard', human_approval: false, context: {} }, seed: 7 }) });
-    json = await response.json();
-    if (!json.ok || json.selected[0].id !== 'runner.api') throw new Error('route');
+    response = await fetch(base + '/route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(routeBody) });
+    if (response.status !== 403) throw new Error('read-only route must be blocked');
     response = await fetch(base + '/playground');
     const html = await response.text();
     if (!/AutoArmory Playground/.test(html)) throw new Error('playground');
+  } finally {
+    server.close();
+  }
+
+  server = await startServer({ host: '127.0.0.1', port: 0, state: state, allowWrite: true });
+  base = 'http://127.0.0.1:' + server.address().port;
+  try {
+    if (!server.autoarmoryToken) throw new Error('write mode must expose a token');
+    let response = await fetch(base + '/route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(routeBody) });
+    if (response.status !== 401) throw new Error('missing token must be rejected');
+    response = await fetch(base + '/route', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + server.autoarmoryToken }, body: JSON.stringify(routeBody) });
+    const json = await response.json();
+    if (!json.ok || json.selected[0].id !== 'runner.api') throw new Error('authorized route');
     console.log('API/SDK surface tests passed');
   } finally {
     server.close();

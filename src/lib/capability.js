@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const crypto = require('crypto');
 const { readJsonl, writeJsonl } = require('./util');
 
 const KINDS = ['runner', 'evaluator', 'scanner', 'mcp-gateway', 'registry', 'observability', 'provenance', 'memory', 'ci', 'policy'];
@@ -141,7 +142,8 @@ function route(capabilities, request, options) {
   const opts = options || {};
   const filtered = filterCapabilities(capabilities, request);
   if (!filtered.eligible.length) return { ok: false, errors: ['no eligible capability'], rejected: filtered.rejected, request: request };
-  const rng = makeRng(opts.seed || 1);
+  const actualSeed = (opts.seed === undefined || opts.seed === null || opts.seed === '') ? crypto.randomInt(1, 2147483647) : Number(opts.seed);
+  const rng = makeRng(actualSeed);
   const ranked = filtered.eligible.map(function (item) {
     const sample = sampleBeta(Number(item.reliability.alpha), Number(item.reliability.beta), rng);
     const costPenalty = request.cost_budget > 0 ? Number(item.cost.estimate) / Number(request.cost_budget) : Number(item.cost.estimate);
@@ -149,7 +151,7 @@ function route(capabilities, request, options) {
     const riskPenalty = (RISK_RANK[item.risk] || 4) / 4;
     return { id: item.id, score: sample - 0.1 * costPenalty - 0.1 * latencyPenalty - 0.05 * riskPenalty, posterior_mean: reliabilityMean(item) };
   }).sort(function (a, b) { return b.score - a.score || a.id.localeCompare(b.id); });
-  const requestId = 'route-' + require('./util').sha256(JSON.stringify(request) + ':' + (opts.seed || 1)).slice(0, 12);
+  const requestId = 'route-' + require('./util').sha256(JSON.stringify(request) + ':' + actualSeed + ':' + crypto.randomUUID()).slice(0, 12);
   return {
     ok: true,
     schema_version: 'autoarmory/routing-decision/v1',
@@ -160,7 +162,7 @@ function route(capabilities, request, options) {
     fallback_chain: ranked.slice(1, 4).map(function (item) { return item.id; }),
     reason: 'deterministic constraint filter + constrained Thompson sampling',
     policy_version: 'autoarmory/policy/v1',
-    seed: Number(opts.seed || 1),
+    seed: actualSeed,
     evidence_refs: []
   };
 }

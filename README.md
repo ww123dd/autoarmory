@@ -107,6 +107,16 @@ gh issue list --repo owner/repo --json number,title,body,url | autoarmory observ
 cat junit.xml | autoarmory observe - --format junit --output .selfforge/incidents.jsonl
 ```
 
+## Change gate
+
+Enable the repository-local pre-commit enforcement point:
+
+```bash
+npm run hooks:install
+```
+
+The hook runs `node scripts/change-gate.js --staged`. It blocks new abstraction surfaces unless the change includes a passing claim record, a verification improvement, or removal/downgrade of an existing layer. See [Change Gate](docs/change-gate.md).
+
 ## Gate boundary
 
 `autoarmory gate` and `autoarmory evolve` both call the real SkillCanary gate. The operation is fail-closed: a missing SkillCanary CLI, invalid gate output, local structural error, or any SkillCanary gate error marks the candidate `rejected`. AutoArmory does not promote or execute a candidate by itself.

@@ -7,9 +7,9 @@ const { matchFailureModes, severityForMode } = require('./failure-modes');
 
 const SIGNALS = [
   { mode: 'test_failure', severity: 'high', re: /(FAIL|failed|assertion|expected .* received|test.*failed)/i },
-  { mode: 'runtime_error', severity: 'high', re: /(error|exception|traceback|timeout|E[A-Z]+)/i },
+  { mode: 'runtime_error', severity: 'high', re: /\b(error|exception|traceback|timeout|exit code [1-9][0-9]*|failed with exit)\b/i },
   { mode: 'dead_reference', severity: 'medium', re: /(dead pointer|missing file|ENOENT|references? .* not found)/i },
-  { mode: 'security_finding', severity: 'critical', re: /(prompt injection|data exfiltration|secret|credential|malicious)/i },
+  { mode: 'security_finding', severity: 'critical', re: /\b(prompt injection|data exfiltration|malicious (payload|code|skill|package)|credential leak|secret leaked|leaked secret)\b/i },
   { mode: 'drift', severity: 'high', re: /(drift|change point|distribution shift)/i },
   { mode: 'missing_evidence', severity: 'medium', re: /(no evidence|without evidence|missing evidence|unverified)/i },
   { mode: 'todo', severity: 'low', re: /(TODO|FIXME|HACK)/i }
