@@ -22,7 +22,8 @@
     "observe:example": "node bin/selfforge.js observe examples/incidents.jsonl --output .selfforge/incidents.jsonl",
     "propose:example": "node bin/selfforge.js propose examples/incidents.jsonl --output .selfforge/candidates.jsonl",
     "learn:example": "node bin/selfforge.js learn examples/decisions.jsonl",
-    "evolve:example": "node bin/selfforge.js evolve examples/incidents.jsonl --json"
+    "evolve:example": "node bin/selfforge.js evolve examples/incidents.jsonl --skillcanary ../20260914_SkillCanary --cases examples/skillcanary-cases.json --json",
+    "test:conformance": "node tests/conformance.js"
   },
   "engines": {
     "node": ">=18"

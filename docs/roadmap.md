@@ -16,6 +16,8 @@
 - [x] sequential outcome comparison
 - [x] environment fingerprint
 - [x] Thompson policy recommendation with uncertainty
+- [x] fail-closed SkillCanary gate proxy
+- [x] gate conformance for deterministic and case targets
 
 ## 0.3
 

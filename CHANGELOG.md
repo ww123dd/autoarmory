@@ -8,6 +8,8 @@
 - Added shadow and canary plans.
 - Added Thompson policy recommendations with uncertainty.
 - Added candidate acquisition scoring.
+- Proxied `gate` and `evolve` to the real SkillCanary gate with fail-closed dependency handling.
+- Added the `candidate.change` contract and real adapter conformance tests.
 - Added the `evolve` orchestration command.
 
 ## 0.1.0

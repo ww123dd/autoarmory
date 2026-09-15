@@ -12,7 +12,8 @@
     "prediction",
     "evidence",
     "risk",
-    "status"
+    "status",
+    "change"
   ],
   "properties": {
     "schema_version": {
@@ -78,6 +79,74 @@
     },
     "created_at": {
       "type": "string"
+    },
+    "change": {
+      "type": "object",
+      "required": [
+        "skill",
+        "reason",
+        "decision",
+        "production_change",
+        "budget"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "skillcanary/change/v1"
+        },
+        "id": {
+          "type": "string"
+        },
+        "skill": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "type": "object"
+        },
+        "expected_transition": {
+          "enum": [
+            "FAIL->PASS",
+            "COUNT->0"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 20
+        },
+        "decision": {
+          "type": "string",
+          "minLength": 20
+        },
+        "production_change": {
+          "type": "boolean"
+        },
+        "prediction": {
+          "type": "object"
+        },
+        "budget": {
+          "type": "object",
+          "required": [
+            "repeat",
+            "max_runs"
+          ],
+          "properties": {
+            "repeat": {
+              "type": "integer",
+              "minimum": 3
+            },
+            "max_runs": {
+              "type": "integer",
+              "minimum": 3
+            }
+          }
+        },
+        "evidence": {
+          "type": "object"
+        },
+        "provenance": {
+          "type": "object"
+        }
+      }
     }
   }
 }

@@ -1,0 +1,10 @@
+{
+  "schema_version": "skillcanary/cases/v1",
+  "cases": [
+    {
+      "id": "inc-demo-1",
+      "status": "stable",
+      "criteria": "Synthetic SelfForge fixture: the observed test failure must transition to pass."
+    }
+  ]
+}

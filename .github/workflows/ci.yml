@@ -16,4 +16,10 @@ jobs:
       - run: node bin/selfforge.js observe examples/incidents.jsonl --json
       - run: node bin/selfforge.js learn examples/decisions.jsonl --json
       - run: node bin/selfforge.js environment --write
-      - run: node bin/selfforge.js evolve examples/incidents.jsonl --json
+      - name: Verify gate fails closed without SkillCanary
+        run: |
+          if node bin/selfforge.js evolve examples/incidents.jsonl --state /tmp/selfforge-state --skillcanary /nonexistent --json > /tmp/selfforge-evolve.json; then
+            echo "expected evolve to fail closed" >&2
+            exit 1
+          fi
+          grep '"gated": 0' /tmp/selfforge-evolve.json
