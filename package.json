@@ -19,7 +19,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "node tests/run.js",
+    "test": "node tests/run.js && node tests/capability.js",
     "observe:example": "node bin/autoarmory.js observe examples/incidents.jsonl --output .selfforge/incidents.jsonl",
     "propose:example": "node bin/autoarmory.js propose examples/incidents.jsonl --output .selfforge/candidates.jsonl",
     "learn:example": "node bin/autoarmory.js learn examples/decisions.jsonl",

@@ -92,4 +92,91 @@ function healthRows(capabilities, options) {
   });
 }
 
-module.exports = { KINDS, RISKS, TRUST_LEVELS, CONFORMANCE_LEVELS, HEALTH_LEVELS, normalizeCapability, validateCapability, readCapabilities, registerCapability, healthRows };
+
+const RISK_RANK = { low: 1, medium: 2, high: 3, critical: 4 };
+
+function makeRng(seed) {
+  let state = (Number(seed) || 1) >>> 0;
+  return function () { state += 0x6D2B79F5; let t = state; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+function boxMuller(rng) { const u = Math.max(rng(), Number.EPSILON); const v = Math.max(rng(), Number.EPSILON); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function sampleGamma(shape, rng) {
+  const d = shape - 1 / 3;
+  const c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    let x;
+    let v;
+    do { x = boxMuller(rng); v = 1 + c * x; } while (v <= 0);
+    v = v * v * v;
+    const u = rng();
+    if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+  }
+}
+function sampleBeta(alpha, beta, rng) { const x = sampleGamma(Math.max(0.0001, alpha), rng); const y = sampleGamma(Math.max(0.0001, beta), rng); return x / (x + y); }
+function reliabilityMean(item) { return item.reliability.alpha / (item.reliability.alpha + item.reliability.beta); }
+
+function filterCapabilities(capabilities, request) {
+  const eligible = [];
+  const rejected = [];
+  for (const item of capabilities || []) {
+    let reason = null;
+    if (item.health === 'offline') reason = 'capability is offline';
+    else if ((item.capabilities || []).indexOf(request.task_type) === -1) reason = 'does not provide task_type ' + request.task_type;
+    else if ((RISK_RANK[item.risk] || 99) > (RISK_RANK[request.risk] || 99)) reason = 'risk exceeds request limit';
+    else if (request.write_required && !item.permissions.write) reason = 'missing write permission';
+    else if (request.data_sensitivity === 'restricted' && item.permissions.network) reason = 'restricted data cannot use a network capability';
+    else if (request.security_level === 'restricted' && item.trust_level !== 'trusted') reason = 'restricted security requires trusted capability';
+    else if (request.security_level === 'elevated' && item.trust_level === 'untrusted') reason = 'elevated security rejects untrusted capability';
+    else if (Number(item.cost.estimate) > Number(request.cost_budget)) reason = 'cost exceeds request budget';
+    else if (Number(item.latency_ms.p95) > Number(request.latency_slo_ms)) reason = 'latency exceeds request SLO';
+    if (reason) rejected.push({ id: item.id, reason: reason }); else eligible.push(item);
+  }
+  return { eligible: eligible, rejected: rejected };
+}
+
+function route(capabilities, request, options) {
+  const opts = options || {};
+  const filtered = filterCapabilities(capabilities, request);
+  if (!filtered.eligible.length) return { ok: false, errors: ['no eligible capability'], rejected: filtered.rejected, request: request };
+  const rng = makeRng(opts.seed || 1);
+  const ranked = filtered.eligible.map(function (item) {
+    const sample = sampleBeta(Number(item.reliability.alpha), Number(item.reliability.beta), rng);
+    const costPenalty = request.cost_budget > 0 ? Number(item.cost.estimate) / Number(request.cost_budget) : Number(item.cost.estimate);
+    const latencyPenalty = request.latency_slo_ms > 0 ? Number(item.latency_ms.p95) / Number(request.latency_slo_ms) : Number(item.latency_ms.p95);
+    const riskPenalty = (RISK_RANK[item.risk] || 4) / 4;
+    return { id: item.id, score: sample - 0.1 * costPenalty - 0.1 * latencyPenalty - 0.05 * riskPenalty, posterior_mean: reliabilityMean(item) };
+  }).sort(function (a, b) { return b.score - a.score || a.id.localeCompare(b.id); });
+  const requestId = 'route-' + require('./util').sha256(JSON.stringify(request) + ':' + (opts.seed || 1)).slice(0, 12);
+  return {
+    ok: true,
+    schema_version: 'autoarmory/routing-decision/v1',
+    request_id: requestId,
+    request: request,
+    selected: ranked.slice(0, 1),
+    rejected: filtered.rejected,
+    fallback_chain: ranked.slice(1, 4).map(function (item) { return item.id; }),
+    reason: 'deterministic constraint filter + constrained Thompson sampling',
+    policy_version: 'autoarmory/policy/v1',
+    seed: Number(opts.seed || 1),
+    evidence_refs: []
+  };
+}
+
+function portfolio(capabilities) {
+  const items = (capabilities || []).map(function (item) {
+    return { id: item.id, reliability: reliabilityMean(item), cost: Number(item.cost.estimate), latency_p95: Number(item.latency_ms.p95), risk: RISK_RANK[item.risk] || 4, freshness: Date.parse(item.freshness) || 0, capability: item };
+  });
+  const frontier = items.filter(function (item) {
+    return !items.some(function (other) {
+      if (other === item) return false;
+      const noWorse = other.reliability >= item.reliability && other.cost <= item.cost && other.latency_p95 <= item.latency_p95 && other.risk <= item.risk && other.freshness >= item.freshness;
+      const better = other.reliability > item.reliability || other.cost < item.cost || other.latency_p95 < item.latency_p95 || other.risk < item.risk || other.freshness > item.freshness;
+      return noWorse && better;
+    });
+  }).sort(function (a, b) { return b.reliability - a.reliability || a.cost - b.cost || a.id.localeCompare(b.id); });
+  return { schema_version: 'autoarmory/portfolio/v1', frontier: frontier.map(function (item) { return { id: item.id, reliability: item.reliability, cost: item.cost, latency_p95: item.latency_p95, risk: item.risk, freshness: item.freshness }; }) };
+}
+
+module.exports = { KINDS, RISKS, TRUST_LEVELS, CONFORMANCE_LEVELS, HEALTH_LEVELS, normalizeCapability, validateCapability, readCapabilities, registerCapability, healthRows, filterCapabilities, route, portfolio, sampleBeta, reliabilityMean };
