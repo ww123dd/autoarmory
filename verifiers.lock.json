@@ -1,0 +1,21 @@
+{
+  "verifiers": [
+    {
+      "timeout_ms": 60000,
+      "readonly": true,
+      "bridge_env": "AUTOARMORY_DORIS_MCP_CMD",
+      "id": "doris-readonly-count",
+      "adapter_sha256": "a866ca06a969697ee4576d6825fcec2ded451ae1769f5db06b25444f9f927360",
+      "statement": "doris-count vasen_tmp.tmp_ads_svc_day_info01",
+      "assertion": {
+        "op": "eq",
+        "path": "cnt",
+        "value": 0
+      },
+      "kind": "state-query",
+      "adapter": "scripts/verify/state-query.js"
+    }
+  ],
+  "schema_version": "autoarmory/verifiers-lock/v1",
+  "note": "Trust root for src/lib/verify.js. Adapter digests are pinned here; swapping an adapter changes its digest and is reported as mismatch. Edit this file only in a reviewed commit."
+}
