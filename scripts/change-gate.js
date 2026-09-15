@@ -72,7 +72,7 @@ const readmeDiff = status.some(function (item) { return item.file === 'README.md
 if (readmeDiff && /(?:control\s*plane|off[-\s]?policy|portfolio|production[-\s]?ready|reliability|verified|conformance)/i.test(added(readmeDiff))) abstractions.push({ kind: 'strong-vocabulary', file: 'README.md' });
 
 const verificationImprovement = (/input_sha256/.test(addedText) && /output_sha256/.test(addedText)) || (/environment_fingerprint/.test(addedText) && /outcome_callback/.test(addedText)) || (/closeCase/.test(addedText) && /exit_code/.test(addedText));
-const downgrade = /(?:control\s*plane|off[-\s]?policy|portfolio|capability\s+route)/i.test(removedText) || status.some(function (item) { return item.status === 'D' && /^src\/commands\//.test(item.file); });
+const downgrade = /(?:control\s*plane|off[-\s]?policy|portfolio|capability\s+route)/i.test(removedText) || status.some(function (item) { return (item.status === 'D' || item.status.indexOf('R') === 0) && /^src\/commands\//.test(item.file); });
 const claimReports = [];
 for (const file of claims) {
   try {
@@ -81,13 +81,13 @@ for (const file of claims) {
     claimReports.push({ file: file, ok: false, output: error.message });
   }
 }
-const acceptedClaim = claimReports.find(function (item) { return item.ok; });
+
 const blockers = [];
 const warnings = [];
-if (abstractions.length && !acceptedClaim && !verificationImprovement && !downgrade) {
-  blockers.push('new abstraction or strong vocabulary needs a passing claim, a verification improvement (input/output hash or outcome callback), or removal/downgrade of an existing layer');
+if (abstractions.length && !downgrade) {
+  blockers.push('new abstraction requires removal or replacement of an existing layer');
 }
-if (abstractions.length && !acceptedClaim && !verificationImprovement && !downgrade) warnings.push('blocked abstractions: ' + abstractions.map(function (item) { return item.kind + ':' + item.file; }).join(', '));
+if (abstractions.length && !downgrade) warnings.push('blocked abstractions: ' + abstractions.map(function (item) { return item.kind + ':' + item.file; }).join(', '));
 if (!abstractions.length && !claims.length) warnings.push('no new abstraction detected; gate allowed the diff');
 
 const report = {

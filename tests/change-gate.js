@@ -74,14 +74,14 @@ write(path.join(dir, 'src', 'commands', 'new.js'), "'use strict';\n");
 write(path.join(dir, 'claims', 'new-command.json'), claim());
 git(dir, ['add', 'src/commands/new.js', 'claims/new-command.json']);
 result = run(dir);
-must(result.code === 0 && result.out.includes('"verdict": "PASS"'), 'new command with passing claim must PASS');
+must(result.code === 2 && result.out.includes('"verdict": "BLOCK"'), 'new command with claim but no removal must BLOCK');
 
 dir = repo('new-command-with-improvement');
 write(path.join(dir, 'src', 'commands', 'new.js'), "'use strict';\n");
 write(path.join(dir, 'src', 'lib', 'mechanism.js'), "'use strict';\nmodule.exports = { input_sha256: true, output_sha256: true };\n");
 git(dir, ['add', 'src/commands/new.js', 'src/lib/mechanism.js']);
 result = run(dir);
-must(result.code === 0 && result.out.includes('"verification_improvement": true'), 'hash improvement must PASS');
+must(result.code === 2 && result.out.includes('"verdict": "BLOCK"'), 'hash improvement without removal must BLOCK');
 
 dir = repo('new-command-with-downgrade');
 write(path.join(dir, 'src', 'commands', 'new.js'), "'use strict';\n");
@@ -96,4 +96,4 @@ git(dir, ['add', 'README.md']);
 result = run(dir);
 must(result.code === 2 && result.out.includes('strong-vocabulary'), 'strong vocabulary without claim must BLOCK');
 
-console.log('change-gate selftest passed: no-claim=BLOCK, claim=PASS, hash-improvement=PASS, removal=PASS, strong-vocab=BLOCK');
+console.log('change-gate selftest passed: no-claim=BLOCK, claim-only=BLOCK, hash-only=BLOCK, removal=PASS, strong-vocab=BLOCK');

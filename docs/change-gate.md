@@ -6,11 +6,9 @@
 node scripts/change-gate.js --staged
 ```
 
-The gate does not judge code quality. It blocks one specific failure mode: adding a new command, schema, learning summary, plan/spec, package script or strong README vocabulary without either:
+The gate does not judge code quality. It enforces one convergence rule: adding a new command, schema, learning summary, plan/spec, package script or strong README vocabulary requires the same staged diff to remove or replace an existing user-visible layer.
 
-- a passing `claims/*.json` that satisfies `scripts/claim-check.js`; or
-- a verification improvement such as `input_sha256` + `output_sha256`, `environment_fingerprint` + `outcome_callback`, or `closeCase` + `exit_code`; or
-- removal/downgrade of an existing layer.
+A passing claim or a verification improvement is still recorded, but it does not substitute for deletion or replacement.
 
 Run the reverse tests:
 

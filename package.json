@@ -24,7 +24,7 @@
     "!packages/skillcanary/docs/reading"
   ],
   "scripts": {
-    "test": "node tests/run.js && node tests/capability.js && node tests/failure-modes.js && node tests/demo.js && node tests/bench.js && node tests/integrate.js && node tests/admission.js && node tests/scenario.js && node tests/api.js && node tests/aliases.js && node packages/skillcanary/tests/run.js && node tests/change-gate.js && node scripts/pack-check.js && node tests/observe-precision.js && node tests/persistence.js && node tests/mechanism.js",
+    "test": "node tests/run.js && node tests/capability.js && node tests/failure-modes.js && node tests/demo.js && node tests/bench.js && node tests/integrate.js && node tests/admission.js && node tests/scenario.js && node tests/api.js && node tests/aliases.js && node packages/skillcanary/tests/run.js && node tests/change-gate.js && node scripts/pack-check.js && node tests/observe-precision.js && node tests/persistence.js && node tests/mechanism.js && node scripts/evolution-metrics.js",
     "observe:example": "node bin/autoarmory.js observe examples/incidents.jsonl --output .selfforge/incidents.jsonl",
     "propose:example": "node bin/autoarmory.js propose examples/incidents.jsonl --output .selfforge/candidates.jsonl",
     "learn:example": "node bin/autoarmory.js learn examples/decisions.jsonl",
@@ -41,7 +41,8 @@
     "test:pack": "node scripts/pack-check.js",
     "test:observe-precision": "node tests/observe-precision.js",
     "test:persistence": "node tests/persistence.js",
-    "test:mechanism": "node tests/mechanism.js"
+    "test:mechanism": "node tests/mechanism.js",
+    "test:metrics": "node scripts/evolution-metrics.js"
   },
   "engines": {
     "node": ">=18"

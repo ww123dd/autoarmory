@@ -12,13 +12,13 @@ Scope: case admission, mechanism registration, independent replay, closure, and 
 
 ## Commands
 
+The case, mechanism, and run records are produced by the internal mechanism library and consumed by existing workflows. The user-facing action is closure:
+
 ```bash
-autoarmory mechanism case-admit case.json --state .selfforge
-autoarmory mechanism register mechanism.json --state .selfforge
-autoarmory mechanism run run.json --state .selfforge
-autoarmory mechanism close --case case-id --run run-id --state .selfforge
-autoarmory mechanism status mechanism-id --state .selfforge
+autoarmory close --case case-id --run run-id --state .selfforge
 ```
+
+`close` returns the resulting verdict, so no separate status command is required.
 
 ## Verdicts
 

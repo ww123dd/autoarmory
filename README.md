@@ -41,6 +41,7 @@ gh issue list --repo owner/repo --json number,title,body,url | autoarmory observ
 autoarmory propose .selfforge/incidents.jsonl --output .selfforge/candidates.jsonl
 autoarmory gate .selfforge/candidate.json --cases examples/skillcanary-cases.json
 autoarmory record --candidate cand-1 --action add_case --reward 1.5 --verified true --gate .selfforge/gate.json --evidence .selfforge/outcome-evidence.json
+autoarmory close --case case-id --run run-id --state .selfforge
 autoarmory transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --state .selfforge
 autoarmory transition .selfforge/candidate.json --to shadow --gate .selfforge/gate.json --state .selfforge
 autoarmory learn .selfforge/decisions.jsonl
@@ -57,14 +58,9 @@ autoarmory doctor
 autoarmory capability register examples/capabilities.jsonl
 autoarmory capability list --state .selfforge
 autoarmory capability health --state .selfforge
-autoarmory capability route --request request.json --state .selfforge
-autoarmory capability portfolio --state .selfforge
 autoarmory capability outcome outcome.json --state .selfforge
 autoarmory capability drift runner.skillgrade --state .selfforge
 autoarmory capability conformance runner.skillgrade --state .selfforge
-autoarmory capability retire legacy.runner --reason "Repeated drift and failures." --state .selfforge
-autoarmory policy calibrate --outcomes .selfforge/capability-outcomes.jsonl --min 30
-autoarmory policy off-policy --outcomes .selfforge/capability-outcomes.jsonl --min 30
 autoarmory report --output autoarmory-report.md
 ```
 
