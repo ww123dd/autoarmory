@@ -1,6 +1,6 @@
 # Capability Manager Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Implement AutoArmory's Capability Manager first slice: canonical capability contracts, registry, health, routing, portfolio, outcome learning, drift detection, conformance, retirement, calibration and off-policy evaluation.
 
@@ -41,11 +41,11 @@
 - Produces: `registerCapability(file, value, options) -> object`
 - Produces CLI: `autoarmory capability register|list|health`
 
-- [ ] Write failing CLI tests for register/list/health and invalid capability rejection.
-- [ ] Run `node tests/capability.js`; expect missing command failure.
-- [ ] Implement schema validation, JSONL registry, commands and usage text.
-- [ ] Run `npm test`; expect all tests pass.
-- [ ] Commit `feat: add capability registry`.
+- [x] Write failing CLI tests for register/list/health and invalid capability rejection.
+- [x] Run `node tests/capability.js`; expect missing command failure.
+- [x] Implement schema validation, JSONL registry, commands and usage text.
+- [x] Run `npm test`; expect all tests pass.
+- [x] Commit `feat: add capability registry`.
 
 ### Task 2: Constrained routing and Pareto portfolio
 
@@ -62,11 +62,11 @@
 - Produces: `portfolio(capabilities) -> paretoFrontier`
 - Produces CLI: `autoarmory capability route|portfolio`
 
-- [ ] Write failing tests for permission filtering, risk filtering, latency/cost constraints, deterministic seed, fallback chain and Pareto frontier.
-- [ ] Run `node tests/capability.js`; expect failures.
-- [ ] Implement constrained Thompson Sampling with Beta posterior and Pareto dominance.
-- [ ] Run `npm test`; expect all tests pass.
-- [ ] Commit `feat: add capability routing and portfolio`.
+- [x] Write failing tests for permission filtering, risk filtering, latency/cost constraints, deterministic seed, fallback chain and Pareto frontier.
+- [x] Run `node tests/capability.js`; expect failures.
+- [x] Implement constrained Thompson Sampling with Beta posterior and Pareto dominance.
+- [x] Run `npm test`; expect all tests pass.
+- [x] Commit `feat: add capability routing and portfolio`.
 
 ### Task 3: Outcomes, drift, conformance and retirement
 
@@ -84,11 +84,11 @@
 - Produces: `retireCapability(registryFile, suggestionsFile, id, reason) -> suggestion`
 - Produces CLI: `autoarmory capability outcome|drift|conformance|retire`
 
-- [ ] Write failing tests for Beta posterior update, CUSUM drift alert, conformance pass/fail and retirement suggestion.
-- [ ] Run `node tests/capability.js`; expect failures.
-- [ ] Implement outcome append/update, drift windows, conformance metadata checks and retirement.
-- [ ] Run `npm test`; expect all tests pass.
-- [ ] Commit `feat: add capability outcomes and health controls`.
+- [x] Write failing tests for Beta posterior update, CUSUM drift alert, conformance pass/fail and retirement suggestion.
+- [x] Run `node tests/capability.js`; expect failures.
+- [x] Implement outcome append/update, drift windows, conformance metadata checks and retirement.
+- [x] Run `npm test`; expect all tests pass.
+- [x] Commit `feat: add capability outcomes and health controls`.
 
 ### Task 4: Calibration and off-policy evaluation
 
@@ -102,11 +102,11 @@
 - Produces: `offPolicyEvaluate(outcomes, options) -> {status,ips,effective_samples}`
 - Produces CLI: `autoarmory policy calibrate|off-policy`
 
-- [ ] Write failing tests for insufficient real data, synthetic-data refusal, Brier/log-loss/ECE and IPS.
-- [ ] Run `node tests/capability.js`; expect failures.
-- [ ] Implement guarded calibration and IPS; never update registry from synthetic or unverified outcomes.
-- [ ] Run `npm test`; expect all tests pass.
-- [ ] Commit `feat: add guarded policy calibration`.
+- [x] Write failing tests for insufficient real data, synthetic-data refusal, Brier/log-loss/ECE and IPS.
+- [x] Run `node tests/capability.js`; expect failures.
+- [x] Implement guarded calibration and IPS; never update registry from synthetic or unverified outcomes.
+- [x] Run `npm test`; expect all tests pass.
+- [x] Commit `feat: add guarded policy calibration`.
 
 ### Task 5: Report, conformance, examples and release checks
 
@@ -127,8 +127,8 @@
 - Produces: doctor checks capability registry and routing decision log.
 - Produces: deterministic positive/negative fixtures for runner, evaluator, scanner and MCP gateway capability records.
 
-- [ ] Write failing tests for report/doctor capability sections and deterministic adapter fixtures.
-- [ ] Run `npm test`; expect failures.
-- [ ] Implement report/doctor additions, examples, docs and CI gates.
-- [ ] Run `npm test`, `npm run test:conformance`, `npm pack --dry-run`.
-- [ ] Commit `feat: complete capability manager first slice`.
+- [x] Write failing tests for report/doctor capability sections and deterministic adapter fixtures.
+- [x] Run `npm test`; expect failures.
+- [x] Implement report/doctor additions, examples, docs and CI gates.
+- [x] Run `npm test`, `npm run test:conformance`, `npm pack --dry-run`.
+- [x] Commit `feat: complete capability manager first slice`.
