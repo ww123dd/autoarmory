@@ -1,0 +1,24 @@
+{
+  "schema_version": "skillcanary/change/v1",
+  "id": "2026-09-14-add-basic-fixture",
+  "skill": "basic-skill",
+  "target": { "kind": "case", "id": "c01" },
+  "target_case": "c01",
+  "expected_transition": "FAIL->PASS",
+  "reason": "The skill was never discovered because the description did not name the fixture use case.",
+  "decision": "The agent should load the basic skill when asked to validate the SkillCanary fixture.",
+  "production_change": true,
+  "prediction": {
+    "fix": ["c01"],
+    "regress_risk": ["c02"]
+  },
+  "budget": {
+    "repeat": 3,
+    "max_runs": 9
+  },
+  "evidence": {
+    "kind": "case",
+    "before": { "pass": 0, "total": 3 },
+    "after": { "pass": 3, "total": 3 }
+  }
+}

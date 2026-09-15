@@ -1,0 +1,13 @@
+{
+  "schema_version": "skillcanary/change/v1",
+  "id": "held-out-change",
+  "skill": "basic-skill",
+  "target": { "kind": "case", "id": "c01" },
+  "expected_transition": "FAIL->PASS",
+  "reason": "This fixture proves held-out cases cannot become tuning targets.",
+  "decision": "The gate must reject a target that is marked as held-out.",
+  "production_change": true,
+  "prediction": { "fix": ["c01"], "regress_risk": ["c02"] },
+  "budget": { "repeat": 3, "max_runs": 9 },
+  "evidence": { "kind": "case", "before": { "pass": 0, "total": 3 }, "after": { "pass": 3, "total": 3 } }
+}

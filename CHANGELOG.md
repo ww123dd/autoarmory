@@ -6,6 +6,7 @@
 - Kept `selfforge` and `self-forge` as compatibility CLI aliases.
 - Kept `.selfforge/` state storage and `selfforge/*` schema namespaces stable for backward compatibility.
 - Added the Capability Manager architecture specification.
+- Merged SkillCanary into the AutoArmory monorepo as `packages/skillcanary` with a unified `autoarmory canary` command.
 - Added capability registry, health, routing, portfolio, outcome learning, drift, conformance and retirement.
 - Added guarded policy calibration and off-policy evaluation.
 

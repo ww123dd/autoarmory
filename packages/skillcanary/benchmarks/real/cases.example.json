@@ -1,0 +1,15 @@
+{
+  "schema_version": "skillcanary/real-benchmark/v1",
+  "cases": [
+    {
+      "id": "real-001",
+      "source": "internal incident / public issue URL",
+      "skill": "example-skill",
+      "change": "Rule was added without a linked failing case.",
+      "expected": "block",
+      "before": { "pass": 0, "total": 3 },
+      "after": { "pass": 3, "total": 3 },
+      "notes": "The gate should block the change until the case and evidence are linked."
+    }
+  ]
+}

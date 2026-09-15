@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary change",
+  "type": "object",
+  "required": ["schema_version", "id", "skill", "expected_transition", "reason", "decision", "production_change", "prediction", "budget"],
+  "anyOf": [
+    { "required": ["target"] },
+    { "required": ["target_case"] }
+  ],
+  "properties": {
+    "schema_version": { "const": "skillcanary/change/v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "skill": { "type": "string", "minLength": 1 },
+    "target": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["case", "deterministic"] },
+        "id": { "type": "string", "minLength": 1 },
+        "check": { "type": "string" }
+      }
+    },
+    "target_case": { "type": "string", "minLength": 1 },
+    "expected_transition": { "enum": ["FAIL->PASS", "COUNT->0"] },
+    "reason": { "type": "string", "minLength": 20 },
+    "decision": { "type": "string", "minLength": 20 },
+    "production_change": { "type": "boolean" },
+    "prediction": {
+      "type": "object",
+      "required": ["fix", "regress_risk"],
+      "properties": {
+        "fix": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "regress_risk": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "required": ["repeat", "max_runs"],
+      "properties": {
+        "repeat": { "type": "integer", "minimum": 3 },
+        "max_runs": { "type": "integer", "minimum": 3 }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["case", "deterministic"] },
+        "before": { "$ref": "#/definitions/observation" },
+        "after": { "$ref": "#/definitions/observation" },
+        "check": { "type": "string" },
+        "count_before": { "type": "integer", "minimum": 0 },
+        "count_after": { "type": "integer", "minimum": 0 },
+        "evidence": { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["author", "reviewer", "verifier_independent", "skill_hash_before", "skill_hash_after", "evidence_refs"],
+      "properties": {
+        "author": { "type": "string", "minLength": 1 },
+        "reviewer": { "type": "string", "minLength": 1 },
+        "verifier_independent": { "type": "boolean" },
+        "skill_hash_before": { "type": "string", "minLength": 1 },
+        "skill_hash_after": { "type": "string", "minLength": 1 },
+        "ci_run_id": { "type": "string" },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["uri", "sha256"],
+            "properties": {
+              "uri": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "minLength": 64, "maxLength": 64 },
+              "source": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "observation": {
+      "type": "object",
+      "required": ["pass", "total"],
+      "properties": {
+        "pass": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

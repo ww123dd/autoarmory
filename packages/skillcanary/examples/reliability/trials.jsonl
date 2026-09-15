@@ -1,0 +1,12 @@
+{"task_id":"t1","trial_index":1,"pass":true,"cost":0.1,"latency_ms":1100,"security_violations":0}
+{"task_id":"t1","trial_index":2,"pass":true,"cost":0.1,"latency_ms":1200,"security_violations":0}
+{"task_id":"t1","trial_index":3,"pass":true,"cost":0.1,"latency_ms":1300,"security_violations":0}
+{"task_id":"t1","trial_index":4,"pass":true,"cost":0.1,"latency_ms":1400,"security_violations":0}
+{"task_id":"t2","trial_index":1,"pass":true,"cost":0.1,"latency_ms":1100,"security_violations":0}
+{"task_id":"t2","trial_index":2,"pass":true,"cost":0.1,"latency_ms":1200,"security_violations":0}
+{"task_id":"t2","trial_index":3,"pass":true,"cost":0.1,"latency_ms":1300,"security_violations":0}
+{"task_id":"t2","trial_index":4,"pass":true,"cost":0.1,"latency_ms":1400,"security_violations":0}
+{"task_id":"t3","trial_index":1,"pass":true,"cost":0.1,"latency_ms":1100,"security_violations":0}
+{"task_id":"t3","trial_index":2,"pass":true,"cost":0.1,"latency_ms":1200,"security_violations":0}
+{"task_id":"t3","trial_index":3,"pass":true,"cost":0.1,"latency_ms":1300,"security_violations":0}
+{"task_id":"t3","trial_index":4,"pass":false,"cost":0.1,"latency_ms":1400,"security_violations":0}

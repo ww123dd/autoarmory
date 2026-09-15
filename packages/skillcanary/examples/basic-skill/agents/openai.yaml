@@ -1,0 +1,3 @@
+interface:
+  display_name: "Basic Skill"
+  short_description: "A tiny example skill used by SkillCanary tests"

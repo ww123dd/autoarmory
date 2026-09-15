@@ -1,0 +1,12 @@
+{"session_id":"s0","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":0,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s1","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":0,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s2","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":0,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s3","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":0,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s4","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":4,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s5","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":4,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s6","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":4,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s7","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":4,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s8","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":4,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s9","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":4,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s10","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":4,"rework_turns":0,"tool_error_count":0,"completed":false}}
+{"session_id":"s11","skill":"demo","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":4,"rework_turns":0,"tool_error_count":0,"completed":false}}

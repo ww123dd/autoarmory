@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary lock",
+  "type": "object",
+  "required": ["schema_version", "folder_hash", "files"],
+  "properties": {
+    "schema_version": { "const": "skillcanary/lock/v1" },
+    "generated_at": { "type": "string" },
+    "root": { "type": "string" },
+    "algorithm": { "const": "sha256" },
+    "folder_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "files": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary execution plan audit",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "steps",
+    "cascade_reliability",
+    "issues",
+    "agent_overuse_score",
+    "verdict"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "skillcanary/execution-plan/v1"
+    },
+    "steps": {
+      "type": "array"
+    },
+    "cascade_reliability": {
+      "type": "object"
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "agent_overuse_score": {
+      "type": "number"
+    },
+    "verdict": {
+      "enum": [
+        "PASS",
+        "REVIEW"
+      ]
+    }
+  }
+}

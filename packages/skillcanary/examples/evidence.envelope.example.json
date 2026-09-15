@@ -1,0 +1,21 @@
+{
+  "schema_version": "skillcanary/evidence/v1",
+  "run_id": "run-001",
+  "skill": "example-skill",
+  "skill_hash": "before",
+  "engine": "codex",
+  "model": "example-model",
+  "case_id": "dead-pointer-check",
+  "kind": "deterministic",
+  "check": "selfcheck",
+  "count_before": 2,
+  "count_after": 0,
+  "evidence": "selfcheck: dead pointers 2 -> 0",
+  "verification": {
+    "verified_by": "independent-oracle",
+    "oracle": "selfcheck-script",
+    "result": "pass"
+  },
+  "artifacts": [],
+  "observed_at": "2026-09-14T20:00:00+08:00"
+}

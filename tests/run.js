@@ -31,6 +31,12 @@ must(legacyVersion.status === 0 && legacyVersion.stdout.trim() === pkg.version, 
 result = run(['--help']);
 must(result.code === 0 && /AutoArmory/.test(result.out), 'help must use AutoArmory brand');
 
+const vendoredSkillCanaryCli = path.join(root, 'packages', 'skillcanary', 'bin', 'skillcanary.js');
+must(fs.existsSync(vendoredSkillCanaryCli), 'vendored SkillCanary package');
+result = run(['canary', 'version']);
+must(result.code === 0 && result.out.trim() === '0.9.0', 'canary version command');
+result = run(['canary', 'adapter', 'doctor', '--json']);
+must(result.code === 0 && /"ok": true/.test(result.out), 'canary adapter doctor command');
 const stateDir = path.join(temp, 'project');
 fs.mkdirSync(stateDir, { recursive: true });
 result = run(['init', stateDir]);

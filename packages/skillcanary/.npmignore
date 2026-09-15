@@ -1,0 +1,7 @@
+.github/
+docs/
+examples/
+tests/
+清单.md
+bin/skillci.js
+*.log

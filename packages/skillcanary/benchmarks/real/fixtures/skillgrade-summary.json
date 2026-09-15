@@ -1,0 +1,6 @@
+{
+  "summary": {
+    "before": { "passed": 0, "total": 3 },
+    "after": { "passed": 3, "total": 3 }
+  }
+}

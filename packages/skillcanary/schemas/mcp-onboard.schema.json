@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary MCP onboarding record",
+  "type": "object",
+  "required": ["schema_version", "mcps"],
+  "properties": {
+    "schema_version": { "enum": ["skillcanary/mcp-onboard/v1", "mcp-onboard/v2"] },
+    "mcps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "tool_prefix", "read_only", "can_write", "can_spend", "forbidden_domains", "credential_source", "order", "arbitration", "when_not_to_use", "fallback_on_failure", "payload_scale", "offload", "guard_hooks", "vectors", "docs_landed"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "tool_prefix": { "type": "string", "minLength": 1 },
+          "read_only": { "type": "boolean" },
+          "can_write": { "type": "boolean" },
+          "can_spend": { "type": "boolean" },
+          "forbidden_domains": { "type": "array", "items": { "type": "string" } },
+          "credential_source": { "type": "string", "minLength": 1 },
+          "order": { "type": "string", "minLength": 1 },
+          "arbitration": { "type": "string", "minLength": 1 },
+          "when_not_to_use": { "type": "string", "minLength": 1 },
+          "fallback_on_failure": { "type": "string", "minLength": 1 },
+          "payload_scale": { "type": "string", "minLength": 1 },
+          "offload": { "type": "boolean" },
+          "guard_hooks": { "type": "array", "items": { "type": "string" } },
+          "vectors": { "type": "array", "items": { "type": "string" } },
+          "veto_map": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["rule", "vector", "evidence"],
+              "properties": {
+                "rule": { "type": "string", "minLength": 1 },
+                "vector": { "type": "string", "minLength": 1 },
+                "evidence": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          "docs_landed": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "evidence": { "type": "string" }
+        }
+      }
+    }
+  }
+}

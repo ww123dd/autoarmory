@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary active case ranking",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "skillcanary/active-cases/v1"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "priority_score"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "priority_score": {
+            "type": "number"
+          },
+          "priority_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

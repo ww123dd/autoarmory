@@ -1,0 +1,29 @@
+{
+  "schema_version": "skillcanary/change/v1",
+  "id": "2026-09-14-remove-dead-pointers",
+  "skill": "example-skill",
+  "target": {
+    "kind": "deterministic",
+    "id": "dead-pointer-check",
+    "check": "selfcheck"
+  },
+  "expected_transition": "COUNT->0",
+  "reason": "Selfcheck found two dead pointers in the loading zone, so the rule references cannot be followed.",
+  "decision": "The selfcheck count should drop from 2 to 0 without introducing a new dead pointer.",
+  "production_change": false,
+  "prediction": {
+    "fix": ["dead-pointer-check"],
+    "regress_risk": ["lint"]
+  },
+  "budget": {
+    "repeat": 3,
+    "max_runs": 9
+  },
+  "evidence": {
+    "kind": "deterministic",
+    "check": "selfcheck",
+    "count_before": 2,
+    "count_after": 0,
+    "evidence": "selfcheck: dead pointers 2 -> 0"
+  }
+}

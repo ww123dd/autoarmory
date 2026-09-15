@@ -1,0 +1,9 @@
+{
+  "preTool": [
+    {
+      "id": "example-block",
+      "pattern": "replace-with-regex",
+      "reason": "replace with the local reason"
+    }
+  ]
+}

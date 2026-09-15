@@ -6,7 +6,9 @@ const path = require('path');
 const { gate } = require('../src/lib/skillcanary');
 
 const root = path.resolve(__dirname, '..');
-const skillcanaryRoot = process.env.SKILLCANARY_HOME || path.resolve(root, '..', '20260914_SkillCanary');
+const vendoredSkillCanary = path.join(root, 'packages', 'skillcanary');
+const siblingSkillCanary = path.resolve(root, '..', '20260914_SkillCanary');
+const skillcanaryRoot = process.env.SKILLCANARY_HOME || (fs.existsSync(path.join(vendoredSkillCanary, 'bin', 'skillcanary.js')) ? vendoredSkillCanary : siblingSkillCanary);
 const skillcanaryCli = path.join(skillcanaryRoot, 'bin', 'skillcanary.js');
 const skillcanaryPackage = path.join(skillcanaryRoot, 'package.json');
 

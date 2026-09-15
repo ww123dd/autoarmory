@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary eval case score",
+  "type": "object",
+  "required": ["run_id", "case_id", "kind", "verdict"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "case_id": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["case", "deterministic"] },
+    "before": { "type": "object" },
+    "after": { "type": "object" },
+    "verdict": { "enum": ["FAIL->PASS", "COUNT->0", "regressed", "flat", "unknown"] },
+    "evidence_ref": { "type": "string" }
+  }
+}

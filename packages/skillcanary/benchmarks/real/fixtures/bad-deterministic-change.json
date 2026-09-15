@@ -1,0 +1,13 @@
+{
+  "schema_version": "skillcanary/change/v1",
+  "id": "bad-deterministic-change",
+  "skill": "basic-skill",
+  "target": { "kind": "deterministic", "id": "dead-pointer-check", "check": "selfcheck" },
+  "expected_transition": "COUNT->0",
+  "reason": "This fixture proves deterministic evidence must strictly decrease to zero.",
+  "decision": "A flat deterministic check must not be accepted as fixed evidence.",
+  "production_change": true,
+  "prediction": { "fix": ["dead-pointer-check"], "regress_risk": ["c02"] },
+  "budget": { "repeat": 3, "max_runs": 9 },
+  "evidence": { "kind": "deterministic", "check": "selfcheck", "count_before": 2, "count_after": 2, "evidence": "selfcheck: 2 -> 2" }
+}

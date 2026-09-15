@@ -1,0 +1,2 @@
+{"id":"g1","severity":"critical","determinism":"deterministic","frequency":4,"assertion":"check refund id","failure_modes":["refund"]}
+{"id":"g2","severity":"medium","determinism":"semantic","frequency":1,"assertion":"TODO","failure_modes":["summary"]}

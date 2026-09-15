@@ -15,7 +15,8 @@ function cliFor(root) {
 function resolve(flag, cwd) {
   if (flag) return cliFor(flag);
   if (process.env.SKILLCANARY_HOME) return cliFor(process.env.SKILLCANARY_HOME);
-  return cliFor(path.resolve(cwd || '.', '../20260914_SkillCanary'));
+  const vendored = path.resolve(__dirname, '..', '..', 'packages', 'skillcanary');
+  return cliFor(vendored) || cliFor(path.resolve(cwd || '.', '../20260914_SkillCanary'));
 }
 
 function run(args, options) {

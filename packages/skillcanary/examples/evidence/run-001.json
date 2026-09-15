@@ -1,0 +1,1 @@
+{"run_id":"run-001","skill":"example-skill","kind":"deterministic","check":"selfcheck","count_before":2,"count_after":0,"verification":{"verified_by":"independent-oracle","oracle":"selfcheck","result":"pass"}}

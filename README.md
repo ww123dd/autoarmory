@@ -36,7 +36,7 @@ autoarmory observe logs/ --output .selfforge/incidents.jsonl
 pytest 2>&1 | autoarmory observe - --format log --output .selfforge/incidents.jsonl
 gh issue list --repo owner/repo --json number,title,body,url | autoarmory observe - --format github --output .selfforge/incidents.jsonl
 autoarmory propose .selfforge/incidents.jsonl --output .selfforge/candidates.jsonl
-autoarmory gate .selfforge/candidate.json --skillcanary ../20260914_SkillCanary --cases examples/skillcanary-cases.json
+autoarmory gate .selfforge/candidate.json --cases examples/skillcanary-cases.json
 autoarmory record --candidate cand-1 --action add_case --reward 1.5 --verified true --gate .selfforge/gate.json --evidence .selfforge/outcome-evidence.json
 autoarmory transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --state .selfforge
 autoarmory transition .selfforge/candidate.json --to shadow --gate .selfforge/gate.json --state .selfforge
@@ -45,7 +45,7 @@ autoarmory environment --write
 autoarmory experiment compare before.json after.json
 autoarmory policy .selfforge/decisions.jsonl
 autoarmory acquire .selfforge/candidates.jsonl --top 10
-autoarmory evolve logs/ --format auto --skillcanary ../20260914_SkillCanary --cases path/to/cases.json
+autoarmory evolve logs/ --format auto --cases path/to/cases.json
 autoarmory doctor
 autoarmory capability register examples/capabilities.jsonl
 autoarmory capability list --state .selfforge
@@ -81,11 +81,15 @@ Candidate promotion follows a recorded state machine: `candidate -> gated -> sha
 
 `record` refuses to append a decision unless a successful SkillCanary gate proof is provided or found on the stored candidate. A verified decision also requires outcome evidence with artifacts or before/after observations.
 
-Run the real adapter conformance suite with a sibling SkillCanary checkout:
+Run the real adapter conformance suite against the vendored SkillCanary package:
 
 ```bash
 npm run test:conformance
 ```
+
+## Unified product
+
+This repository is the AutoArmory monorepo. `packages/skillcanary` contains the stable SkillCanary control plane; the root runtime contains the evolution engine and Capability Manager. `autoarmory canary ...` dispatches to the vendored SkillCanary CLI while the top-level commands expose AutoArmory capabilities.
 
 ## Legacy compatibility
 

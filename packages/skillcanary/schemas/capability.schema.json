@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary adapter capability",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "version",
+    "capabilities",
+    "input_schema",
+    "output_schema",
+    "permissions",
+    "network",
+    "determinism",
+    "trust"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "runner",
+        "security",
+        "trace",
+        "registry",
+        "provenance",
+        "mcp",
+        "ci",
+        "memory"
+      ]
+    },
+    "version": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "input_schema": {
+      "type": "string"
+    },
+    "output_schema": {
+      "type": "string"
+    },
+    "permissions": {
+      "type": "object",
+      "required": [
+        "read",
+        "write"
+      ],
+      "properties": {
+        "read": {
+          "type": "boolean"
+        },
+        "write": {
+          "type": "boolean"
+        }
+      }
+    },
+    "forbidden_domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "network": {
+      "type": "boolean"
+    },
+    "determinism": {
+      "type": "string"
+    },
+    "trust": {
+      "type": "string"
+    },
+    "last_verified_at": {
+      "type": "string"
+    }
+  }
+}

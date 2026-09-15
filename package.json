@@ -16,15 +16,17 @@
     "docs",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "packages"
   ],
   "scripts": {
-    "test": "node tests/run.js && node tests/capability.js",
+    "test": "node tests/run.js && node tests/capability.js && node packages/skillcanary/tests/run.js",
     "observe:example": "node bin/autoarmory.js observe examples/incidents.jsonl --output .selfforge/incidents.jsonl",
     "propose:example": "node bin/autoarmory.js propose examples/incidents.jsonl --output .selfforge/candidates.jsonl",
     "learn:example": "node bin/autoarmory.js learn examples/decisions.jsonl",
-    "evolve:example": "node bin/autoarmory.js evolve examples/incidents.jsonl --skillcanary ../20260914_SkillCanary --cases examples/skillcanary-cases.json --json",
-    "test:conformance": "node tests/conformance.js"
+    "evolve:example": "node bin/autoarmory.js evolve examples/incidents.jsonl --cases examples/skillcanary-cases.json --json",
+    "test:conformance": "node tests/conformance.js",
+    "test:canary": "node packages/skillcanary/tests/run.js"
   },
   "engines": {
     "node": ">=18"
@@ -41,5 +43,8 @@
     "ai-agents",
     "codex",
     "claude-code"
+  ],
+  "workspaces": [
+    "packages/*"
   ]
 }

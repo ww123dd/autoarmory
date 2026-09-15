@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary outcome",
+  "type": "object",
+  "required": ["session_id", "skill", "skill_hash", "observed_at", "signals"],
+  "properties": {
+    "session_id": { "type": "string", "minLength": 1 },
+    "skill": { "type": "string", "minLength": 1 },
+    "skill_hash": { "type": "string", "minLength": 1 },
+    "observed_at": { "type": "string" },
+    "signals": {
+      "type": "object",
+      "properties": {
+        "user_correction_count": { "type": "integer", "minimum": 0 },
+        "rework_turns": { "type": "integer", "minimum": 0 },
+        "tool_error_count": { "type": "integer", "minimum": 0 },
+        "completed": { "type": "boolean" }
+      }
+    }
+  }
+}

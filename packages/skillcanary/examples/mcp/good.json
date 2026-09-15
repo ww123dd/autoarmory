@@ -1,0 +1,24 @@
+{
+  "schema_version": "skillcanary/mcp-onboard/v1",
+  "mcps": [
+    {
+      "name": "example-readonly-mcp",
+      "tool_prefix": "mcp__example__",
+      "read_only": true,
+      "can_write": false,
+      "can_spend": false,
+      "forbidden_domains": [],
+      "credential_source": "Injected by the host; never written to logs.",
+      "order": "source of truth",
+      "arbitration": "Facts from this MCP win over hints from other tools.",
+      "when_not_to_use": "Do not use it when a raw export is required.",
+      "fallback_on_failure": "Fall back to the manual export workflow.",
+      "payload_scale": "KB",
+      "offload": false,
+      "guard_hooks": [],
+      "vectors": [],
+      "veto_map": [],
+      "docs_landed": ["references/mcp.md"]
+    }
+  ]
+}

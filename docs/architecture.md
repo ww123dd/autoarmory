@@ -30,6 +30,17 @@ local signals / logs / tests / issues
       next recommendation
 ```
 
+## Monorepo layout
+
+```text
+packages/skillcanary  stable truth plane: evidence, gate, provenance, adapters, compatibility
+src/                 AutoArmory evolution engine and Capability Manager
+bin/autoarmory.js    unified AutoArmory CLI
+bin/selfforge.js     legacy CLI alias
+```
+
+The root CLI exposes `autoarmory canary ...` for the vendored SkillCanary control plane. SkillCanary never imports the upper layers. Capability Manager extends capability state with runtime health, routing, outcomes, drift and retirement.
+
 ## Observation adapters
 
 Observation accepts files, directories and stdin. `observe - --format log|junit|github|jsonl` lets external CLI and runner output enter the pipeline without AutoArmory running that command itself. This keeps execution authority with the user while preserving reproducible incident input.

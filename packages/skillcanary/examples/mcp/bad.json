@@ -1,0 +1,24 @@
+{
+  "schema_version": "skillcanary/mcp-onboard/v1",
+  "mcps": [
+    {
+      "name": "unsafe-writer",
+      "tool_prefix": "mcp__unsafe__",
+      "read_only": false,
+      "can_write": true,
+      "can_spend": false,
+      "forbidden_domains": [],
+      "credential_source": "hard-coded token in config",
+      "order": "unknown",
+      "arbitration": "it wins",
+      "when_not_to_use": "",
+      "fallback_on_failure": "",
+      "payload_scale": "GB",
+      "offload": false,
+      "guard_hooks": ["redact"],
+      "vectors": [],
+      "veto_map": [],
+      "docs_landed": []
+    }
+  ]
+}

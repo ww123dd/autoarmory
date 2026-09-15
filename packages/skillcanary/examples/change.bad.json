@@ -1,0 +1,18 @@
+{
+  "schema_version": "skillcanary/change/v1",
+  "id": "vague-change",
+  "skill": "basic-skill",
+  "target_case": "missing-case",
+  "expected_transition": "SHOULD_BE_BETTER",
+  "reason": "Looks better.",
+  "decision": "None.",
+  "production_change": "yes",
+  "prediction": {
+    "fix": [],
+    "regress_risk": []
+  },
+  "budget": {
+    "repeat": 1,
+    "max_runs": 1
+  }
+}

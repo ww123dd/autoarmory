@@ -13,6 +13,7 @@ jobs:
         with:
           node-version: 20
       - run: npm test
+      - run: npm run test:conformance
       - run: node bin/autoarmory.js observe examples/incidents.jsonl --json
       - run: printf 'FAIL: runner failure\n' | node bin/autoarmory.js observe - --format log --json | grep test_failure
       - run: node bin/autoarmory.js learn examples/decisions.jsonl --json

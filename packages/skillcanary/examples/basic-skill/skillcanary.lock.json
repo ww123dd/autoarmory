@@ -1,0 +1,12 @@
+{
+  "schema_version": "skillcanary/lock/v1",
+  "generated_at": "2026-09-14T11:17:38.791Z",
+  "root": "basic-skill",
+  "algorithm": "sha256",
+  "folder_hash": "6fb6c52ecd13d62d5cb0910f17762518fca6221c0336cae7342308bff9e0da68",
+  "files": {
+    "SKILL.md": "36d5fb34569a504560348ed42b2374854421891ebdce6f004ffe1420812e89ce",
+    "agents/openai.yaml": "1afda77bf44362b42c397e413f8580865b55de05fdb4c833668f01ff474b5a86",
+    "references/guide.md": "aa87c9b978981542d337fedebcaddb36ffcab9eb4b1528ac2fffc55c8f77aa69"
+  }
+}

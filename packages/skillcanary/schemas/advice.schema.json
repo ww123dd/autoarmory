@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary advice",
+  "type": "object",
+  "required": ["id", "skill", "source_sessions", "observed_failure", "evidence", "repro_prompt", "assertion", "status"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "skill": { "type": "string", "minLength": 1 },
+    "source_sessions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "observed_failure": { "type": "string", "minLength": 1 },
+    "evidence": { "type": "string", "minLength": 1 },
+    "repro_prompt": { "type": "string", "minLength": 1 },
+    "assertion": { "type": "string", "minLength": 1 },
+    "frequency": { "type": "integer", "minimum": 1 },
+    "severity": { "enum": ["low", "medium", "high", "critical"] },
+    "determinism": { "enum": ["deterministic", "semantic", "unknown"] },
+    "status": { "enum": ["advice", "candidate", "case", "shadow", "warning", "blocking", "quarantined", "retired"] },
+    "canary": { "type": "string" },`n    "expires_at": { "type": "string" }
+  }
+}

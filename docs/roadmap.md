@@ -25,6 +25,7 @@
 ## 0.3
 
 - [x] public rebrand to AutoArmory with legacy CLI aliases
+- [x] single AutoArmory monorepo with vendored SkillCanary package
 - [x] Capability Manager architecture specification
 - [x] canonical capability, routing-request, routing-decision and outcome contracts
 - [x] capability registry plus health and conformance surfaces

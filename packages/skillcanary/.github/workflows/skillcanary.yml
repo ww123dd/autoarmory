@@ -1,0 +1,24 @@
+name: SkillCanary
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
+      - run: node bin/skillcanary.js doctor examples/basic-skill
+      - run: node bin/skillcanary.js adapter doctor
+      - run: node bin/skillcanary.js policy simulate --horizon 25 --seed 7 --json
+      - run: npm run benchmark
+      - run: npm run benchmark:real
+      - run: npm run benchmark:real:validate
+      - run: node bin/skillcanary.js lint examples/basic-skill
+      - run: node bin/skillcanary.js gate examples/change.good.json examples/cases.json
+      - run: node bin/skillcanary.js mcp-onboard examples/mcp/good.json

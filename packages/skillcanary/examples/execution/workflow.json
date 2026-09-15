@@ -1,0 +1,27 @@
+{
+  "steps": [
+    {
+      "id": "validate",
+      "mode": "deterministic",
+      "known_next": true,
+      "success_probability": 0.99,
+      "risk": "low"
+    },
+    {
+      "id": "dispatch",
+      "mode": "agent",
+      "known_next": true,
+      "success_probability": 0.9,
+      "risk": "medium"
+    },
+    {
+      "id": "pay",
+      "mode": "deterministic",
+      "success_probability": 0.99,
+      "risk": "high",
+      "irreversible": true,
+      "amount": 2000,
+      "amount_limit": 1000
+    }
+  ]
+}

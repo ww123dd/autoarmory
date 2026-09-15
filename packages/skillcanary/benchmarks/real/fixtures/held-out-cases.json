@@ -1,0 +1,7 @@
+{
+  "schema_version": "skillcanary/cases/v1",
+  "cases": [
+    { "id": "c01", "status": "stable", "held_out": true, "criteria": "Held-out regression." },
+    { "id": "c02", "status": "stable", "criteria": "Regression guard." }
+  ]
+}

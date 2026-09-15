@@ -1,0 +1,33 @@
+{
+  "schema_version": "skillcanary/decision/v1",
+  "id": "dec-001",
+  "timestamp": "2026-09-14T20:00:00+08:00",
+  "state": {
+    "skill": "example-skill",
+    "skill_hash": "b13007851536",
+    "task_context": "agent skipped a required schema check",
+    "failure_mode": "missing-schema-check",
+    "risk": "high",
+    "budget": "3 runs"
+  },
+  "action": {
+    "type": "add_rule",
+    "target": "SKILL.md",
+    "summary": "Require a live schema check before writing SQL."
+  },
+  "prediction": {
+    "expected_fix": ["case-001"],
+    "regression_risk": ["case-002"]
+  },
+  "outcome": {
+    "fixed": ["case-001"],
+    "regressed": [],
+    "cost_delta": -12,
+    "user_correction_delta": -1
+  },
+  "verification": {
+    "verified_by": "independent-oracle",
+    "oracle": "schema-check-script",
+    "result": "pass"
+  }
+}

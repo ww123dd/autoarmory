@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "id": "parse",
+      "success_probability": 0.99
+    },
+    {
+      "id": "query",
+      "success_probability": 0.95
+    },
+    {
+      "id": "write",
+      "success_probability": 0.99
+    }
+  ]
+}

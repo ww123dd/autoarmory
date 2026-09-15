@@ -1,0 +1,559 @@
+{
+  "schema_version": "skillcanary/real-benchmark/v1",
+  "cases": [
+    {
+      "id": "real-import-skillgrade-auto",
+      "source": "SkillCanary observed regression: import only accepted one hand-written summary shape",
+      "skill": "skillcanary",
+      "change": "Add auto-detection for skillgrade summary and passed/total aliases.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "The importer must convert real runner summaries without manual editing.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "import",
+          "auto",
+          "{root}/benchmarks/real/fixtures/skillgrade-summary.json",
+          "--case",
+          "c01",
+          "--output",
+          "{tmp}/skillgrade-change.json"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-import-agent-skills-eval-auto",
+      "source": "SkillCanary observed regression: benchmark artifacts used baseline/with_skill and nested passed/total counters",
+      "skill": "skillcanary",
+      "change": "Add agent-skills-eval aliases and auto detection.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "The importer must map without_skill/with_skill to before/after.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "import",
+          "auto",
+          "{root}/benchmarks/real/fixtures/agent-skills-eval.json",
+          "--case",
+          "c07",
+          "--output",
+          "{tmp}/agent-change.json"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-import-promptfoo-auto",
+      "source": "SkillCanary observed regression: promptfoo stats.successes/failures were not an accepted evidence shape",
+      "skill": "skillcanary",
+      "change": "Add promptfoo stats and trial-array adapters.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "The importer must consume promptfoo result summaries.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "import",
+          "auto",
+          "{root}/benchmarks/real/fixtures/promptfoo.json",
+          "--output",
+          "{tmp}/promptfoo-change.json"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-store-index",
+      "source": "SkillCanary observed regression: evidence schemas existed but no run/query layer",
+      "skill": "skillcanary",
+      "change": "Add JSONL-backed eval-run and eval-case-score materialization.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "Evidence must become queryable before a dashboard is considered.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "store",
+          "index",
+          "--input",
+          "{root}/benchmarks/real/fixtures/evidence.jsonl",
+          "--dir",
+          "{tmp}/store"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-store-query",
+      "source": "SkillCanary observed regression: no way to find a FAIL->PASS or COUNT->0 score by skill",
+      "skill": "skillcanary",
+      "change": "Add query filters over the materialized case-score table.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "A stored transition must be retrievable as evidence.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "store",
+          "index",
+          "--input",
+          "{root}/benchmarks/real/fixtures/evidence.jsonl",
+          "--dir",
+          "{tmp}/store-query"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-budget-within",
+      "source": "SkillCanary observed regression: error-budget rule existed without metrics",
+      "skill": "skillcanary",
+      "change": "Derive correction, rework and tool-error totals from outcome records.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "A team within budget should not be told to stop collecting incidents.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "budget",
+          "check",
+          "--input",
+          "{root}/benchmarks/real/fixtures/outcomes-within.jsonl"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-budget-over",
+      "source": "SkillCanary observed regression: stop-work rule had no measurable trigger",
+      "skill": "skillcanary",
+      "change": "Fail the check when a window exceeds correction, rework or tool-error budgets.",
+      "expected": "block",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "An exhausted budget must stop endless skill edits and require new incidents.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "budget",
+          "check",
+          "--input",
+          "{root}/benchmarks/real/fixtures/outcomes-over.jsonl"
+        ],
+        "expect_exit": 1
+      }
+    },
+    {
+      "id": "real-hook-doctor-good",
+      "source": "SkillCanary observed regression: hook rules had no preflight validation",
+      "skill": "skillcanary",
+      "change": "Validate hook rule ids, reasons, regex patterns and duplicates.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "A valid local rule file must be accepted before host integration.",
+      "run": {
+        "type": "cli",
+        "cwd": "benchmarks/real/fixtures/hook-good",
+        "args": [
+          "hook",
+          "doctor"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-hook-doctor-bad-regex",
+      "source": "SkillCanary observed regression: an invalid regex silently became an allow",
+      "skill": "skillcanary",
+      "change": "Make invalid hook regex a hard doctor failure.",
+      "expected": "block",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "A broken guard must fail closed during configuration validation.",
+      "run": {
+        "type": "cli",
+        "cwd": "benchmarks/real/fixtures/hook-bad",
+        "args": [
+          "hook",
+          "doctor"
+        ],
+        "expect_exit": 1
+      }
+    },
+    {
+      "id": "real-gate-held-out",
+      "source": "SkillCanary observed regression: held-out cases could be used as tuning targets",
+      "skill": "skillcanary",
+      "change": "Reject any target case carrying held_out=true.",
+      "expected": "block",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "Held-out evidence must not be optimized against.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "gate",
+          "{root}/benchmarks/real/fixtures/held-out-change.json",
+          "{root}/benchmarks/real/fixtures/held-out-cases.json"
+        ],
+        "expect_exit": 1
+      }
+    },
+    {
+      "id": "real-gate-deterministic-flat",
+      "source": "SkillCanary observed regression: deterministic evidence could claim COUNT->0 without decreasing",
+      "skill": "skillcanary",
+      "change": "Require count_before > count_after and count_after=0 for deterministic targets.",
+      "expected": "block",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "The gate must reject a flat deterministic result.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "gate",
+          "{root}/benchmarks/real/fixtures/bad-deterministic-change.json"
+        ],
+        "expect_exit": 1
+      }
+    },
+    {
+      "id": "real-gate-cases-required",
+      "source": "SkillCanary observed regression: case-target changes passed without cases.json",
+      "skill": "skillcanary",
+      "change": "Require cases.json unless drafting mode is explicit.",
+      "expected": "block",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "A case cannot be validated if the case ledger is absent.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "gate",
+          "{root}/examples/change.good.json"
+        ],
+        "expect_exit": 1
+      }
+    },
+    {
+      "id": "real-adapter-doctor",
+      "source": "SkillCanary observed gap: modules were supported ad hoc without a capability registry",
+      "skill": "skillcanary",
+      "change": "Add a canonical adapter registry and doctor.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "Adapters must declare their contract and permissions.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "adapter",
+          "doctor"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-policy-simulation",
+      "source": "SkillCanary observed gap: policy algorithm changes had no deterministic lab",
+      "skill": "skillcanary",
+      "change": "Add deterministic comparison of greedy, UCB, Thompson and hybrid policies.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "Exploratory algorithms need reproducible simulation.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "policy",
+          "simulate",
+          "--horizon",
+          "20",
+          "--seed",
+          "3"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-active-case-ranking",
+      "source": "SkillCanary observed gap: advice candidates had no acquisition priority",
+      "skill": "skillcanary",
+      "change": "Add information-value-based active case ranking.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "High-severity deterministic candidates must rank first.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "active",
+          "rank",
+          "{root}/benchmarks/real/fixtures/active.jsonl",
+          "--output",
+          "{tmp}/active.json"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-drift-detection",
+      "source": "SkillCanary observed gap: non-stationary outcome distributions could poison policy history",
+      "skill": "skillcanary",
+      "change": "Add CUSUM change-point detection.",
+      "expected": "block",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "A change point must stop silent reuse of stale history.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "drift",
+          "check",
+          "{root}/benchmarks/real/fixtures/drift.jsonl",
+          "--window",
+          "12",
+          "--threshold",
+          "2"
+        ],
+        "expect_exit": 1
+      }
+    },
+    {
+      "id": "real-trajectory-metrics",
+      "source": "Observed gap: final-answer evidence could not explain where the agent failed",
+      "skill": "skillcanary",
+      "change": "Add six-dimensional trajectory analysis.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "Trajectory dimensions must remain independent.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "trajectory",
+          "analyze",
+          "{root}/examples/trace/agent-trace.json",
+          "--json"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-reliability-passk",
+      "source": "Observed gap: pass@1 hid unstable repeated runs",
+      "skill": "skillcanary",
+      "change": "Add pass^k and confidence intervals.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "Reliability must be estimated across repeated trials.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "reliability",
+          "estimate",
+          "{root}/examples/reliability/trials.jsonl",
+          "--k",
+          "3"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-grader-calibration",
+      "source": "Observed gap: uncalibrated LLM judges were treated as release gates",
+      "skill": "skillcanary",
+      "change": "Add Cohen kappa calibration and deterministic-first grader planning.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "Judges below the calibration threshold must not gate release.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "grader",
+          "calibrate",
+          "{root}/examples/grader/pairs.json",
+          "--json"
+        ],
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "real-execution-mode-audit",
+      "source": "Observed industry failure: multi-agent used for deterministic workflows",
+      "skill": "skillcanary",
+      "change": "Add deterministic/workflow/agent/human execution-mode audit.",
+      "expected": "block",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "Agent overuse and missing human approval must be rejected.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "execution",
+          "audit",
+          "{root}/examples/execution/workflow.json"
+        ],
+        "expect_exit": 1
+      }
+    },
+    {
+      "id": "real-golden-curation",
+      "source": "Observed gap: capability and regression cases were mixed",
+      "skill": "skillcanary",
+      "change": "Add golden-set acquisition scoring and suite classification.",
+      "expected": "allow",
+      "before": {
+        "pass": 0,
+        "total": 1
+      },
+      "after": {
+        "pass": 1,
+        "total": 1
+      },
+      "notes": "Golden sets must prioritize information value.",
+      "run": {
+        "type": "cli",
+        "args": [
+          "golden",
+          "curate",
+          "{root}/examples/golden/candidates.jsonl",
+          "--json"
+        ],
+        "expect_exit": 0
+      }
+    }
+  ]
+}

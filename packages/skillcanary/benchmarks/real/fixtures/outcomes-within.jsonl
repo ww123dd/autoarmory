@@ -1,0 +1,2 @@
+{"session_id":"s1","skill":"basic-skill","skill_hash":"abc","observed_at":"2026-09-14T00:00:00.000Z","signals":{"user_correction_count":1,"rework_turns":0,"tool_error_count":1,"completed":true}}
+{"session_id":"s2","skill":"basic-skill","skill_hash":"abc","observed_at":"2026-09-14T00:01:00.000Z","signals":{"user_correction_count":0,"rework_turns":1,"tool_error_count":0,"completed":true}}

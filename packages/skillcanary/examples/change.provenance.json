@@ -1,0 +1,21 @@
+{
+  "schema_version": "skillcanary/change/v1",
+  "id": "2026-09-14-provenance-example",
+  "skill": "example-skill",
+  "target": { "kind": "deterministic", "id": "dead-pointer-check", "check": "selfcheck" },
+  "expected_transition": "COUNT->0",
+  "reason": "The provenance gate must verify an independent evidence artifact by hash.",
+  "decision": "A change may only pass the CI gate when evidence is independently hash-matched.",
+  "production_change": false,
+  "prediction": { "fix": ["dead-pointer-check"], "regress_risk": ["lint"] },
+  "budget": { "repeat": 3, "max_runs": 9 },
+  "evidence": { "kind": "deterministic", "check": "selfcheck", "count_before": 2, "count_after": 0, "evidence": "selfcheck: 2 -> 0" },
+  "provenance": {
+    "author": "agent",
+    "reviewer": "independent-oracle",
+    "verifier_independent": true,
+    "skill_hash_before": "before",
+    "skill_hash_after": "after",
+    "evidence_refs": [ { "uri": "evidence/run-001.json", "sha256": "c24065435ea53ad9460e010d5280d46034af46878919f5aafbed43165be8cae4", "source": "runner" } ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillCanary trajectory metrics",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "trial_id",
+    "tool_selection",
+    "parameter_extraction",
+    "result_utilization",
+    "error_recovery",
+    "plan_coherence",
+    "task_completion",
+    "pass"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "skillcanary/metrics/v1"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "trial_id": {
+      "type": "string"
+    },
+    "tool_selection": {
+      "type": "object"
+    },
+    "parameter_extraction": {
+      "type": "object"
+    },
+    "result_utilization": {
+      "type": "object"
+    },
+    "error_recovery": {
+      "type": "object"
+    },
+    "plan_coherence": {
+      "type": "object"
+    },
+    "task_completion": {
+      "type": "object"
+    },
+    "pass": {
+      "type": "boolean"
+    }
+  }
+}

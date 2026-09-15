@@ -1,0 +1,74 @@
+{
+  "task_id": "refund-task",
+  "trial_id": "trial-1",
+  "expected_tools": [
+    "get_order",
+    "refund_order"
+  ],
+  "actual_tools": [
+    "get_order",
+    "refund_order"
+  ],
+  "expected_parameters": {
+    "order_id": "O-1",
+    "amount": 12.5
+  },
+  "actual_parameters": {
+    "order_id": "O-1",
+    "amount": 12.5
+  },
+  "tool_results": [
+    {
+      "data": {
+        "order_id": "O-1",
+        "amount": 12.5
+      }
+    }
+  ],
+  "final_answer": "Refund completed for O-1 amount 12.5",
+  "utilization_fields": [
+    "order_id",
+    "amount"
+  ],
+  "events": [
+    {
+      "type": "tool_error",
+      "error": "timeout"
+    },
+    {
+      "type": "retry"
+    }
+  ],
+  "spans": [
+    {
+      "id": "plan",
+      "depth": 0
+    },
+    {
+      "id": "get_order",
+      "depth": 1
+    },
+    {
+      "id": "refund_order",
+      "depth": 1
+    }
+  ],
+  "plan_options": {
+    "maxSteps": 10,
+    "maxDepth": 3
+  },
+  "subgoals": [
+    {
+      "id": "identify_order",
+      "passed": true,
+      "weight": 1,
+      "critical": true
+    },
+    {
+      "id": "refund",
+      "passed": true,
+      "weight": 2,
+      "critical": true
+    }
+  ]
+}

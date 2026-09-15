@@ -1,0 +1,154 @@
+{
+  "pairs": [
+    {
+      "id": "g0",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g1",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g2",
+      "human": "pass",
+      "judge": "fail"
+    },
+    {
+      "id": "g3",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g4",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g5",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g6",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g7",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g8",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g9",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g10",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g11",
+      "human": "pass",
+      "judge": "fail"
+    },
+    {
+      "id": "g12",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g13",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g14",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g15",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g16",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g17",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g18",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g19",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g20",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g21",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g22",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g23",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g24",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g25",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g26",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g27",
+      "human": "fail",
+      "judge": "fail"
+    },
+    {
+      "id": "g28",
+      "human": "pass",
+      "judge": "pass"
+    },
+    {
+      "id": "g29",
+      "human": "pass",
+      "judge": "pass"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+*.log
+.skillcanary/runs/
+skillcanary.lock.json
+!examples/basic-skill/skillcanary.lock.json
+skillcanary-report.md
+$null
+_local_archive/
+清单.md

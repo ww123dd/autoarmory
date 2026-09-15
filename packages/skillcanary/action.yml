@@ -1,0 +1,63 @@
+name: SkillCanary
+description: "Agent change control plane: evidence, gates, provenance, hooks and error budgets."
+author: SkillCanary contributors
+inputs:
+  command:
+    description: "Command to run: doctor, lint, gate, anchor, mcp-onboard, verify, hook-doctor, budget-check, adapter-doctor, trajectory-analyze or reliability-check."
+    required: false
+    default: verify
+  skill:
+    description: Skill directory.
+    required: false
+    default: .
+  change:
+    description: Change record for gate.
+    required: false
+    default: .skillcanary/change.json
+  cases:
+    description: Case ledger for gate.
+    required: false
+    default: .skillcanary/cases.json
+  mcp:
+    description: MCP onboarding record.
+    required: false
+    default: .skillcanary/mcp.json
+runs:
+  using: composite
+  steps:
+    - name: Run SkillCanary
+      shell: bash
+      run: |
+        set -e
+        CMD="${{ inputs.command }}"
+        SKILL="${{ inputs.skill }}"
+        CHANGE="${{ inputs.change }}"
+        CASES="${{ inputs.cases }}"
+        MCP="${{ inputs.mcp }}"
+        case "$CMD" in
+          lint) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" lint "$SKILL" ;;
+          gate) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" gate "$CHANGE" "$CASES" ;;
+          anchor) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" anchor "$SKILL" --check ;;
+          mcp-onboard) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" mcp-onboard "$MCP" ;;
+          doctor) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" doctor "$SKILL" ;;
+          verify) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" verify "$SKILL" ;;
+          hook-doctor) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" hook doctor ;;
+          budget-check) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" budget check --input .skillcanary/outcomes.jsonl --config .skillcanary/budget.json ;;
+          adapter-doctor) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" adapter doctor ;;
+          trajectory-analyze) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" trajectory analyze .skillcanary/trace.json --json ;;
+          reliability-check) node "$GITHUB_ACTION_PATH/bin/skillcanary.js" reliability estimate .skillcanary/trials.jsonl --k 4 ;;
+          *) echo "Unknown SkillCanary command: $CMD"; exit 2 ;;
+        esac
+    - name: Write SkillCanary report
+      if: always()
+      shell: bash
+      run: |
+        node "$GITHUB_ACTION_PATH/bin/skillcanary.js" report "${{ inputs.skill }}" --output skillcanary-report.md || true
+        cat skillcanary-report.md >> "$GITHUB_STEP_SUMMARY" || true
+    - name: Comment on PR
+      if: always() && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        node "$GITHUB_ACTION_PATH/bin/skillcanary.js" comment "${{ inputs.skill }}" --file skillcanary-report.md || true

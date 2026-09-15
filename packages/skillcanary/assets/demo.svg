@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520">
+  <rect width="980" height="520" fill="#0d1117"/>
+  <rect x="24" y="24" width="932" height="472" rx="12" fill="#161b22" stroke="#30363d"/>
+  <circle cx="56" cy="56" r="8" fill="#ff5f56"/>
+  <circle cx="82" cy="56" r="8" fill="#ffbd2e"/>
+  <circle cx="108" cy="56" r="8" fill="#27c93f"/>
+  <text x="52" y="106" fill="#c9d1d9" font-family="Consolas,monospace" font-size="20">$ skillcanary gate .skillcanary/change.json .skillcanary/cases.json</text>
+  <text x="52" y="150" fill="#f85149" font-family="Consolas,monospace" font-size="18">x missing target case: c13</text>
+  <text x="52" y="182" fill="#f85149" font-family="Consolas,monospace" font-size="18">x evidence.before is not a failing baseline</text>
+  <text x="52" y="214" fill="#f85149" font-family="Consolas,monospace" font-size="18">x MCP veto_map missing: veto-log-redact-token</text>
+  <text x="52" y="246" fill="#f85149" font-family="Consolas,monospace" font-size="18">x anchor drift: references/guide.md</text>
+  <text x="52" y="290" fill="#c9d1d9" font-family="Consolas,monospace" font-size="20">$ skillcanary report ./skills/my-skill</text>
+  <text x="52" y="334" fill="#58a6ff" font-family="Consolas,monospace" font-size="18">SkillCanary Report</text>
+  <text x="52" y="366" fill="#3fb950" font-family="Consolas,monospace" font-size="18">Lint: PASS</text>
+  <text x="52" y="398" fill="#d29922" font-family="Consolas,monospace" font-size="18">Anchor: DRIFT changed: references/guide.md</text>
+  <text x="52" y="430" fill="#f85149" font-family="Consolas,monospace" font-size="18">Change Gate: FAIL</text>
+  <text x="52" y="462" fill="#f85149" font-family="Consolas,monospace" font-size="18">MCP Onboarding: FAIL</text>
+</svg>

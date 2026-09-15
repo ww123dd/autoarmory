@@ -1,0 +1,67 @@
+{
+  "name": "skillcanary",
+  "version": "0.9.0",
+  "description": "Agent reliability control plane: trajectory metrics, pass^k, calibrated graders, execution-mode policy, adapter compatibility and evidence gates.",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "skillcanary": "bin/skillcanary.js"
+  },
+  "files": [
+    "bin/skillcanary.js",
+    "src",
+    "schemas",
+    "docs",
+    "assets",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node tests/run.js",
+    "benchmark": "node benchmarks/run.js",
+    "benchmark:json": "node benchmarks/run.js --json",
+    "benchmark:real": "node benchmarks/real/run.js",
+    "report:example": "node bin/skillcanary.js report examples/basic-skill",
+    "lint:example": "node bin/skillcanary.js lint examples/basic-skill",
+    "anchor:example": "node bin/skillcanary.js anchor examples/basic-skill",
+    "benchmark:real:validate": "node benchmarks/real/validate.js",
+    "hook:doctor": "node bin/skillcanary.js hook doctor",
+    "store:example": "node bin/skillcanary.js store index --input examples/evidence/evidence.jsonl --dir .skillcanary/store",
+    "release:preflight": "node bin/skillcanary.js release preflight --json",
+    "doctor:example": "node bin/skillcanary.js doctor examples/basic-skill",
+    "adapter:doctor": "node bin/skillcanary.js adapter doctor",
+    "policy:simulate": "node bin/skillcanary.js policy simulate --horizon 100 --seed 7",
+    "trajectory:example": "node bin/skillcanary.js trajectory analyze examples/trace/agent-trace.json --json",
+    "reliability:example": "node bin/skillcanary.js reliability estimate examples/reliability/trials.jsonl --k 3",
+    "grader:example": "node bin/skillcanary.js grader calibrate examples/grader/pairs.json --json",
+    "execution:example": "node bin/skillcanary.js execution audit examples/execution/workflow.json",
+    "golden:example": "node bin/skillcanary.js golden curate examples/golden/candidates.jsonl --json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "agent-skills",
+    "skill",
+    "evals",
+    "llm",
+    "ci",
+    "codex",
+    "claude-code",
+    "agent-reliability",
+    "mcp",
+    "provenance",
+    "policy",
+    "evidence",
+    "drift"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/skillcanary.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/skillcanary/issues"
+  },
+  "homepage": "https://github.com/your-org/skillcanary"
+}

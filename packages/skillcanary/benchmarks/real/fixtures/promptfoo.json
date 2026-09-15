@@ -1,0 +1,12 @@
+{
+  "results": {
+    "stats": { "successes": 5, "failures": 0 },
+    "results": [
+      { "success": true },
+      { "success": true },
+      { "success": true },
+      { "success": true },
+      { "success": true }
+    ]
+  }
+}

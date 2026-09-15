@@ -1,0 +1,1 @@
+{"preTool":[{"id":"deny-private-config","pattern":"private-config","reason":"do not read private config"}]}

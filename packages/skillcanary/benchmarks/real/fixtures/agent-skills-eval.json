@@ -1,0 +1,9 @@
+{
+  "evals": [
+    {
+      "id": "c07",
+      "without_skill": { "passed": 1, "total": 4 },
+      "with_skill": { "passed": 4, "total": 4 }
+    }
+  ]
+}
