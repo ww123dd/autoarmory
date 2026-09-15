@@ -37,6 +37,8 @@
 - [x] killer demo command
 - [x] capability routing benchmark
 - [x] runner/scanner/MCP/OTel integration imports
+- [x] admission gate with explicit status labels
+- [x] scenario profile contracts for coding/support/research
 - [ ] automatic proposal generation from issue history
 - [ ] shadow evaluation
 - [ ] canary and rollback records

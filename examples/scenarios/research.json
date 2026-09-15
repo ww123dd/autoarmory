@@ -1,0 +1,51 @@
+{
+  "schema_version": "autoarmory/scenario-profile/v1",
+  "id": "research",
+  "title": "Deep Research Agent",
+  "task_schema": {
+    "input": "research-question",
+    "output": "cited research report"
+  },
+  "required_capabilities": [
+    "retrieve-source",
+    "verify-url",
+    "evaluate-change"
+  ],
+  "primary_evaluators": [
+    "rubric-judge",
+    "source-diversity-checker",
+    "recency-checker"
+  ],
+  "trajectory_metrics": [
+    "source_count",
+    "citation_coverage",
+    "contradiction_check"
+  ],
+  "hard_gates": [
+    "url_accessible",
+    "citation_grounded",
+    "freshness"
+  ],
+  "evidence_contract": [
+    "source-list",
+    "url-checks",
+    "rubric-result"
+  ],
+  "routing_policy": {
+    "prefer": [
+      "trusted",
+      "fresh"
+    ],
+    "require_fallback": true
+  },
+  "promotion_policy": {
+    "min_pass_k": 3,
+    "require_hard_gates": true
+  },
+  "cost_policy": {
+    "max_cost_per_report": 5
+  },
+  "human_review_policy": {
+    "required_for_release": true
+  }
+}

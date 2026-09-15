@@ -12,6 +12,8 @@
 - Added article and OTel GenAI incident adapters, a failure-mode taxonomy and external agent-evaluation standards mapping.
 - Added a deterministic self-evaluation command with Pass^k checks and explicit self-assessment bias disclosure.
 - Added the AutoArmory demo, Capability Routing Bench and SkillGrade/promptfoo/SARIF/ContextForge/OTel imports.
+- Added an admission gate with explicit observed/candidate/admitted/rejected/duplicate statuses.
+- Added coding/support/research scenario profile contracts and capability gap planning.
 
 ## 0.2.0
 

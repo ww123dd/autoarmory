@@ -18,6 +18,8 @@ jobs:
       - run: node bin/autoarmory.js demo --json
       - run: node bin/autoarmory.js bench --json
       - run: node bin/autoarmory.js integrate list --json
+      - run: node bin/autoarmory.js scenario list --json
+      - run: node bin/autoarmory.js scenario plan coding --state /tmp/autoarmory-state --json || test $? -eq 1
       - run: node bin/autoarmory.js observe examples/incidents.jsonl --json
       - run: printf 'FAIL: runner failure\n' | node bin/autoarmory.js observe - --format log --json | grep test_failure
       - run: node bin/autoarmory.js learn examples/decisions.jsonl --json

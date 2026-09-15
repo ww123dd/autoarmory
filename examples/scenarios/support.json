@@ -1,0 +1,51 @@
+{
+  "schema_version": "autoarmory/scenario-profile/v1",
+  "id": "support",
+  "title": "Support Agent",
+  "task_schema": {
+    "input": "customer-conversation",
+    "output": "policy-compliant resolution"
+  },
+  "required_capabilities": [
+    "execute-mcp-tool",
+    "evaluate-change"
+  ],
+  "primary_evaluators": [
+    "policy-engine",
+    "conversation-evaluator",
+    "backend-state-verifier"
+  ],
+  "trajectory_metrics": [
+    "policy_violations",
+    "turn_consistency",
+    "resolution_state"
+  ],
+  "hard_gates": [
+    "p0_policy",
+    "state_validation",
+    "no_data_leak"
+  ],
+  "evidence_contract": [
+    "conversation-trace",
+    "backend-state",
+    "policy-result"
+  ],
+  "routing_policy": {
+    "prefer": [
+      "trusted",
+      "low-latency"
+    ],
+    "require_fallback": true
+  },
+  "promotion_policy": {
+    "min_pass_k": 3,
+    "require_hard_gates": true
+  },
+  "cost_policy": {
+    "max_cost_per_conversation": 1
+  },
+  "human_review_policy": {
+    "required_for_p0": true,
+    "required_for_write": true
+  }
+}

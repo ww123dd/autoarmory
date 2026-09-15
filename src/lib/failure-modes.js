@@ -1,6 +1,11 @@
 'use strict';
 
 const MODES = [
+  { mode: 'gate_scope_confusion', severity: 'critical', action: 'add_admission_gate', patterns: [/候选生成.*gate.*冒充.*准入/, /候选.*准入.*gate/i, /candidate.*admission.*gate/i] },
+  { mode: 'admission_criteria_missing', severity: 'critical', action: 'add_admission_gate', patterns: [/FAIL.?→.?PASS/, /说不清.*(登记|不要改)/, /没有判据.*(改|动手)/] },
+  { mode: 'counterexample_replay_missing', severity: 'high', action: 'add_counterexample_replay', patterns: [/反例回放/, /rule_based.*反例/i, /只放宽不放反例/] },
+  { mode: 'scope_conflict', severity: 'high', action: 'update_boundary', patterns: [/撞.*non-goals/i, /non-goals.*冲突/i, /先改边界/] },
+  { mode: 'duplicate_ingestion', severity: 'medium', action: 'mark_duplicate', patterns: [/不要.*重新融入/, /重复融入/, /already.*ingest/i] },
   { mode: 'masked_failure', severity: 'critical', action: 'add_guard', patterns: [/掩盖故障/, /隐藏失败/, /美化/] },
   { mode: 'evidence_fabrication', severity: 'critical', action: 'add_guard', patterns: [/行号冒充/, /证据.*冒充/, /伪造证据/] },
   { mode: 'self_verification', severity: 'critical', action: 'add_evidence', patterns: [/修复者自证/, /自证/, /独立验证/] },

@@ -68,4 +68,17 @@ fs.writeFileSync(otelFile, JSON.stringify({
 }), 'utf8');
 result = run(['observe', otelFile, '--format', 'otel', '--json']);
 must(result.code === 0 && /lookup_metric/.test(result.out) && /tool_parameter_error/.test(result.out), 'OTel GenAI error span observation');
+const governanceArticle = path.join(temp, 'governance.md');
+fs.writeFileSync(governanceArticle, [
+  '不能用候选生成 gate 来冒充准入 gate。',
+  '必须能说清 FAIL→PASS，否则只登记，不要改。',
+  '13 条 rule_based 判据缺反例回放。',
+  'scenario 层撞 non-goals，先改边界再纳入。',
+  '不要把 8 篇当新文章重新融入。'
+].join(String.fromCharCode(10)), 'utf8');
+result = run(['observe', governanceArticle, '--format', 'article', '--json']);
+const governanceModes = new Set(JSON.parse(result.out).map(function (item) { return item.failure_mode; }));
+for (const mode of ['gate_scope_confusion', 'admission_criteria_missing', 'counterexample_replay_missing', 'scope_conflict', 'duplicate_ingestion']) {
+  must(governanceModes.has(mode), 'governance failure mode: ' + mode);
+}
 console.log('Article failure-mode tests passed');

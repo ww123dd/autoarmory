@@ -1,0 +1,49 @@
+{
+  "schema_version": "autoarmory/scenario-profile/v1",
+  "id": "coding",
+  "title": "Coding Agent",
+  "task_schema": {
+    "input": "repository-task",
+    "output": "patch + test evidence"
+  },
+  "required_capabilities": [
+    "run-agent-eval",
+    "scan-skill"
+  ],
+  "primary_evaluators": [
+    "junit",
+    "static-check"
+  ],
+  "trajectory_metrics": [
+    "files_navigated",
+    "tests_invoked",
+    "iteration_convergence"
+  ],
+  "hard_gates": [
+    "FAIL_TO_PASS",
+    "PASS_TO_PASS",
+    "no_static_errors"
+  ],
+  "evidence_contract": [
+    "test-log",
+    "diff",
+    "environment-fingerprint"
+  ],
+  "routing_policy": {
+    "prefer": [
+      "trusted",
+      "low-cost"
+    ],
+    "require_fallback": true
+  },
+  "promotion_policy": {
+    "min_pass_k": 3,
+    "require_hard_gates": true
+  },
+  "cost_policy": {
+    "max_cost_per_case": 1
+  },
+  "human_review_policy": {
+    "required_for_write": true
+  }
+}

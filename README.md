@@ -49,6 +49,10 @@ autoarmory experiment compare before.json after.json
 autoarmory policy .selfforge/decisions.jsonl
 autoarmory acquire .selfforge/candidates.jsonl --top 10
 autoarmory evolve logs/ --format auto --cases path/to/cases.json
+autoarmory admit .selfforge/candidates.jsonl --output .selfforge/admission.jsonl
+autoarmory scenario list
+autoarmory scenario show coding
+autoarmory scenario plan coding --state .selfforge
 autoarmory doctor
 autoarmory capability register examples/capabilities.jsonl
 autoarmory capability list --state .selfforge
