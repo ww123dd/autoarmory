@@ -123,4 +123,21 @@ must(result.code === 0 && JSON.parse(result.out).ok === true, 'conformance pass'
 result = run(['capability', 'retire', 'runner.cheap', '--reason', 'Repeated drift and failures.', '--state', state, '--json']);
 const retirement = JSON.parse(result.out);
 must(result.code === 0 && retirement.action === 'retire' && fs.readFileSync(path.join(state, 'replacement-suggestions.jsonl'), 'utf8').includes('runner.cheap'), 'retirement suggestion');
+const calibrationFile = writeJson('calibration-outcomes.json', [
+  outcome({ capability_id: 'runner.fast', result: 'success', reward: 1, predicted_probability: 0.8, propensity: 0.5 }),
+  outcome({ capability_id: 'runner.fast', result: 'failure', reward: 0, predicted_probability: 0.2, propensity: 0.5 }),
+  outcome({ capability_id: 'runner.fast', result: 'success', reward: 1, predicted_probability: 0.7, propensity: 0.5 }),
+  outcome({ capability_id: 'runner.fast', result: 'success', reward: 1, predicted_probability: 0.9, propensity: 0.5 })
+]);
+result = run(['policy', 'calibrate', '--outcomes', calibrationFile, '--min', '2', '--json']);
+const calibration = JSON.parse(result.out);
+must(result.code === 0 && calibration.status === 'calibrated' && typeof calibration.brier === 'number' && typeof calibration.log_loss === 'number' && typeof calibration.ece === 'number', 'policy calibration metrics');
+
+const syntheticFile = writeJson('synthetic-outcomes.json', [outcome({ source: 'fixture', predicted_probability: 0.9 })]);
+result = run(['policy', 'calibrate', '--outcomes', syntheticFile, '--min', '1', '--json']);
+must(result.code === 1 && /synthetic/i.test(result.out + result.err), 'calibration refuses synthetic data');
+
+result = run(['policy', 'off-policy', '--outcomes', calibrationFile, '--min', '2', '--json']);
+const offPolicy = JSON.parse(result.out);
+must(result.code === 0 && offPolicy.status === 'evaluated' && typeof offPolicy.ips === 'number' && typeof offPolicy.effective_samples === 'number', 'off-policy evaluation');
 console.log('Capability registry tests passed');

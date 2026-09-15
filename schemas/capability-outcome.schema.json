@@ -71,6 +71,11 @@
     },
     "observed_at": {
       "type": "string"
+    },
+    "predicted_probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
     }
   }
 }
