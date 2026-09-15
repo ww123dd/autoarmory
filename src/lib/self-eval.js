@@ -8,6 +8,9 @@ const COMMANDS = [
   { id: 'tests', command: 'node tests/run.js' },
   { id: 'capability', command: 'node tests/capability.js' },
   { id: 'failure_modes', command: 'node tests/failure-modes.js' },
+  { id: 'demo', command: 'node tests/demo.js' },
+  { id: 'bench', command: 'node tests/bench.js' },
+  { id: 'integrate', command: 'node tests/integrate.js' },
   { id: 'skillcanary', command: 'node packages/skillcanary/tests/run.js' },
   { id: 'conformance', command: 'node tests/conformance.js' }
 ];

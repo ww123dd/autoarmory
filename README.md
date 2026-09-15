@@ -1,14 +1,17 @@
 # AutoArmory
 
-**Auto-battle control plane for agent capabilities.**
+**The cross-vendor capability control plane for AI agents.**
 
-**Every module is a weapon. Every promotion is earned by evidence.**
+Every module is a weapon. Every promotion is earned by evidence.
 
-AutoArmory manages the layer above platform-native tools: cross-vendor capability discovery, evidence, routing, composition, degradation, replacement and retirement. SkillCanary remains the stable evidence, provenance and change-gate control plane.
+AutoArmory decides which capabilities should be used, combined, gated, degraded, replaced or retired across runners, evaluators, scanners, MCP gateways, registries, memory layers and policy engines.
 
-```text
-observe -> incident -> candidate -> gate -> decision -> learn
+```bash
+npx autoarmory demo
+npx autoarmory bench
 ```
+
+Why this must exist: [Why AutoArmory](docs/why.md).
 
 ## Capability Manager
 

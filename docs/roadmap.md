@@ -34,6 +34,9 @@
 - [x] guarded calibration and off-policy evaluation
 - [x] article and OTel incident adapters with failure taxonomy
 - [x] deterministic self-evaluation command with explicit self-assessment bias
+- [x] killer demo command
+- [x] capability routing benchmark
+- [x] runner/scanner/MCP/OTel integration imports
 - [ ] automatic proposal generation from issue history
 - [ ] shadow evaluation
 - [ ] canary and rollback records
