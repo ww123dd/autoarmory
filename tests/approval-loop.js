@@ -87,6 +87,10 @@ const approvalFile = writeJson('approval.json', {
 });
 result = run(['transition', candidateFile, '--to', 'gated', '--gate', gateFile, '--approval', approvalFile, '--state', state, '--json']);
 must(result.code === 0 && JSON.parse(result.out).to === 'gated', 'approved candidate must become gated');
+const approvedTransition = JSON.parse(result.out);
+const consumption = approvedTransition.consumption;
+must(consumption && consumption.consumer && consumption.consumer.type === 'operator' && consumption.consumer.id === 'user', 'approval must produce an operator consumption event');
+must(consumption.action === 'approved' && consumption.downstream_action === 'gated', 'consumption must record the approved downstream action');
 
 // The Agent executes only after approval. This is the mechanical work the user must not perform.
 fs.writeFileSync(target, 'new\n', 'utf8');
@@ -102,6 +106,8 @@ const outcomeEvidenceFile = writeJson('outcome-evidence.json', {
 });
 result = run(['record', '--candidate', candidateId, '--action', candidate.action, '--reward', '1', '--verified', 'true', '--gate', gateFile, '--evidence', outcomeEvidenceFile, '--dir', workspace, '--state', state, '--json']);
 must(result.code === 0, 'approval loop outcome must be recorded: ' + result.out + result.err);
+const decision = JSON.parse(fs.readFileSync(path.join(state, 'decisions.jsonl'), 'utf8').trim().split(/\r?\n/)[0]);
+must(decision.consumption_ref && decision.consumption_ref.id === consumption.id, 'outcome must link back to approval consumption');
 
 const transitions = fs.readFileSync(path.join(state, 'transitions.jsonl'), 'utf8').trim().split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); });
 must(transitions.length === 2 && transitions[0].to === 'pending_approval' && transitions[1].to === 'gated', 'approval loop transitions must be replayable');

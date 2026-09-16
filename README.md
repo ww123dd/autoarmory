@@ -126,6 +126,8 @@ A gate-ready candidate carries a `change` object. AutoArmory fills the shared ch
 
 Candidate promotion follows a recorded state machine: `candidate -> pending_approval -> gated -> shadow -> canary -> promoted`, with `rejected` available before promotion and `retired` after it. Gate proof is mandatory for `gated` and `shadow`; user approval is also mandatory for `pending_approval -> gated`. Outcome evidence is mandatory for `canary` and `promoted`.
 
+Approval also creates a consumption event. The system records `decision_id -> consumer -> action -> downstream_action`; the later outcome links back through `consumption_ref` instead of assuming a decision was consumed just because it was generated.
+
 Approval is an authorization decision, not verification evidence. The Agent prepares the candidate, gate proof, rollback and verification commands; the user only approves. After approval, the Agent performs the transition and the remaining mechanical work.
 
 `record` refuses to append a decision unless a successful SkillCanary gate proof is provided or found on the stored candidate. A verified decision also requires outcome evidence with artifacts or before/after observations.
