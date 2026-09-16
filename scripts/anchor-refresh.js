@@ -42,12 +42,19 @@ function fetchTo(command, args, target) {
   return result;
 }
 function egressFetch(url, target) {
-  if (fs.existsSync(EGRESS)) {
+  if (!fs.existsSync(EGRESS)) throw new Error('no audited egress wrapper found; set AGENT_GUARD_EGRESS to use the HTTP channel');
+  // A release qualification must not confuse a flaky link with a changed artifact:
+  // retry briefly, then report the channel as unreachable rather than as a mismatch.
+  let last = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
     const result = cp.spawnSync(process.execPath, [EGRESS, url, '--output', target, '--raw', '--max-bytes', '5000000'], { encoding: 'utf8', windowsHide: true });
-    if (result.status !== 0) throw new Error('egress failed: ' + String(result.stderr || result.stdout).slice(0, 200));
-    return 'egress --raw';
+    if (result.status === 0) return 'egress --raw (attempt ' + attempt + ')';
+    last = String(result.stderr || result.stdout || '').slice(0, 200);
+    if (attempt < 3) cp.spawnSync(process.execPath, ['-e', 'setTimeout(function(){}, 1500)'], { windowsHide: true });
   }
-  throw new Error('no audited egress wrapper found; set AGENT_GUARD_EGRESS to use the HTTP channel');
+  const error = new Error('unreachable after 3 attempts: ' + last);
+  error.unreachable = true;
+  throw error;
 }
 
 const records = fs.readdirSync(ANCHORS).filter(function (name) { return name.endsWith('.provenance.json'); }).sort();
@@ -55,11 +62,12 @@ if (!records.length) { process.stderr.write('no provenance records in ' + ANCHOR
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-anchor-refresh-'));
 const rows = [];
 let failures = 0;
+let unreachable = 0;
 
 for (const name of records) {
   const record = JSON.parse(fs.readFileSync(path.join(ANCHORS, name), 'utf8'));
   const vendored = fs.readFileSync(path.join(ROOT, record.artifact));
-  const row = { record: name, artifact: record.artifact, publisher: record.publisher, channel: record.fetcher ? record.fetcher.kind : 'unknown', offline_ok: false, fetch: null, fetch_ok: null, error: null };
+  const row = { record: name, artifact: record.artifact, publisher: record.publisher, channel: record.fetcher ? record.fetcher.kind : 'unknown', offline_ok: false, fetch: null, fetch_ok: null, channel_state: null, error: null };
   try {
     const recomputed = digestOf(vendored, record.algorithm, record.encoding);
     row.offline_ok = recomputed === record.published_digest;
@@ -111,11 +119,18 @@ for (const name of records) {
     const fetched = fs.readFileSync(target);
     row.fetch = { bytes: fetched.length, sha256: crypto.createHash('sha256').update(fetched).digest('hex') };
     row.fetch_ok = Buffer.compare(fetched, vendored) === 0 && digestOf(fetched, record.algorithm, record.encoding) === record.published_digest;
+    row.channel_state = row.fetch_ok ? 'verified' : 'mismatch';
     if (!row.fetch_ok) throw new Error('freshly fetched bytes differ from the vendored anchor');
   } catch (error) {
     row.fetch_ok = false;
     row.error = error.message;
-    failures += 1;
+    if (error.unreachable) {
+      row.channel_state = 'unreachable';
+      unreachable += 1;
+    } else {
+      row.channel_state = row.channel_state || 'mismatch';
+      failures += 1;
+    }
   }
   rows.push(row);
 }
@@ -126,17 +141,21 @@ const report = {
   mode: flag('--fetch') ? 'fetch' : 'offline',
   channels: Array.from(new Set(rows.map(function (row) { return row.channel; }))),
   records: rows.length,
-  failures: failures
+  failures: failures,
+  unreachable: unreachable,
+  allow_unreachable: flag('--allow-unreachable')
 };
 if (flag('--json')) process.stdout.write(JSON.stringify(Object.assign(report, { rows: rows }), null, 2) + '\n');
 else {
   process.stdout.write('anchor refresh (' + report.mode + '): ' + rows.length + ' records, ' + report.channels.length + ' channels\n');
   for (const row of rows) {
-    const state = row.fetch_ok === null ? (row.offline_ok ? 'OFFLINE-OK' : 'FAIL') : (row.fetch_ok ? 'FETCH-OK' : 'FAIL');
+    const state = row.channel_state === 'unreachable' ? 'UNREACHABLE' : (row.fetch_ok === null ? (row.offline_ok ? 'OFFLINE-OK' : 'MISMATCH') : (row.fetch_ok ? 'FETCH-OK' : 'MISMATCH'));
     process.stdout.write('  ' + state.padEnd(11) + row.channel.padEnd(15) + path.basename(row.artifact) + (row.error ? '  ' + row.error : '') + '\n');
   }
 }
 const evidence = path.join(ROOT, '.selfforge', 'anchor-refresh-' + report.generated_at.replace(/[-:TZ]/g, '').slice(0, 14) + '.json');
 try { fs.mkdirSync(path.dirname(evidence), { recursive: true }); fs.writeFileSync(evidence, JSON.stringify(Object.assign(report, { rows: rows }), null, 2) + '\n', 'utf8'); } catch (_) {}
 if (!flag('--keep')) fs.rmSync(work, { recursive: true, force: true });
-process.exit(failures ? 1 : 0);
+if (failures) process.exit(1);
+if (unreachable && !flag('--allow-unreachable')) process.exit(2);
+process.exit(0);
