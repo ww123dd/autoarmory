@@ -20,7 +20,6 @@ const bench = require('./commands/bench');
 const integrate = require('./commands/integrate');
 const admit = require('./commands/admit');
 const scenario = require('./commands/scenario');
-const serve = require('./commands/serve');
 const close = require('./commands/close');
 const execution = require('./commands/execution');
 
@@ -35,9 +34,9 @@ function usage() {
     '  autoarmory gate <candidate.json> [--skillcanary <repo>] [--cases <cases.json>] [--require-provenance]',
     '  autoarmory record [decision.json] [--candidate id] [--action name] [--reward n] [--verified true|false] [--gate gate.json] [--evidence evidence.json] [--dir project]',
     '  autoarmory close --case <case-id> --run <run-id> [--state .selfforge] [--json]',
-    '  autoarmory execution <record|list> [trace.json] [--state .selfforge] [--json]',
+    '  autoarmory execution <record|list|friction> [trace.json] [--state .selfforge] [--json]',
     '  autoarmory canary <command> [args]',
-    '  autoarmory capability <register|list|health|outcome|drift|conformance> [--state .selfforge] [--json]',
+    '  autoarmory capability <register|list|health|route|outcome|drift|conformance> [--state .selfforge] [--json]',
     '  autoarmory transition <candidate.json> --to <pending_approval|gated|shadow|canary|promoted|rejected|retired> [--gate gate.json] [--approval approval.json] [--evidence evidence.json] [--reason text] [--state .selfforge] [--dir project]',
     '  autoarmory learn [decisions.jsonl]',
     '  autoarmory environment [dir] [--write]',
@@ -55,7 +54,6 @@ function usage() {
     '  autoarmory demo [--seed 7] [--output demo.md] [--json]',
     '  autoarmory bench [--seed 11] [--output bench.md] [--json]',
     '  autoarmory self-eval [--runs 3] [--json] [--output report.json]',
-    '  autoarmory serve [--host 127.0.0.1] [--port 8787] [--state .selfforge] [--allow-write]',
     '  autoarmory version',
     ''
   ].join('\n'));
@@ -66,7 +64,7 @@ function main(argv) {
   const rest = argv.slice(1);
   if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') { usage(); process.exit(0); }
   if (cmd === 'version' || cmd === '--version' || cmd === '-v') { process.stdout.write(require('../package.json').version + '\n'); process.exit(0); }
-  const commands = { init, observe, propose, gate, learn, doctor, report, environment, policy, acquire, evolve, record, transition, capability, canary, "self-eval": selfEval, demo, bench, integrate, admit, scenario, serve, close, execution };
+  const commands = { init, observe, propose, gate, learn, doctor, report, environment, policy, acquire, evolve, record, transition, capability, canary, "self-eval": selfEval, demo, bench, integrate, admit, scenario, close, execution };
   const fn = commands[cmd];
   if (!fn) { process.stderr.write('Unknown command: ' + cmd + '\n\n'); usage(); process.exit(2); }
   Promise.resolve().then(function () { return fn(rest); }).then(function (code) { process.exit(typeof code === 'number' ? code : 0); }).catch(function (err) { process.stderr.write((err && err.stack) ? err.stack : String(err)); process.stderr.write('\n'); process.exit(2); });

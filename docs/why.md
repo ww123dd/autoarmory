@@ -1,34 +1,23 @@
-# Why AutoArmory Must Be Used
+# Why AutoArmory
 
-Most teams already have tools for individual jobs:
+AutoArmory is for one operator managing the capabilities their Agent actually uses.
 
-- Langfuse observes traces.
-- LiteLLM routes models.
-- ContextForge connects MCP servers.
-- GEPA optimizes prompts or code.
-- promptfoo evaluates prompts and agents.
-- SkillCanary gates a change with evidence.
+It answers a local question:
 
-Those tools do not answer the cross-vendor decision problem:
+> What did the Agent choose, what did it execute, what external fact proves the result, and should this capability be kept, degraded, replaced or retired?
 
-> Given this task, risk, data sensitivity, permission boundary, budget and latency SLO, which capability combination should run now—and what should be retired if it stops working?
-
-AutoArmory is the decision and lifecycle layer for that question.
-
-The non-replaceable reason:
-
-> AutoArmory is the only layer that maximizes **policy-compliant execution** across vendors: it executes when the module is allowed, refuses when it is unsafe or unsupported, records the outcome, and retires what keeps failing.
+The operator is the consumer and approver. The Agent is the executor. No universal orchestration or platform authorization is required.
 
 Use AutoArmory when:
 
-- you use more than one runner, evaluator, scanner, MCP gateway or memory provider;
-- you need to explain why a module was selected or rejected;
-- you need cost, latency, risk and permission constraints enforced together;
-- you need outcome-driven promotion, degradation, replacement and retirement;
-- you need evidence and provenance without locking into one platform vendor.
+- you need to know which module the Agent actually used;
+- you need a real external verifier for important outcomes;
+- you need lifecycle decisions to follow evidence, not self-report;
+- you want the Agent to prepare work and the operator only to approve.
 
-Do not use AutoArmory when:
+Do not treat AutoArmory as:
 
-- you use exactly one provider and have no intention of comparing capabilities;
-- you do not collect verified outcomes;
-- you need an agent framework or a hosted eval dashboard instead of a control plane.
+- a universal orchestration layer;
+- a hosted multi-vendor control plane;
+- an agent framework;
+- a replacement for SkillCanary or domain runners.

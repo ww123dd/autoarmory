@@ -1,7 +1,7 @@
 {
   "name": "autoarmory",
   "version": "0.3.0",
-  "description": "Auto-battle control plane for agent capabilities, built on SkillCanary evidence and gates.",
+  "description": "A local capability manager for one operator, built on SkillCanary evidence and gates.",
   "license": "MIT",
   "type": "commonjs",
   "bin": {
@@ -38,7 +38,6 @@
     "test:self-eval": "node tests/self-eval.js",
     "demo": "node bin/autoarmory.js demo --seed 7 --output demo.md --json",
     "bench": "node bin/autoarmory.js bench --seed 11 --output capability-routing-bench.md --json",
-    "serve": "node bin/autoarmory.js serve",
     "test:change-gate": "node tests/change-gate.js",
     "hooks:install": "node scripts/install-hooks.js",
     "test:pack": "node scripts/pack-check.js",

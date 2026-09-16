@@ -40,7 +40,7 @@
 - [x] admission gate with explicit status labels
 - [x] scenario profile contracts for coding/support/research
 - [x] execution trace contract with selection/outcome linkage
-- [x] local control-plane API, SDK client and Team CLI integration example
+- [~] local API, SDK client and Team CLI kept as optional internals; CLI is the primary operator interface
 - [x] external adapter contract and descriptor schema
 - [ ] automatic proposal generation from issue history
 - [ ] shadow evaluation

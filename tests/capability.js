@@ -89,6 +89,12 @@ register('runner-writer', { id: 'runner.writer', vendor: 'writer', kind: 'runner
 const requestFile = writeJson('routing-request.json', {
   schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'medium', data_sensitivity: 'internal', cost_budget: 0.02, latency_slo_ms: 2000, write_required: false, security_level: 'standard', task_id: 'route-task-test', context: {}
 });
+const routingFile = path.join(state, 'routing-decisions.jsonl');
+result = run(['capability', 'route', requestFile, '--state', state, '--json']);
+must(result.code === 0, 'capability route CLI must succeed: ' + result.out + result.err);
+must(fs.existsSync(routingFile), 'capability route must persist a routing decision');
+const persistedRoute = JSON.parse(fs.readFileSync(routingFile, 'utf8').trim().split(/\r?\n/)[0]);
+must(persistedRoute.selected && persistedRoute.selected[0] && persistedRoute.selected[0].id, 'persisted routing decision must contain selected capability');
 result = route(requestFile, 7);
 const routeOne = JSON.parse(result.out);
 must(result.code === 0 && routeOne.selected.length === 1, 'capability route selects a module');

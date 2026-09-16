@@ -24,7 +24,8 @@ function validateExecutionTrace(value) {
   const errors = [];
   if (!value || typeof value !== 'object') return ['execution trace must be an object'];
   if (value.schema_version !== SCHEMA_VERSION) errors.push('schema_version must be ' + SCHEMA_VERSION);
-  requireFields(value, ['id', 'decision_id', 'task_id', 'skill_id', 'environment_fingerprint', 'started_at', 'finished_at'], 'trace', errors);
+  requireFields(value, ['id', 'task_id', 'skill_id', 'environment_fingerprint', 'started_at', 'finished_at'], 'trace', errors);
+  if (value.decision_id !== undefined && value.decision_id !== null && !isNonEmptyString(value.decision_id)) errors.push('trace.decision_id must be a non-empty string or null');
   if (!Array.isArray(value.steps_expected) || value.steps_expected.length === 0) errors.push('trace.steps_expected must be a non-empty array');
   if (!Array.isArray(value.steps_observed) || value.steps_observed.length === 0) errors.push('trace.steps_observed must be a non-empty array');
   if (typeof value.order_ok !== 'boolean') errors.push('trace.order_ok must be a boolean');
@@ -93,6 +94,7 @@ function normalizeExecutionTrace(value) {
     schema_version: SCHEMA_VERSION,
     plan_sha256: planSha,
     status: deriveStatus(value),
+    selection_status: value.decision_id ? 'linked' : 'unlinked',
     observed_at: value.observed_at || new Date().toISOString()
   });
   return { ok: true, trace: trace, errors: [] };
@@ -108,12 +110,14 @@ function readExecutionTraces(stateDir) {
 function recordExecutionTrace(stateDir, value) {
   const normalized = normalizeExecutionTrace(value);
   if (!normalized.ok) return normalized;
-  const decisions = readJsonl(decisionFile(stateDir));
-  const decision = decisions.find(function (item) { return item.request_id === value.decision_id; });
-  if (!decision) return { ok: false, errors: ['routing decision not found: ' + value.decision_id] };
-  if (decision.task_id && decision.task_id !== value.task_id) return { ok: false, errors: ['trace.task_id does not match routing decision'] };
-  const selected = Array.isArray(decision.selected) && decision.selected[0] ? decision.selected[0].id : null;
-  if (selected !== value.skill_id) return { ok: false, errors: ['trace.skill_id does not match routing decision selected skill'] };
+  if (value.decision_id) {
+    const decisions = readJsonl(decisionFile(stateDir));
+    const decision = decisions.find(function (item) { return item.request_id === value.decision_id; });
+    if (!decision) return { ok: false, errors: ['routing decision not found: ' + value.decision_id] };
+    if (decision.task_id && decision.task_id !== value.task_id) return { ok: false, errors: ['trace.task_id does not match routing decision'] };
+    const selected = Array.isArray(decision.selected) && decision.selected[0] ? decision.selected[0].id : null;
+    if (selected !== value.skill_id) return { ok: false, errors: ['trace.skill_id does not match routing decision selected skill'] };
+  }
   const traces = readExecutionTraces(stateDir);
   if (traces.some(function (item) { return item.id === value.id; })) return { ok: false, errors: ['execution trace already exists: ' + value.id] };
   traces.push(normalized.trace);

@@ -25,7 +25,7 @@ A routing decision records `candidate_set`, `top_k`, `selected`, `fallback_chain
 - Library: `src/lib/execution-trace.js`
 - CLI: `autoarmory execution record|list`
 
-An execution trace is linked to one routing decision and records:
+An execution trace may be linked to a routing decision. When no routing decision exists, it records `selection_status: unlinked` instead of failing. It records:
 
 - expected and observed steps;
 - order and stop-condition adherence;
@@ -55,6 +55,17 @@ candidate -> pending_approval -> gated
 
 The Agent prepares the candidate, case/mutation evidence, gate proof, rollback and verification commands. The user approves the transition; the Agent executes it. An approval record is authorization evidence only and never replaces gate proof.
 
+## Operator friction
+
+`autoarmory execution friction record|list` records interaction friction and selects one of three actions:
+
+```text
+auto_execute       Agent executes; user only approves
+approval_required  high-impact or irreversible action needs approval
+record_only        vague or one-off frustration is recorded, not generalized
+```
+
+The friction record stores `user_actions_required` and an empty `manual_steps` list for Agent-executed paths. A friction decision is operational policy, not verifier evidence.
 ## Router boundary
 
 AutoArmory does not add a multi-skill router by default.
