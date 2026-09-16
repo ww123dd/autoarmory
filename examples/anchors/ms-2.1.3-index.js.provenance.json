@@ -9,5 +9,11 @@
   "published_digest": "ea734fb73820316ed1c0f6a2f6e96dce0e3eb6f0",
   "our_sha256": "e5f0b6a946a9b2b356a28557728410717df54ea2f599edb619f9839df6b7b0e9",
   "fetched_via": "git clone https://github.com/vercel/ms, then git cat-file blob 1c6264b7:index.js",
-  "fetched_at": "2026-09-16"
+  "fetched_at": "2026-09-16",
+  "fetcher": {
+    "kind": "git-clone",
+    "repo": "https://github.com/vercel/ms",
+    "commit": "1c6264b795492e8fdecbc82cb8802fcfbfc08d26",
+    "path": "index.js"
+  }
 }

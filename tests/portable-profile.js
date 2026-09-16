@@ -74,7 +74,7 @@ for (const name of provenanceFiles) {
   must(run && run.verdict === 'PASS', name + ': the anchored entry must pass in the sandbox run');
   publishers.add(record.publisher);
 }
-must(publishers.size >= 3, 'anchors must come from at least three channels, saw: ' + Array.from(publishers).join(', '));
+must(publishers.size >= 4, 'anchors must come from at least four channels, saw: ' + Array.from(publishers).join(', '));
 // cross-channel: the git source blob and the published npm tarball must agree
 const tarMember = spawnSync('tar', ['-xOzf', path.join(ROOT, 'examples', 'anchors', 'ms-2.1.3.tgz'), 'package/index.js'], { maxBuffer: 8 * 1024 * 1024 });
 if (!tarMember.error && tarMember.status === 0) {

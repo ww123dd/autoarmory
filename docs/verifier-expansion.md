@@ -61,13 +61,18 @@ Observed both ways: a full clone reports `PASS portable-repo-commit-exists`, whi
 
 Independence, stated honestly: five of the six portable entries are content-addressed **inside this repository** (bridge bytes, adapter bytes, a commit sha). They are deterministic, machine-independent, offline and checkout-stable, and they are a real drift and tamper detector — but the author still chooses those values, so those five are not independent of the author.
 
-Three entries are anchored outside the repository, from three different channels:
+Three entries are anchored outside the repository, and they are reachable through four channels:
 
 - `examples/anchors/ms-2.1.3.tgz` is vendored byte for byte from the npm publication of `ms@2.1.3` (registry `dist.integrity`, sha512);
 - `examples/anchors/pypi-six-1.16.0.tar.gz` is vendored byte for byte from the PyPI publication of `six@1.16.0` (`urls[].digests.sha256`);
-- `examples/anchors/ms-2.1.3-index.js` is the source blob at commit `1c6264b7…` of `github.com/vercel/ms` - the commit the npm publication of `ms@2.1.3` names as `gitHead` - and its git object id is the published value (sha1 over `blob <length>\0<bytes>`).
+- `examples/anchors/ms-2.1.3-index.js` is the source blob at commit `1c6264b7…` of `github.com/vercel/ms` - the commit the npm publication of `ms@2.1.3` names as `gitHead` - and its git object id is the published value (sha1 over `blob <length>\0<bytes>`);
+- the same PyPI artifact also carries a **read-only service** record: `https://pypi.org/pypi/six/1.16.0/json` publishes `urls[packagetype=sdist].digests.sha256`, which is the value the vendored sdist must reproduce.
 
 Each artifact carries a `<file>.provenance.json` record (publisher, URL, published field, algorithm, published digest, pinned sha256), and `tests/portable-profile.js` recomputes the published digest from the vendored bytes on every run, then checks that the portable profile pins those same bytes. We choose to vendor an artifact; we do not choose its bytes or its published digest.
+
+`scripts/anchor-refresh.js` re-verifies all of this mechanically. Offline it recomputes every published digest from the vendored bytes; with `--fetch` it re-downloads through the channel each provenance record names (`npm pack`, `pip download`, `git clone` + `cat-file`, the PyPI JSON service) and compares the fresh bytes with the vendored ones. HTTP goes through the audited egress wrapper with `--raw`, so bytes survive and only the hash comes back. `npm run check:anchors` is the live form; it belongs to release qualification rather than the offline test suite.
+
+One honest note: `api.github.com` resolves to `127.0.0.1` on this machine, so the GitHub REST path could not be used as the service channel; the PyPI JSON API is used instead, and it answers.
 
 The npm and git anchors overlap on purpose: the git source blob is byte-identical to `package/index.js` inside the published npm tarball, and `tests/portable-profile.js` checks that equality, so the registry channel and the source channel are cross-validated rather than merely co-existing. Honest limits: the npm artifact was pulled through `registry.npmmirror.com`, a mirror of the canonical registry, so agreement between the mirror and `registry.npmjs.org` is a consistency check rather than a second publisher; a third-party read-only service body would add a fourth, fully independent channel. An entry graduates to that class only when its expectation is anchored outside the repository: an upstream published artifact hash, a vendored file upstream provenance hash, or the content hash of a third-party read-only service body. Those anchors need a network or a vendored artifact with a published hash; the remaining machine-local verifiers do not qualify, because they pin this machine absolute paths or a live process.
 

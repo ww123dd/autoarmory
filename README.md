@@ -94,7 +94,7 @@ npm run test:portable-profile
 
 That run judges the same chain both ways — at least one entry must PASS and at least one must FAIL — so a reader watches the checker accept and reject instead of trusting a summary. One entry checks that the commit this profile was written against still exists in the history of the clone running it, so a rewritten history shows up as a FAIL instead of a story. The machine-local trust root (`verifiers.lock.json`) is gitignored on purpose: it pins this machine's paths and live facts, and `scripts/verifier-pin.js` regenerates it.
 
-Three portable entries are anchored outside this repository: the vendored npm artifact, the PyPI artifact, and the git source blob named by the npm publication (`examples/anchors/`). Each carries a provenance record, the test recomputes the publisher digest from the vendored bytes, and the git blob is cross-checked against the copy inside the npm tarball. See [Verifier Expansion](docs/verifier-expansion.md) and [Mechanism Core](docs/mechanism-core.md).
+Three portable entries are anchored outside this repository through four channels: the vendored npm artifact, the PyPI artifact, the PyPI JSON service that publishes its digest, and the git source blob named by the npm publication (`examples/anchors/`). `npm run check:anchors` re-fetches all four and compares them with the vendored bytes. Each carries a provenance record, the test recomputes the publisher digest from the vendored bytes, and the git blob is cross-checked against the copy inside the npm tarball. See [Verifier Expansion](docs/verifier-expansion.md) and [Mechanism Core](docs/mechanism-core.md).
 
 ## Self-evaluation
 

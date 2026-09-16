@@ -37,6 +37,7 @@
     "test:canary": "node packages/skillcanary/tests/run.js",
     "test:articles": "node tests/failure-modes.js",
     "test:self-eval": "node tests/self-eval.js",
+    "check:anchors": "node scripts/anchor-refresh.js --fetch",
     "test:operator-loop": "node tests/operator-loop.js",
     "demo": "node bin/autoarmory.js demo --seed 7 --output demo.md --json",
     "bench": "node bin/autoarmory.js bench --seed 11 --output capability-routing-bench.md --json",
