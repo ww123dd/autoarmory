@@ -48,6 +48,7 @@
     "test:metrics": "node scripts/evolution-metrics.js",
     "test:inc-real-02": "node tests/inc-real-02-checker.js",
     "test:verification": "node tests/verification.js",
+    "test:negative-controls": "node scripts/negative-controls.js",
     "test:verifier-preflight": "node scripts/verifier-preflight.js",
     "test:mechanism-preflight": "node tests/mechanism-preflight.js"
   },
