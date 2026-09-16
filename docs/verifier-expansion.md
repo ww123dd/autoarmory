@@ -27,13 +27,16 @@ Seven of the eight are thin bridges over the same `state-query` adapter. Only th
 ## Adding a source
 
 1. write `examples/adapters/<source>/bridge.js`: read the pinned server descriptor from stdin and emit `{ ok, observed }`;
-2. declare the verifier descriptor (`id`, `statement`, `assertion`, `bridge`, `server`) and merge it into the local profile;
-3. re-pin mechanically instead of editing the trust root by hand:
+2. write a descriptor file holding the verifier entry — `id`, `kind`, `version`, `invocation_contract_version`, `readonly`, `statement`, `assertion`, `bridge`, `server`. Draft digests may be blank or stale: the pin tool recomputes them and reports what it used;
+3. land it mechanically and verify:
 
 ```bash
-node scripts/verifier-pin.js --merge new-verifiers.json
-node scripts/verifier-pin.js --dry-run
+node scripts/verifier-pin.js --merge new-verifiers.json   # recompute digests, rewrite lock + external anchor
+node scripts/verifier-pin.js --dry-run                    # assert the profile is fully pinned
+node scripts/mechanism-record.js --mechanism <id> --close # re-record runs on the new runner
 ```
+
+Never hand-write `verifiers.lock.json`. It is the trust root, and the Codex guard blocks Write/Edit and shell redirection into it — that block is not a request for a human to type the file. The mechanical path above is the sanctioned way to change it, and `tests/verifier-pin.js` covers it: bootstrap, declare-from-descriptor, drift fails closed, `--allow-drift` recovers a deliberately replaced profile, and a declaration missing `version` is refused rather than defaulted.
 
 `verifier-pin` recomputes every digest the profile pins (`adapter`, `bridge`, MCP `config`, MCP `entry`) and rewrites both halves of the trust root in one step: the gitignored `verifiers.lock.json` inside the repository and the external anchor `~/.codex/hooks/verifier-lock.sha256` outside it. It fails closed when the two halves already disagree, so a re-pin can never paper over drift. `--dry-run` prints the digest the profile would produce; when it differs from the lock on disk, the profile is not fully pinned.
 
