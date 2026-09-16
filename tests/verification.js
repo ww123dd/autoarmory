@@ -108,6 +108,17 @@ versionOnly.verifier_version = '9.9.9';
 result = verify.verifyRecord(versionOnly, { repo: repo });
 must(result.status === 'verified' && result.version_drift === true, 'a human version bump must not invalidate a verdict');
 
+repo = makeRepo('case-binding');
+capture = verify.captureRefs([ref('case-binding')], { repo: repo });
+const boundCase = { schema_version: 'autoarmory/case/v1', id: 'case-fixture', expected_transition: 'COUNT->0' };
+const caseBoundRun = Object.assign(recordFor(capture.captured[0], repo), { case_sha256: verify.sha256Value(boundCase) });
+must(verify.verifyRecord(caseBoundRun, { repo: repo, case_record: boundCase }).status === 'verified', 'a run bound to its case must verify');
+const changedCase = { schema_version: 'autoarmory/case/v1', id: 'case-fixture', expected_transition: 'COUNT->1' };
+result = verify.verifyRecord(caseBoundRun, { repo: repo, case_record: changedCase });
+must(result.status === 'mismatch' && /case record changed/.test(result.reason), 'a changed case must invalidate a bound run');
+result = verify.verifyRecord(recordFor(capture.captured[0], repo), { repo: repo, case_record: boundCase });
+must(result.status === 'unverifiable' && /no case_sha256/.test(result.reason), 'a run that cannot name its case must not verify');
+
 repo = makeRepo('adapter-exit');
 const failingAdapter = path.join(repo, 'scripts', 'verify', 'fixture.js');
 write(failingAdapter, adapterSource({ mode: 'exit' }).replace("process.exit(0);", "process.exit(2);"));
@@ -198,4 +209,4 @@ mcpCapture = verify.captureRefs([{ id: 'mcp-tamper', verifier: 'fixture-doris' }
 must(mcpCapture.status === 'unverifiable' && /config digest mismatch/.test(JSON.stringify(mcpCapture.refs)), 'MCP config drift must be unverifiable');
 
 
-console.log('verification tests passed: capture, verified, runner-change=mismatch, unbound-runner=unverifiable, version-bump=verified, missing-verifier=unverifiable, no-refs=unverifiable, missing-hash=unverifiable, adapter-tamper=mismatch, record-mismatch=mismatch, adapter-exit=unverifiable, pinned-assertion=tested');
+console.log('verification tests passed: capture, verified, case-change=mismatch, unbound-case=unverifiable, runner-change=mismatch, unbound-runner=unverifiable, version-bump=verified, missing-verifier=unverifiable, no-refs=unverifiable, missing-hash=unverifiable, adapter-tamper=mismatch, record-mismatch=mismatch, adapter-exit=unverifiable, pinned-assertion=tested');
