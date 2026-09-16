@@ -1,0 +1,13 @@
+{
+  "artifact": "examples/anchors/pypi-six-1.16.0.tar.gz",
+  "publisher": "PyPI",
+  "url": "https://files.pythonhosted.org/packages/71/39/171f1c67cd00715f190ba0b100d606d440a28c93c7714febeca8b79af85e/six-1.16.0.tar.gz",
+  "canonical": "https://pypi.org/pypi/six/1.16.0/json",
+  "published_field": "urls[].digests.sha256",
+  "algorithm": "sha256",
+  "encoding": "hex",
+  "published_digest": "1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
+  "our_sha256": "1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
+  "fetched_via": "anaconda python -m pip download six==1.16.0 --no-deps --no-binary :all:",
+  "fetched_at": "2026-09-16"
+}
