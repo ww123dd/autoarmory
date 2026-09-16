@@ -45,6 +45,16 @@ Two different records have different authority:
 
 An outcome may reference an `execution_id`; when it does, AutoArmory checks that the execution trace belongs to the same routing decision and selected capability. A self-reported `verified: true` boolean is not an independent trust root.
 
+## Approval boundary
+
+Promotion uses `pending_approval` as the single human interaction point:
+
+```text
+candidate -> pending_approval -> gated
+```
+
+The Agent prepares the candidate, case/mutation evidence, gate proof, rollback and verification commands. The user approves the transition; the Agent executes it. An approval record is authorization evidence only and never replaces gate proof.
+
 ## Router boundary
 
 AutoArmory does not add a multi-skill router by default.

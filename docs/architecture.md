@@ -51,7 +51,7 @@ Observation accepts files, directories, stdin, article text and OTel GenAI spans
 
 ## State machine
 
-Candidate state transitions are append-only records in `.selfforge/transitions.jsonl`: `candidate -> gated -> shadow -> canary -> promoted`. `rejected` may terminate a pre-promotion path with a reason, and `retired` closes a promoted candidate. Gate proof is required before `gated`/`shadow`; structured outcome evidence is required before `canary`/`promoted`.
+Candidate state transitions are append-only records in `.selfforge/transitions.jsonl`: `candidate -> pending_approval -> gated -> shadow -> canary -> promoted`. `rejected` may terminate a pre-promotion path with a reason, and `retired` closes a promoted candidate. Gate proof is required before `gated`/`shadow`; user approval is required to leave `pending_approval` for `gated`; structured outcome evidence is required before `canary`/`promoted`.
 
 ## Decision evidence
 

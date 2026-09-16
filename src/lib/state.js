@@ -1,7 +1,8 @@
 'use strict';
 
 const ALLOWED = {
-  candidate: ['gated', 'rejected'],
+  candidate: ['pending_approval', 'rejected'],
+  pending_approval: ['gated', 'rejected'],
   gated: ['shadow', 'rejected'],
   shadow: ['canary', 'rejected'],
   canary: ['promoted', 'rejected'],
@@ -21,6 +22,20 @@ function validate(from, to) {
   return { ok: false, errors: ['invalid transition: ' + from + ' -> ' + to] };
 }
 
+function isApprovalPass(approval, candidateId, scope) {
+  return !!approval &&
+    approval.schema_version === 'selfforge/approval/v1' &&
+    approval.candidate_id === candidateId &&
+    approval.status === 'approved' &&
+    approval.requested_by === 'agent' &&
+    typeof approval.approved_by === 'string' && approval.approved_by.trim() !== '' &&
+    typeof approval.approved_at === 'string' && approval.approved_at.trim() !== '' &&
+    approval.scope === scope;
+}
+
+function requiresApproval(to) {
+  return to === 'gated';
+}
 function requiresGate(to) {
   return to === 'gated' || to === 'shadow';
 }
@@ -33,4 +48,4 @@ function requiresReason(to) {
   return to === 'rejected';
 }
 
-module.exports = { ALLOWED, currentState, validate, requiresGate, requiresEvidence, requiresReason };
+module.exports = { ALLOWED, currentState, validate, isApprovalPass, requiresGate, requiresApproval, requiresEvidence, requiresReason };
