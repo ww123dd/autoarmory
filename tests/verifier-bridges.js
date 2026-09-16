@@ -24,11 +24,27 @@ const MAX_BRIDGE_LINES = 60;
 
 function must(condition, message) { if (!condition) throw new Error(message); }
 
-const dirs = fs.readdirSync(ADAPTERS).filter(function (name) {
+const onDisk = fs.readdirSync(ADAPTERS).filter(function (name) {
   return fs.statSync(path.join(ADAPTERS, name)).isDirectory();
 }).sort();
 
-must(dirs.length >= MIN_SOURCES, 'expected at least ' + MIN_SOURCES + ' heterogeneous fact sources, found ' + dirs.length);
+// Only committed bridges are policed. An untracked local experiment in the same
+// checkout must not break the suite; it is reported as skipped instead.
+function committedBridgeDirs() {
+  const listed = spawnSync('git', ['ls-files', 'examples/adapters'], { cwd: ROOT, encoding: 'utf8', windowsHide: true });
+  if (listed.status !== 0) return null;
+  const dirs = new Set();
+  for (const line of String(listed.stdout || '').split(/\r?\n/)) {
+    const match = line.match(/^examples\/adapters\/([^/]+)\/(.+)$/);
+    if (match) dirs.add(match[1]);
+  }
+  return dirs.size ? dirs : null;
+}
+const committed = committedBridgeDirs();
+const dirs = committed ? onDisk.filter(function (name) { return committed.has(name); }) : onDisk;
+const skipped = onDisk.filter(function (name) { return dirs.indexOf(name) === -1; });
+
+must(dirs.length >= MIN_SOURCES, 'expected at least ' + MIN_SOURCES + ' committed heterogeneous fact sources, found ' + dirs.length);
 
 const rows = [];
 for (const dir of dirs) {
@@ -88,4 +104,5 @@ if (fs.existsSync(lockPath)) {
   profile = lock.verifiers.length + ' verifiers pinned and anchored, ' + pinnedFiles.size + ' pinned files byte-identical to their committed blobs';
 }
 
-console.log('verifier bridge tests passed: ' + dirs.length + ' heterogeneous fact sources, local profile ' + profile + '\n' + rows.join('\n'));
+const skippedNote = skipped.length ? '\nuntracked local adapters skipped: ' + skipped.join(', ') : '';
+console.log('verifier bridge tests passed: ' + dirs.length + ' committed heterogeneous fact sources, local profile ' + profile + skippedNote + '\n' + rows.join('\n'));
