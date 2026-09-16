@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1
+
+- Inventory corrected per review: the scan reports facts only (path, sha256, existence, registered ids) and lists `judgment_required` (trigger_curation, evidence_refs, task_types) instead of filling what it cannot judge; `registerable` from a scan is now 0 by construction.
+- The `≥N` acceptance is replaced by an external falsifier: two scans must agree, the scan must cover exactly the SKILL.md files that exist, every recorded hash must equal the file on disk, and changing one byte must change the hash.
+- Brought forward from 2.0: the acceptance now also checks that generated reports carry no self-reported fields (`verified_by` / `self_reported` / "independent") and that the shipped surface contains no machine absolute paths (excluding the vendored `packages/skillcanary`).
+
 ## 1.4.0
 
 Gap-first inventory: the scan measures what the operator actually has, and reports what is missing instead of dressing it up.

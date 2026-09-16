@@ -78,7 +78,7 @@
 
 ## 1.4.0
 
-- [x] gap-first inventory: `scripts/inventory-scan.js` scans skills, MCP servers and the verifier profile read-only and reports `registerable` vs `needs_attention` with explicit gaps (this machine: 50 candidates, 9 registerable, 41 gaps - `no_evidence` 41, `no_task_types` 50, `no_trigger` 3). The scan proposes; registration stays a separate, approved step
+- [x] gap-first inventory: `scripts/inventory-scan.js` scans skills, MCP servers and the verifier profile read-only. It reports **facts only** (path, sha256, existence, registered ids) and lists `judgment_required` (trigger_curation, evidence_refs, task_types) instead of filling what it cannot judge, so a scan can never produce a registerable candidate. Falsifier (external): two scans agree, the scan covers exactly the SKILL.md files present, every recorded hash equals the file on disk, and changing one byte changes the hash. This machine: 50 candidates, 0 registerable, 50 needing judgment
 
 ## 1.5.0 (planned)
 
