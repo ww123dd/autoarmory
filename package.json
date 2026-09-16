@@ -24,6 +24,7 @@
     "!packages/skillcanary/docs/reading",
     "scripts/verify",
     "examples/adapters",
+    "examples/anchors",
     "examples/profiles"
   ],
   "scripts": {
