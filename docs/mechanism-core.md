@@ -62,4 +62,4 @@ unverified | verified | expired | bypassed | closed
 - did not introduce a regression;
 - records a non-empty counterexample.
 
-The first slice does not execute external tools as part of the control plane. It re-runs only registered, read-only verifier adapters whose digest is pinned in the trust root.
+The first slice does not execute external tools as part of the verifier core. It re-runs only registered, read-only verifier adapters whose digest is pinned in the trust root.

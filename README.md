@@ -1,29 +1,27 @@
 # AutoArmory
 
-**The cross-vendor capability control plane for AI agents.**
+A local capability manager for one operator. It turns "my agent said it fixed this" into "the database says it is fixed."
 
-Every module is a weapon. Every promotion is earned by evidence.
-
-AutoArmory decides which capabilities should be used, combined, gated, degraded, replaced or retired across runners, evaluators, scanners, MCP gateways, registries, memory layers and policy engines.
+It helps one operator choose, verify, replace and retire the modules their agent actually uses. The operator is the consumer and approver; the Agent performs the work. No universal orchestration or platform authorization is required.
 
 ```bash
 npx autoarmory demo
 npx autoarmory bench
 ```
 
-Why this must exist: AutoArmory maximizes **policy-compliant execution**, not unsafe completion at any cost. It executes when the module is allowed, refuses when it is unsafe or unsupported, records the outcome, and retires what keeps failing. See [Why AutoArmory](docs/why.md).
+See [Why AutoArmory](docs/why.md).
 
 ## Capability Manager
 
-**Capability Manager** is AutoArmory's decision engine. It treats every runner, evaluator, scanner, MCP gateway, registry, memory layer, provenance adapter and policy module as a capability asset.
+**Capability Manager** is AutoArmory's local decision layer. It records the runner, evaluator, scanner, MCP gateway, registry, memory layer, provenance adapter or policy module used by one operator.
 
-Each capability is a weapon. Each routing decision is a loadout. Each verified outcome is a battle report.
+Each capability has provenance. Each decision is recorded. Each verified outcome can change capability health or lifecycle.
 
 ```text
 capability -> constraints -> route -> compose -> outcome -> update -> degrade/replace/retire
 ```
 
-Capability Manager is implemented inside AutoArmory as an internal subsystem: registry, health, routing, portfolio, outcome learning, drift detection, conformance, retirement, guarded calibration and off-policy evaluation. Its design is defined in [Capability Manager design](docs/superpowers/specs/2026-09-15-capability-manager-design.md).
+Capability Manager is implemented inside AutoArmory as an internal subsystem: registry, health, routing, portfolio, outcome learning, drift detection, conformance, retirement, guarded calibration and off-policy evaluation. The runtime shape is documented in [Architecture](docs/architecture.md); the external-fact side is documented in [Verifier Expansion](docs/verifier-expansion.md).
 
 ## Why separate
 
@@ -77,14 +75,9 @@ autoarmory propose .selfforge/incidents.jsonl --output .selfforge/candidates.jso
 
 The taxonomy and action mapping are documented in [Failure Modes](docs/failure-modes.md). External evaluation standards are mapped in [Agent Evaluation Standards](docs/standards/agent-evaluation-standards.md).
 
-## API, SDK and Team CLI
+## Operator interface
 
-```bash
-autoarmory serve --port 8787
-AUTOARMORY_URL=http://127.0.0.1:8787 node integrations/team-cli/route.js request.json
-```
-
-The HTTP API exposes `GET /health`, `GET /capabilities`, `POST /route`, `POST /admit`, `POST /outcome`, `GET /scenario/:id` and `GET /playground`. The SDK is at `src/sdk/client.js`; external adapters follow `docs/adapters.md`.
+The primary interface is the local CLI. HTTP, SDK and Team CLI files remain available as optional internals for future consumers, but they are not the product surface and are not required for capability management. External adapters follow `docs/adapters.md`.
 
 ## Self-evaluation
 
@@ -142,7 +135,7 @@ npm run test:conformance
 
 ## Unified product
 
-This repository is the AutoArmory monorepo. `packages/skillcanary` contains the stable SkillCanary control plane; the root runtime contains the evolution engine and Capability Manager. `autoarmory canary ...` dispatches to the vendored SkillCanary CLI while the top-level commands expose AutoArmory capabilities.
+This repository is the AutoArmory monorepo. `packages/skillcanary` contains the stable SkillCanary evidence and gate layer; the root runtime contains the local capability manager. `autoarmory canary ...` dispatches to the vendored SkillCanary CLI while the top-level commands expose local operator workflows.
 
 ## Legacy compatibility
 
