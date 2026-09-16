@@ -18,7 +18,15 @@ const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const ADAPTERS = path.join(ROOT, 'examples', 'adapters');
-const HEAVY_ALLOWED = new Set(['doris-readonly']);
+// Two bridges may exceed the thin-bridge budget, and each has to say why:
+//   doris-readonly   - the MCP stdio transport itself;
+//   local-transcript - a multi-kind local observability registry (a new kind is a
+//                      KINDS entry, not a new adapter), so it is a registry rather
+//                      than a one-off instrument.
+const HEAVY_ALLOWED = new Map([
+  ['doris-readonly', 'MCP stdio transport'],
+  ['local-transcript', 'multi-kind local observability registry']
+]);
 const MIN_SOURCES = 8;
 const MAX_BRIDGE_LINES = 60;
 
@@ -52,7 +60,8 @@ for (const dir of dirs) {
   must(fs.existsSync(bridge), dir + ': bridge.js is missing');
   const source = fs.readFileSync(bridge, 'utf8');
   const lines = source.split(/\r?\n/).filter(function (line) { return line.trim() !== ''; }).length;
-  if (!HEAVY_ALLOWED.has(dir)) {
+  const heavyReason = HEAVY_ALLOWED.get(dir) || null;
+  if (!heavyReason) {
     must(lines <= MAX_BRIDGE_LINES, dir + ': bridge is ' + lines + ' lines; a fact source must stay a thin bridge (<= ' + MAX_BRIDGE_LINES + ')');
   }
   must(/readFileSync\(0|process\.stdin/.test(source), dir + ': bridge must read its payload from stdin');
@@ -64,7 +73,7 @@ for (const dir of dirs) {
   must(parsed && typeof parsed.ok === 'boolean', dir + ': bridge must emit { ok: boolean }');
   if (parsed.ok === true) must(parsed.observed && typeof parsed.observed === 'object', dir + ': ok:true evidence must carry an observed object');
   else must(typeof parsed.reason === 'string' && parsed.reason.length > 0, dir + ': ok:false must explain why it declined');
-  rows.push(dir + ' bridge_lines=' + lines + ' empty_input=' + (parsed.ok ? 'observed' : 'declined'));
+  rows.push(dir + ' bridge_lines=' + lines + (heavyReason ? ' [heavy: ' + heavyReason + ']' : '') + ' empty_input=' + (parsed.ok ? 'observed' : 'declined'));
 }
 
 // A local profile is optional, but when it exists it must be exactly pinned: the
