@@ -44,6 +44,7 @@ autoarmory transition .selfforge/candidate.json --to pending_approval --state .s
 node scripts/approve.js --candidate <id> --quote "<operator words>"   # the one operator decision; the record is written for you
 autoarmory transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --approval .selfforge/approvals/<id>.json --state .selfforge
 node scripts/mechanism-declare.js --descriptor mechanism-descriptor.json
+node scripts/inventory-scan.js                 # read-only scan of skills, MCP servers and verifiers (proposes, never registers)
 node scripts/mechanism-lifecycle.js --mechanism <id> --promote      # evidence-backed promotion
 node scripts/mechanism-lifecycle.js --mechanism <id> --rollback-if-stale   # retire when the evidence is gone
 autoarmory transition .selfforge/candidate.json --to shadow --gate .selfforge/gate.json --state .selfforge

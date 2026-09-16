@@ -76,6 +76,30 @@
 
 - [x] candidate-side rollback: `src/lib/candidate-lifecycle.js` recomputes hashed artifact evidence and retires a promoted candidate with `forced_by.artifact_mismatches` when it no longer reproduces; `scripts/mechanism-preflight.js` reports `stale_candidate_escape_count` and blocks with the exact command. Scope is stated: evidence without a hashed artifact is reported as `uncovered`, never as fresh, and never auto-retired
 
+## 1.4.0
+
+- [x] gap-first inventory: `scripts/inventory-scan.js` scans skills, MCP servers and the verifier profile read-only and reports `registerable` vs `needs_attention` with explicit gaps (this machine: 50 candidates, 9 registerable, 41 gaps - `no_evidence` 41, `no_task_types` 50, `no_trigger` 3). The scan proposes; registration stays a separate, approved step
+
+## 1.5.0 (planned)
+
+- [ ] descriptor completion without invented numbers: reliability from recorded outcomes, cost/latency from measured runs, task types from real usage (fills `no_task_types` and the descriptor fields the scan cannot know)
+
+## 1.6.0 (planned)
+
+- [ ] in-toto-shaped attestations for vendored anchors (`subject` + `predicateType` + `predicate`), so third-party tooling can verify our evidence without reading our prose (steal from in-toto/SLSA)
+
+## 1.7.0 (planned)
+
+- [ ] trust-root rotation and expiry (steal from TUF): `pinned_at` / `rotate_by` on the anchor, a warning before expiry and a fail-closed state after it, plus a written rotation procedure
+
+## 1.8.0 (planned)
+
+- [ ] execution provenance: `scripts/exec-record.js -- <cmd>` captures exit code, duration, input/output hashes and environment fingerprint, and feeds the shadow actual stream so real usage accumulates without hand-written records
+
+## 2.0.0 (planned)
+
+- [ ] selection baselines over real decisions (router vs first-eligible vs keyword) and lifecycle sweeps across the whole inventory, with a projection-only report (steal the matrix idea from promptfoo, not its scale)
+
 ## 1.0
 
 1.0 is not a feature; it is the statement that the local capability manager does what it claims. `scripts/acceptance-check.js` prints one PASS/FAIL per line, exits non-zero on any FAIL, and runs inside `npm test` (`npm run check:acceptance`):

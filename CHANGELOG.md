@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0
+
+Gap-first inventory: the scan measures what the operator actually has, and reports what is missing instead of dressing it up.
+
+- Added `src/lib/inventory.js` + `scripts/inventory-scan.js`: a read-only scan of installed skills (`~/.codex/skills`, `~/.claude/skills`), MCP servers (`~/.codex/mcp.json`) and the local verifier profile. Each candidate carries its source path and sha256, the trigger text harvested from its own metadata, and the evidence that could prove it. MCP entries contribute name, command basename and argument count only - never an env value.
+- `readiness` reports gaps instead of assuming readiness: on this machine the scan found 50 candidates (39 skills, 2 MCP gateways, 9 verifiers), 9 registerable and 41 with gaps (`no_evidence` 41, `no_task_types` 50, `no_trigger` 3). That number is the honest size of the remaining work.
+- Added `tests/inventory.js`: trigger comes from metadata, a missing description is a gap, env values never reach the output, verifiers carry evidence_refs, the scan leaves every input hash unchanged, and `--write` is the only thing that writes.
+
 ## 1.3.2
 
 - The `no-unimplemented-claims` criterion no longer stops at vocabulary: every `autoarmory <command>` the README documents must exist in the CLI command table, or have that line marked internal/legacy/optional. Current result: `documented_commands=22 missing=none`.

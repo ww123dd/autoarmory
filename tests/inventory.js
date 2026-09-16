@@ -1,0 +1,83 @@
+'use strict';
+
+// Acceptance test for 1.4.0: the inventory scan is gap-first, read-only and secret-safe.
+//
+//   1. a skill with frontmatter yields a candidate carrying its trigger text and a source hash
+//   2. a skill without a description is reported as a gap, not as ready
+//   3. an MCP server contributes its name and shape only - never an env value
+//   4. profile verifiers become evaluator candidates with evidence_refs
+//   5. the scan does not modify anything it reads (hashes unchanged)
+//   6. --write writes the candidate file; without it nothing is written
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
+const { spawnSync } = require('child_process');
+
+const ROOT = path.resolve(__dirname, '..');
+const SCAN = path.join(ROOT, 'scripts', 'inventory-scan.js');
+const work = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-inventory-'));
+const home = path.join(work, 'home');
+const repo = path.join(work, 'repo');
+const state = path.join(work, 'state');
+const SECRET = 'sk-live-super-secret-value';
+
+function must(condition, message) { if (!condition) throw new Error(message); }
+function write(file, value) { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, typeof value === 'string' ? value : JSON.stringify(value, null, 2), 'utf8'); }
+function sha(file) { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'); }
+
+write(path.join(home, '.codex', 'skills', 'alpha', 'SKILL.md'), ['---', 'name: alpha-skill', 'description: Use when the task needs alpha handling; do not use for beta work.', '---', '', '# Alpha', ''].join('\n'));
+write(path.join(home, '.codex', 'skills', 'beta', 'SKILL.md'), ['---', 'name: beta-skill', '---', '', '# Beta without a description', ''].join('\n'));
+write(path.join(home, '.codex', 'mcp.json'), { mcpServers: { doris: { command: 'node', args: ['/opt/mcp/index.js'], env: { MYSQL_PASSWORD: SECRET } } } });
+write(path.join(repo, 'verifiers.lock.json'), { schema_version: 'autoarmory/verifiers-lock/v1', verifiers: [{ id: 'file-sha256-license', kind: 'file-sha256', readonly: true, statement: 'the file must match its digest', adapter: 'scripts/verify/state-query.js', bridge: { adapter: 'examples/adapters/file-sha256/bridge.js' } }] });
+
+const watched = [
+  path.join(home, '.codex', 'skills', 'alpha', 'SKILL.md'),
+  path.join(home, '.codex', 'skills', 'beta', 'SKILL.md'),
+  path.join(home, '.codex', 'mcp.json'),
+  path.join(repo, 'verifiers.lock.json')
+];
+const before = watched.map(sha);
+
+function run(args) {
+  const result = spawnSync(process.execPath, [SCAN].concat(args), { cwd: ROOT, encoding: 'utf8', windowsHide: true });
+  return { code: result.status, out: result.stdout || '', err: result.stderr || '' };
+}
+
+// 6a: no --write means no file
+let result = run(['--home', home, '--repo', repo, '--state', state, '--json']);
+must(result.code === 0, 'scan must succeed: ' + result.out + result.err);
+const report = JSON.parse(result.out);
+must(!fs.existsSync(path.join(state, 'inventory-candidates.jsonl')), 'a scan without --write must not write a candidate file');
+
+// 1
+const alpha = report.candidates.filter(function (item) { return item.id === 'skill:alpha-skill'; })[0];
+must(alpha, 'the alpha skill must be discovered');
+must(/alpha handling/.test(alpha.trigger.when_to_use) && alpha.trigger.source === 'frontmatter.description', 'the trigger text must come from the skill own description');
+must(alpha.source.sha256 === sha(watched[0]) && alpha.source.path === watched[0], 'the candidate must carry the source path and hash');
+must(alpha.readiness.registerable === false && alpha.readiness.gaps.indexOf('no_evidence') !== -1, 'a skill without evidence must be a gap, not ready');
+
+// 2
+const beta = report.candidates.filter(function (item) { return item.id === 'skill:beta-skill'; })[0];
+must(beta && beta.readiness.gaps.indexOf('no_trigger') !== -1, 'a skill without a description must be reported as no_trigger');
+
+// 3
+must(result.out.indexOf(SECRET) === -1 && result.err.indexOf(SECRET) === -1, 'an env value must never appear in the scan output');
+const mcp = report.candidates.filter(function (item) { return item.id === 'mcp:doris'; })[0];
+must(mcp && mcp.kind === 'mcp-gateway' && mcp.source.sha256 === sha(watched[2]), 'the MCP candidate must carry the config hash');
+must(JSON.stringify(mcp).indexOf(SECRET) === -1, 'the MCP candidate must not embed the secret');
+
+// 4
+const verifier = report.candidates.filter(function (item) { return item.id === 'verifier:file-sha256-license'; })[0];
+must(verifier && verifier.kind === 'evaluator' && verifier.evidence_refs[0] === 'file-sha256-license', 'a profile verifier must become an evaluator candidate with evidence_refs');
+must(verifier.readiness.registerable === true, 'a verifier with a statement and evidence is registerable');
+
+// 5
+must(watched.map(sha).join(',') === before.join(','), 'the scan must not modify anything it read');
+
+// 6b
+result = run(['--home', home, '--repo', repo, '--state', state, '--write', '--json']);
+must(result.code === 0 && fs.existsSync(path.join(state, 'inventory-candidates.jsonl')), '--write must write the candidate file');
+
+console.log('inventory tests passed: trigger from metadata, missing description=gap, env values never emitted, verifiers carry evidence, inputs untouched, --write writes');
