@@ -32,6 +32,7 @@ function byClosedAt(a, b) { return Date.parse(a.closed_at || 0) - Date.parse(b.c
 
 const runs = readJsonl(path.join(state, 'mechanism-runs.jsonl'));
 const closures = readJsonl(path.join(state, 'closures.jsonl'));
+const cases = readJsonl(path.join(state, 'cases.jsonl'));
 const blockers = [];
 let staleVerdictEscapes = 0;
 for (const record of records) {
@@ -47,6 +48,13 @@ for (const record of records) {
   const closure = closures.filter(function (item) { return item.mechanism_id === record.id; }).sort(byClosedAt).pop() || null;
   const supporting = status.status === 'closed' && closure ? own.filter(function (item) { return item.id === closure.run_id; })[0] || null : latest;
   const freshness = supporting ? verify.runnerFreshness(supporting, { repo: repo, verifier: record.verifier_id }) : { ok: false, reason: 'no supporting run' };
+  const supportingCase = supporting ? cases.filter(function (item) { return item.id === supporting.case_id; })[0] || null : null;
+  const caseState = supporting ? verify.caseFreshness(supporting, { case_record: supportingCase }) : { ok: false, reason: 'no supporting run' };
+  if (caseState && caseState.status === 'unchecked') caseState.ok = true;
+  if (!caseState.ok) {
+    staleVerdictEscapes += 1;
+    blockers.push(record.id + ': ' + status.status + ' but the supporting case is not fresh - ' + caseState.reason);
+  }
   if (!freshness.ok) {
     staleVerdictEscapes += 1;
     blockers.push(record.id + ': ' + status.status + ' but the supporting run is not fresh - ' + freshness.reason);

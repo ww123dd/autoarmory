@@ -164,5 +164,18 @@ escapeCheck(fixture, 'contract-bump');
 must(verify.runnerFreshness(runOf(fixture, contracted.id), { repo: fixture.repo }).ok === false, 'contract change must invalidate the recorded runner');
 must(!mechanism.closeCase(fixture.state, 'case-fixture', contracted.id, { repo: fixture.repo, trials: 3 }).ok, 'close must be refused after a contract change');
 
+// 6. case change: the verdict describes a case record that no longer exists.
+fixture = makeFixture('case-change');
+const caseBound = recordRun(fixture, 'run-case-change');
+must(mechanism.closeCase(fixture.state, 'case-fixture', caseBound.id, { repo: fixture.repo, trials: 3 }).ok, 'close before the case change');
+const casesFile = path.join(fixture.state, 'cases.jsonl');
+fs.writeFileSync(casesFile, readJsonl(casesFile).map(function (item) { return JSON.stringify(Object.assign({}, item, { expected_transition: 'COUNT->1' })); }).join(String.fromCharCode(10)) + String.fromCharCode(10), 'utf8');
+const caseStatus = escapeCheck(fixture, 'case-change');
+must(caseStatus.status !== 'closed', 'a rewritten case must not stay closed');
+must(!mechanism.closeCase(fixture.state, 'case-fixture', caseBound.id, { repo: fixture.repo, trials: 3 }).ok, 'close must be refused after the case changed');
+const caseRebound = recordRun(fixture, 'run-case-rebound');
+must(mechanism.closeCase(fixture.state, 'case-fixture', caseRebound.id, { repo: fixture.repo, trials: 3 }).ok, 'a run bound to the current case must close again');
+must(statusOf(fixture).status === 'closed', 're-bound case must be closed');
+
 must(escapes === 0, 'stale_verdict_escape_count must be 0, got ' + escapes);
-console.log('stale verdict tests passed: stale_verdict_escape_count=' + escapes + ' (baseline close, adapter tamper, runner change, version bump, contract bump, re-bind close)');
+console.log('stale verdict tests passed: stale_verdict_escape_count=' + escapes + ' (baseline close, adapter tamper, runner change, version bump, contract bump, case change, re-bind close)');

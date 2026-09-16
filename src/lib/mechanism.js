@@ -81,6 +81,7 @@ function recordMechanismRun(stateDir, value, options) {
   const mechanisms = read(state.mechanisms);
   const cases = read(state.cases);
   const mechanism = mechanisms.find(function (item) { return item.id === input.mechanism_id; }) || null;
+  const caseRecord = cases.find(function (item) { return item.id === input.case_id; }) || null;
   const errors = requireFields(input, ['schema_version', 'id', 'mechanism_id', 'case_id', 'actor', 'evidence_refs', 'counterexample', 'environment_fingerprint', 'started_at', 'finished_at'], 'mechanism_run');
   if (input.schema_version !== 'autoarmory/mechanism-run/v1') errors.push('schema_version must be autoarmory/mechanism-run/v1');
   if (!mechanism) errors.push('mechanism not found: ' + input.mechanism_id);
@@ -93,6 +94,7 @@ function recordMechanismRun(stateDir, value, options) {
   // Bind the record to the runner the active profile declares. Explicit values
   // supplied by the caller are kept, so a forged identity is judged, not patched.
   const candidate = Object.assign({}, input);
+  if (caseRecord && (candidate.case_sha256 === undefined || candidate.case_sha256 === null)) candidate.case_sha256 = verify.sha256Value(caseRecord);
   if (mechanism) {
     const runner = verify.runnerFor(opts.repo || stateDir, mechanism.verifier_id);
     if (runner) {
@@ -105,6 +107,7 @@ function recordMechanismRun(stateDir, value, options) {
   const verification = verify.verifyRecord(candidate, {
     repo: opts.repo || stateDir,
     verifier: mechanism ? mechanism.verifier_id : null,
+    case_record: caseRecord,
     case_id: candidate.case_id,
     mechanism_id: candidate.mechanism_id,
     run_id: candidate.id,
@@ -154,6 +157,7 @@ function closeCase(stateDir, caseId, runId, options) {
   const verification = verify.verifyRecord(run, {
     repo: opts.repo || stateDir,
     verifier: mechanism.verifier_id,
+    case_record: item,
     case_id: caseId,
     mechanism_id: run.mechanism_id,
     run_id: runId,
@@ -187,6 +191,7 @@ function status(stateDir, mechanismId, options) {
   const state = files(stateDir);
   const mechanism = read(state.mechanisms).find(function (item) { return item.id === mechanismId; });
   if (!mechanism) return { ok: false, errors: ['mechanism not found: ' + mechanismId] };
+  const cases = read(state.cases);
   const runs = read(state.runs).filter(function (item) { return item.mechanism_id === mechanismId; });
   const closures = read(state.closures).filter(function (item) { return item.mechanism_id === mechanismId; });
   const latest = runs.slice().sort(function (a, b) { return Date.parse(a.finished_at || a.recorded_at) - Date.parse(b.finished_at || b.recorded_at); }).pop();
@@ -195,9 +200,11 @@ function status(stateDir, mechanismId, options) {
   if (latest && !usesVerifier(latest, mechanism.verifier_id)) {
     reason = 'latest run does not use mechanism verifier: ' + mechanism.verifier_id;
   } else if (latest) {
+    const latestCase = cases.find(function (item) { return item.id === latest.case_id; }) || null;
     const checkResult = verify.verifyRecord(latest, {
       repo: opts.repo || stateDir,
       verifier: mechanism.verifier_id,
+      case_record: latestCase,
       case_id: latest.case_id,
       mechanism_id: mechanismId,
       run_id: latest.id,
@@ -213,6 +220,7 @@ function status(stateDir, mechanismId, options) {
     const closureCheck = closureRun ? verify.verifyRecord(closureRun, {
       repo: opts.repo || stateDir,
       verifier: mechanism.verifier_id,
+      case_record: cases.find(function (item) { return item.id === closureRun.case_id; }) || null,
       case_id: closureRun.case_id,
       mechanism_id: mechanismId,
       run_id: closureRun.id,

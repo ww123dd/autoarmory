@@ -105,6 +105,23 @@ function runnerFreshness(value, options) {
   return Object.assign(base, { ok: true, status: 'current', reason: 'runner identity matches the active profile' });
 }
 
+// Case freshness: a verdict describes one case record. When the caller supplies
+// the current case record, the recorded case_sha256 has to describe the same
+// bytes, so rewriting a case invalidates every verdict that closed it.
+function caseFreshness(record, options) {
+  const opts = options || {};
+  if (!opts.case_record) return { ok: true, status: 'unchecked', reason: 'no case record supplied' };
+  const expected = sha256Value(opts.case_record);
+  const recorded = (record && record.case_sha256) || null;
+  if (!HASH.test(String(recorded))) {
+    return { ok: false, status: 'unbound', expected: expected, recorded: recorded, reason: 'record carries no case_sha256; a verdict that cannot name the case it closed is not fresh' };
+  }
+  if (recorded !== expected) {
+    return { ok: false, status: 'drifted', expected: expected, recorded: recorded, reason: 'case record changed: recorded ' + String(recorded).slice(0, 12) + ' vs current ' + expected.slice(0, 12) };
+  }
+  return { ok: true, status: 'current', expected: expected, recorded: recorded, reason: 'case record matches' };
+}
+
 function runnerFor(repoRoot, verifierId) {
   const repo = resolveRepo(repoRoot || process.cwd());
   const lock = loadLock(repo);
@@ -391,6 +408,13 @@ function verifyRecord(record, options) {
       version_drift: freshness.version_drift === true
     });
   }
+  const caseState = caseFreshness(record, opts);
+  if (!caseState.ok) {
+    const caseStale = caseState.status === 'drifted' ? 'mismatch' : 'unverifiable';
+    return report(freshness.repo, caseStale, 'case freshness: ' + caseState.reason, [check(caseStale, 'case_freshness', caseState.reason)], [], {
+      case_sha256: { expected: caseState.expected, recorded: caseState.recorded }
+    });
+  }
   const result = verifyRefs(refs, opts);
   if (result.status !== 'verified') return result;
 
@@ -416,7 +440,7 @@ function verifyRecord(record, options) {
       result: result.result
     });
   }
-  return Object.assign({}, result, { runner: freshness.expected, version_drift: freshness.version_drift === true });
+  return Object.assign({}, result, { runner: freshness.expected, version_drift: freshness.version_drift === true, case_sha256: caseState.expected || null });
 }
 
 function captureRefs(refs, options) {
@@ -510,6 +534,7 @@ module.exports = {
   loadLock,
   runnerDescriptor,
   runnerFreshness,
+  caseFreshness,
   runnerFor,
   verifyRefs,
   verifyRecord,
