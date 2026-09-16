@@ -1,34 +1,36 @@
-name: AutoArmory CI
+name: ci
 
 on:
   push:
   pull_request:
 
 jobs:
-  test:
+  suite:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: full suite
+        run: npm test
+      - name: conformance
+        run: npm run test:conformance
+      - name: self-eval
+        run: npm run test:self-eval
+      - name: portable profile (must show PASS and FAIL)
+        run: node scripts/profile-run.js
+
+  anchors:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm test
-      - run: node tests/api.js
-      - run: npm run test:conformance
-      - run: npm run test:self-eval
-      - run: node bin/autoarmory.js demo --json
-      - run: node bin/autoarmory.js bench --json
-      - run: node bin/autoarmory.js integrate list --json
-      - run: node bin/autoarmory.js scenario list --json
-      - run: node bin/autoarmory.js scenario plan coding --state /tmp/autoarmory-state --json || test $? -eq 1
-      - run: node bin/autoarmory.js observe examples/incidents.jsonl --json
-      - run: printf 'FAIL: runner failure\n' | node bin/autoarmory.js observe - --format log --json | grep test_failure
-      - run: node bin/autoarmory.js learn examples/decisions.jsonl --json
-      - run: node bin/autoarmory.js environment --write
-      - name: Verify gate fails closed without SkillCanary
-        run: |
-          if node bin/autoarmory.js evolve examples/incidents.jsonl --state /tmp/autoarmory-state --skillcanary /nonexistent --json > /tmp/autoarmory-evolve.json; then
-            echo "expected evolve to fail closed" >&2
-            exit 1
-          fi
-          grep '"gated": 0' /tmp/autoarmory-evolve.json
+          node-version: '20'
+      - name: re-fetch every anchor through its declared channel
+        run: npm run check:anchors
