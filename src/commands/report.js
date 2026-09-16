@@ -14,9 +14,10 @@ module.exports = function run(argv) {
   const capabilities = capability.readCapabilities(path.join(state, 'capabilities.jsonl'));
   const outcomes = readJsonl(path.join(state, 'capability-outcomes.jsonl'));
   const routing = readJsonl(path.join(state, 'routing-decisions.jsonl'));
+  const executions = readJsonl(path.join(state, 'execution-traces.jsonl'));
   const suggestions = readJsonl(path.join(state, 'replacement-suggestions.jsonl'));
   const frontier = capability.portfolio(capabilities).frontier;
-  const markdown = '# AutoArmory Report\n\n- Incidents: ' + incidents.length + '\n- Candidates: ' + candidates.length + '\n- Decisions: ' + decisions.length + '\n- Capabilities: ' + capabilities.length + '\n- Capability Outcomes: ' + outcomes.length + '\n- Routing Decisions: ' + routing.length + '\n- Replacement Suggestions: ' + suggestions.length + '\n- Recommendation: ' + (recommend(decisions) ? recommend(decisions).action : 'none') + '\n\n' + '## Portfolio\n\n' + (frontier.length ? frontier.map(function (item) { return '- ' + item.id + ': reliability=' + item.reliability.toFixed(3) + ', cost=' + item.cost + ', p95=' + item.latency_p95; }).join('\n') : '- none') + '\n\n' + '## Actions\n\n' + summarize(decisions).map(function (item) { return '- ' + item.action + ': n=' + item.count + ', mean=' + item.mean_reward; }).join('\n') + '\n';
+  const markdown = '# AutoArmory Report\n\n- Incidents: ' + incidents.length + '\n- Candidates: ' + candidates.length + '\n- Decisions: ' + decisions.length + '\n- Capabilities: ' + capabilities.length + '\n- Capability Outcomes: ' + outcomes.length + '\n- Routing Decisions: ' + routing.length + '\n- Execution Traces: ' + executions.length + '\n- Replacement Suggestions: ' + suggestions.length + '\n- Recommendation: ' + (recommend(decisions) ? recommend(decisions).action : 'none') + '\n\n' + '## Portfolio\n\n' + (frontier.length ? frontier.map(function (item) { return '- ' + item.id + ': reliability=' + item.reliability.toFixed(3) + ', cost=' + item.cost + ', p95=' + item.latency_p95; }).join('\n') : '- none') + '\n\n' + '## Actions\n\n' + summarize(decisions).map(function (item) { return '- ' + item.action + ': n=' + item.count + ', mean=' + item.mean_reward; }).join('\n') + '\n';
   if (args.output) writeText(path.resolve(args.output), markdown); else process.stdout.write(markdown);
   return 0;
 };

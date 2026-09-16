@@ -26,6 +26,11 @@ function writeJson(name, value) {
 
 const capabilityLib = require('../src/lib/capability');
 const calibrationLib = require('../src/lib/calibration');
+const executionTraceLib = require('../src/lib/execution-trace');
+const routingDecisionSchema = JSON.parse(fs.readFileSync(path.join(root, 'schemas', 'routing-decision.schema.json'), 'utf8'));
+for (const field of ['task_id', 'candidate_set', 'top_k', 'selection_margin', 'selection_confidence', 'confidence_method']) {
+  must(!!routingDecisionSchema.properties[field], 'routing decision schema properties must declare ' + field);
+}
 
 function route(file, seed) { const caps = capabilityLib.readCapabilities(path.join(state, 'capabilities.jsonl')); const request = JSON.parse(fs.readFileSync(file, 'utf8')); const result = capabilityLib.route(caps, request, seed === undefined ? {} : { seed: seed }); return { code: result.ok ? 0 : 1, out: JSON.stringify(result), err: result.ok ? '' : result.errors.join('\n') }; }
 function portfolio() { return { code: 0, out: JSON.stringify(capabilityLib.portfolio(capabilityLib.readCapabilities(path.join(state, 'capabilities.jsonl')))), err: '' }; }
@@ -82,11 +87,60 @@ register('scanner-net', { id: 'scanner.net', vendor: 'scanner', kind: 'scanner',
 register('runner-writer', { id: 'runner.writer', vendor: 'writer', kind: 'runner', cost: { unit: 'usd', estimate: 0.01 }, latency_ms: { p50: 700, p95: 1200 }, reliability: { alpha: 7, beta: 3 }, risk: 'medium', permissions: { read: true, write: true, network: false } });register('runner-restricted', { id: 'runner.restricted', vendor: 'restricted', kind: 'runner', cost: { unit: 'usd', estimate: 0.02 }, latency_ms: { p50: 800, p95: 1500 }, reliability: { alpha: 8, beta: 2 }, risk: 'low', trust_level: 'trusted', conformance_level: 'ci-gated' });
 
 const requestFile = writeJson('routing-request.json', {
-  schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'medium', data_sensitivity: 'internal', cost_budget: 0.02, latency_slo_ms: 2000, write_required: false, security_level: 'standard', context: {}
+  schema_version: 'autoarmory/routing-request/v1', task_type: 'run-agent-eval', risk: 'medium', data_sensitivity: 'internal', cost_budget: 0.02, latency_slo_ms: 2000, write_required: false, security_level: 'standard', task_id: 'route-task-test', context: {}
 });
 result = route(requestFile, 7);
 const routeOne = JSON.parse(result.out);
 must(result.code === 0 && routeOne.selected.length === 1, 'capability route selects a module');
+must(routeOne.task_id === 'route-task-test', 'routing decision records task_id');
+must(Array.isArray(routeOne.candidate_set) && routeOne.candidate_set.length >= 3, 'routing decision records the eligible candidate set');
+must(Array.isArray(routeOne.top_k) && routeOne.top_k.length === 3 && routeOne.top_k[0].id === routeOne.selected[0].id, 'routing decision records ranked top_k');
+must(typeof routeOne.selection_margin === 'number', 'routing decision records uncalibrated selection margin');
+must(routeOne.selection_confidence === null && routeOne.confidence_method === 'uncalibrated', 'selection confidence must not be fabricated');
+const linkDecision = {
+  schema_version: 'autoarmory/routing-decision/v1',
+  request_id: 'route-link',
+  task_id: 'task-link',
+  selected: [{ id: 'runner.restricted' }],
+  rejected: [],
+  fallback_chain: [],
+  reason: 'link fixture',
+  policy_version: 'autoarmory/policy/v1',
+  seed: 1,
+  evidence_refs: [],
+  candidate_set: ['runner.restricted'],
+  top_k: [{ id: 'runner.restricted' }],
+  selection_margin: null,
+  selection_confidence: null,
+  confidence_method: 'uncalibrated'
+};
+fs.writeFileSync(path.join(state, 'routing-decisions.jsonl'), JSON.stringify(linkDecision) + '\n', 'utf8');
+const linkedTrace = executionTraceLib.recordExecutionTrace(state, {
+  schema_version: 'autoarmory/execution-trace/v1',
+  id: 'exec-link',
+  decision_id: 'route-link',
+  task_id: 'task-link',
+  skill_id: 'runner.restricted',
+  plan: { steps: ['run'] },
+  steps_expected: [{ id: 'run', description: 'Run linked capability', required: true }],
+  steps_observed: [{ id: 'obs-run', expected_step_id: 'run', status: 'completed' }],
+  order_ok: true,
+  stop_conditions_ok: true,
+  environment_fingerprint: 'test-env',
+  isolation: { independent_process: true, temp_workspace: true, namespace: 'exec-link', dependency_versions: {}, evidence_refs: [] },
+  artifact_refs: [],
+  started_at: '2026-09-16T00:00:00.000Z',
+  finished_at: '2026-09-16T00:00:01.000Z'
+});
+must(linkedTrace.ok === true, 'linked execution trace fixture must record');
+
+const linkedOutcome = writeJson('outcome-linked.json', outcome({ decision_id: 'route-link', capability_id: 'runner.restricted', execution_id: 'exec-link' }));
+result = run(['capability', 'outcome', linkedOutcome, '--state', state, '--json']);
+must(result.code === 0 && JSON.parse(result.out).applied === true, 'linked outcome must update reliability');
+
+const unknownExecutionOutcome = writeJson('outcome-unknown-execution.json', outcome({ decision_id: 'route-link', capability_id: 'runner.restricted', execution_id: 'exec-missing' }));
+result = run(['capability', 'outcome', unknownExecutionOutcome, '--state', state, '--json']);
+must(result.code === 1 && /execution trace not found/i.test(result.out + result.err), 'unknown execution trace must be rejected');
 result = route(requestFile, 7);
 const routeTwo = JSON.parse(result.out);
 must(result.code === 0 && JSON.stringify(routeOne.selected) === JSON.stringify(routeTwo.selected) && JSON.stringify(routeOne.fallback_chain) === JSON.stringify(routeTwo.fallback_chain), 'capability route is deterministic for a seed');

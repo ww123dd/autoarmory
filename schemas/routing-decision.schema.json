@@ -11,13 +11,37 @@
     "reason",
     "policy_version",
     "seed",
-    "evidence_refs"
+    "evidence_refs",
+    "task_id",
+    "candidate_set",
+    "top_k",
+    "selection_margin",
+    "selection_confidence",
+    "confidence_method"
   ],
   "properties": {
     "schema_version": {
       "const": "autoarmory/routing-decision/v1"
     },
     "request_id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "candidate_set": {
+      "type": "array"
+    },
+    "top_k": {
+      "type": "array"
+    },
+    "selection_margin": {
+      "type": ["number", "null"]
+    },
+    "selection_confidence": {
+      "type": ["number", "null"]
+    },
+    "confidence_method": {
       "type": "string"
     },
     "selected": {

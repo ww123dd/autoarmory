@@ -24,6 +24,9 @@ capability -> constraints -> route -> compose -> outcome -> update -> degrade/re
 ```
 
 Capability Manager is implemented inside AutoArmory as an internal subsystem: registry, health, routing, portfolio, outcome learning, drift detection, conformance, retirement, guarded calibration and off-policy evaluation. Its design is defined in [Capability Manager design](docs/superpowers/specs/2026-09-15-capability-manager-design.md).
+## Evidence layers
+
+Selection, execution and outcome are separate evidence layers. A selected skill is not an executed skill, and an executed skill is not a verified outcome. See [Selection, Execution and Outcome Contracts](docs/execution-contracts.md).
 
 ## Why separate
 
@@ -42,11 +45,13 @@ autoarmory propose .selfforge/incidents.jsonl --output .selfforge/candidates.jso
 autoarmory gate .selfforge/candidate.json --cases examples/skillcanary-cases.json
 autoarmory record --candidate cand-1 --action add_case --reward 1.5 --verified true --gate .selfforge/gate.json --evidence .selfforge/outcome-evidence.json
 autoarmory close --case case-id --run run-id --state .selfforge
+autoarmory execution record .selfforge/execution-trace.json --state .selfforge
+autoarmory execution list --state .selfforge
 autoarmory transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --state .selfforge
 autoarmory transition .selfforge/candidate.json --to shadow --gate .selfforge/gate.json --state .selfforge
 autoarmory learn .selfforge/decisions.jsonl
 autoarmory environment --write
-autoarmory experiment compare before.json after.json
+autoarmory execution experiment compare before.json after.json
 autoarmory policy .selfforge/decisions.jsonl
 autoarmory acquire .selfforge/candidates.jsonl --top 10
 autoarmory evolve logs/ --format auto --cases path/to/cases.json

@@ -13,6 +13,7 @@
     "security_level"
   ],
   "properties": {
+    "task_id": { "type": "string" },
     "schema_version": {
       "const": "autoarmory/routing-request/v1"
     },

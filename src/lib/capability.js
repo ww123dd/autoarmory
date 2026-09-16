@@ -152,10 +152,19 @@ function route(capabilities, request, options) {
     return { id: item.id, score: sample - 0.1 * costPenalty - 0.1 * latencyPenalty - 0.05 * riskPenalty, posterior_mean: reliabilityMean(item) };
   }).sort(function (a, b) { return b.score - a.score || a.id.localeCompare(b.id); });
   const requestId = 'route-' + require('./util').sha256(JSON.stringify(request) + ':' + actualSeed + ':' + crypto.randomUUID()).slice(0, 12);
+  const candidateSet = ranked.map(function (item) { return item.id; });
+  const topK = ranked.slice(0, Math.min(3, ranked.length));
+  const selectionMargin = ranked.length > 1 ? ranked[0].score - ranked[1].score : null;
   return {
     ok: true,
     schema_version: 'autoarmory/routing-decision/v1',
     request_id: requestId,
+    task_id: request.task_id || requestId,
+    candidate_set: candidateSet,
+    top_k: topK,
+    selection_margin: selectionMargin,
+    selection_confidence: null,
+    confidence_method: 'uncalibrated',
     request: request,
     selected: ranked.slice(0, 1),
     rejected: filtered.rejected,
@@ -193,12 +202,22 @@ function validateOutcome(value) {
   if (!Number.isFinite(Number(value.reward))) errors.push('reward must be a number');
   if (typeof value.verified !== 'boolean') errors.push('verified must be a boolean');
   if (typeof value.source !== 'string' || !value.source) errors.push('source is required');
+  if (value.execution_id !== undefined && (typeof value.execution_id !== 'string' || !value.execution_id)) errors.push('execution_id must be a non-empty string when supplied');
+  if (value.mechanism_run_id !== undefined && (typeof value.mechanism_run_id !== 'string' || !value.mechanism_run_id)) errors.push('mechanism_run_id must be a non-empty string when supplied');
   return errors;
 }
 
-function recordOutcome(registryFile, outcomesFile, value) {
+function recordOutcome(registryFile, outcomesFile, value, options) {
   const errors = validateOutcome(value);
   if (errors.length) return { ok: false, errors: errors };
+  const opts = options || {};
+  if (value.execution_id) {
+    const executionTracesFile = opts.executionTracesFile;
+    const traces = executionTracesFile && fs.existsSync(executionTracesFile) ? readJsonl(executionTracesFile) : [];
+    const trace = traces.find(function (item) { return item.id === value.execution_id; });
+    if (!trace) return { ok: false, errors: ['execution trace not found: ' + value.execution_id] };
+    if (trace.decision_id !== value.decision_id || trace.skill_id !== value.capability_id) return { ok: false, errors: ['execution trace does not match outcome decision/capability'] };
+  }
   const capabilities = readCapabilities(registryFile);
   const index = capabilities.findIndex(function (item) { return item.id === value.capability_id; });
   if (index === -1) return { ok: false, errors: ['capability not found: ' + value.capability_id] };

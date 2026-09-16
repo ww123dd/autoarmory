@@ -72,6 +72,12 @@
     "observed_at": {
       "type": "string"
     },
+    "execution_id": {
+      "type": "string"
+    },
+    "mechanism_run_id": {
+      "type": "string"
+    },
     "predicted_probability": {
       "type": "number",
       "minimum": 0,

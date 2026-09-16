@@ -77,10 +77,10 @@ must(result.code === 0 && /selfforge\/policy\/v1/.test(result.out), 'policy reco
 result = run(['acquire', candidatesFile, '--json']);
 must(result.code === 0 && /acquisition_score/.test(result.out), 'candidate acquisition');
 
-result = run(['experiment', 'compare', path.join(root, 'examples', 'experiment-before.json'), path.join(root, 'examples', 'experiment-after.json'), '--json']);
+result = run(['execution', 'experiment', 'compare', path.join(root, 'examples', 'experiment-before.json'), path.join(root, 'examples', 'experiment-after.json'), '--json']);
 must(result.code === 0 && /improved/.test(result.out), 'experiment comparison');
 
-result = run(['experiment', 'shadow', candidateFile, '--json']);
+result = run(['execution', 'experiment', 'shadow', candidateFile, '--json']);
 must(result.code === 0 && /shadow/.test(result.out), 'shadow plan');
 
 result = run(['observe', path.join(root, 'examples', 'junit.xml'), '--format', 'junit', '--json']);

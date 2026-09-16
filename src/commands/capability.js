@@ -54,7 +54,7 @@ module.exports = function run(argv) {
   if (sub === 'outcome') {
     const input = args._[1];
     if (!input) return usage();
-    const result = capability.recordOutcome(file, path.join(state, 'capability-outcomes.jsonl'), readJson(path.resolve(input)));
+    const result = capability.recordOutcome(file, path.join(state, 'capability-outcomes.jsonl'), readJson(path.resolve(input)), { executionTracesFile: path.join(state, 'execution-traces.jsonl') });
     if (args.json) printJson(result); else if (result.ok) process.stdout.write('Recorded outcome for ' + result.capability.id + ' applied=' + result.applied + '\n'); else process.stderr.write(result.errors.join('\n') + '\n');
     return result.ok ? 0 : 1;
   }
