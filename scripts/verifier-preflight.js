@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { spawnSync } = require('child_process');
 const verify = require('../src/lib/verify');
 
@@ -25,6 +26,17 @@ function record(name, result, expected) {
   return result;
 }
 
+const guardCorePath = process.env.AUTOARMORY_GUARD_CORE || path.join(os.homedir(), '.codex', 'hooks', 'guard-core.js');
+try {
+  const guard = require(guardCorePath);
+  if (typeof guard.verifierLockStatus !== 'function') failures.push('external verifier lock anchor unavailable: guard-core has no verifierLockStatus');
+  else {
+    const lockStatus = guard.verifierLockStatus();
+    if (!lockStatus.ok) failures.push('external verifier lock anchor mismatch: ' + (lockStatus.error || ('expected ' + String(lockStatus.expected).slice(0, 12) + ', actual ' + String(lockStatus.actual).slice(0, 12))));
+  }
+} catch (error) {
+  failures.push('external verifier lock anchor unavailable: ' + error.message);
+}
 const inventory = verify.listVerifiers(repo);
 if (!inventory.ok) failures.push('verifier inventory: ' + inventory.errors.join('; '));
 for (const item of inventory.verifiers) {

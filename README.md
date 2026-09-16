@@ -128,7 +128,9 @@ Candidate promotion follows a recorded state machine: `candidate -> pending_appr
 
 Approval also creates a consumption event. The system records `decision_id -> consumer -> action -> downstream_action`; the later outcome links back through `consumption_ref` instead of assuming a decision was consumed just because it was generated.
 
-Approval is an authorization decision, not verification evidence. The Agent prepares the candidate, gate proof, rollback and verification commands; the user only approves. After approval, the Agent performs the transition and the remaining mechanical work.
+Approval is an authorization decision, not verification evidence.
+
+Every transition records its actor. Approval transitions use the approver id; other transitions use --actor or default to codex. The Agent prepares the candidate, gate proof, rollback and verification commands; the user only approves. After approval, the Agent performs the transition and the remaining mechanical work.
 
 `record` refuses to append a decision unless a successful SkillCanary gate proof is provided or found on the stored candidate. A verified decision also requires outcome evidence with artifacts or before/after observations.
 

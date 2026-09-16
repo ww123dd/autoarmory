@@ -53,6 +53,8 @@ Observation accepts files, directories, stdin, article text and OTel GenAI spans
 
 Candidate state transitions are append-only records in `.selfforge/transitions.jsonl`: `candidate -> pending_approval -> gated -> shadow -> canary -> promoted`. `rejected` may terminate a pre-promotion path with a reason, and `retired` closes a promoted candidate. Gate proof is required before `gated`/`shadow`; user approval is required to leave `pending_approval` for `gated`; structured outcome evidence is required before `canary`/`promoted`.
 
+Every transition record includes an ctor. Approval transitions use pproval.approved_by; other transitions use --actor or the default codex. This makes transition actors directly comparable with mechanism-run.actor.
+
 ## Consumption evidence
 
 A decision is not considered consumed merely because it was generated. It is consumed when a consumer reads it and changes the next action:

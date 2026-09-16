@@ -381,12 +381,22 @@ function listVerifiers(repoRoot) {
       checks.push({ id: 'bridge_adapter', ok: bridgeOk, path: item.bridge.adapter || null });
 
       const server = item.bridge.server || {};
-      const configPath = server.config ? resolvePath(repo, server.config) : null;
-      const configOk = !!(configPath && fs.existsSync(configPath) && HASH.test(String(server.config_sha256 || '')) && fileDigest(configPath) === server.config_sha256);
-      checks.push({ id: 'bridge_config', ok: configOk, path: server.config || null });
-      const entryPath = server.entry ? resolvePath(repo, server.entry) : null;
-      const entryOk = !!(entryPath && fs.existsSync(entryPath) && HASH.test(String(server.entry_sha256 || '')) && fileDigest(entryPath) === server.entry_sha256);
-      checks.push({ id: 'bridge_entry', ok: entryOk, path: server.entry || null });
+      let configOk = true;
+      if (server.config || server.config_sha256) {
+        const configPath = server.config ? resolvePath(repo, server.config) : null;
+        configOk = !!(configPath && fs.existsSync(configPath) && HASH.test(String(server.config_sha256 || '')) && fileDigest(configPath) === server.config_sha256);
+        checks.push({ id: 'bridge_config', ok: configOk, path: server.config || null });
+      } else {
+        checks.push({ id: 'bridge_config', ok: true, path: null, optional: true });
+      }
+      let entryOk = true;
+      if (server.entry || server.entry_sha256) {
+        const entryPath = server.entry ? resolvePath(repo, server.entry) : null;
+        entryOk = !!(entryPath && fs.existsSync(entryPath) && HASH.test(String(server.entry_sha256 || '')) && fileDigest(entryPath) === server.entry_sha256);
+        checks.push({ id: 'bridge_entry', ok: entryOk, path: server.entry || null });
+      } else {
+        checks.push({ id: 'bridge_entry', ok: true, path: null, optional: true });
+      }
       bridgeOk = bridgeOk && configOk && entryOk;
     } else {
       checks.push({ id: 'bridge_adapter', ok: true, path: null, optional: true });

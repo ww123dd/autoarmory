@@ -37,7 +37,7 @@ function usage() {
     '  autoarmory close --case <case-id> --run <run-id> [--state .selfforge] [--json]',
     '  autoarmory canary <command> [args]',
     '  autoarmory capability <register|list|health|outcome|drift|conformance> [--state .selfforge] [--json]',
-    '  autoarmory transition <candidate.json> --to <pending_approval|gated|shadow|canary|promoted|rejected|retired> [--gate gate.json] [--approval approval.json] [--evidence evidence.json] [--reason text] [--state .selfforge] [--dir project]',
+    '  autoarmory transition <candidate.json> --to <pending_approval|gated|shadow|canary|promoted|rejected|retired> [--gate gate.json] [--approval approval.json] [--actor actor] [--evidence evidence.json] [--reason text] [--state .selfforge] [--dir project]',
     '  autoarmory learn [decisions.jsonl]',
     '  autoarmory environment [dir] [--write]',
     '  autoarmory experiment compare <before.json> <after.json>',

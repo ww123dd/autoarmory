@@ -43,7 +43,9 @@ Missing refs, unknown verifiers, non-readonly adapters, missing recorded hashes,
 
 Boundary: this proves that the registered adapter re-derives the recorded fact through the active local profile's pinned read-only path. The core is environment-neutral; Doris, MCP, paths, and `readonly_aa` belong to the example profile, not to the judge core. The remaining trust-root boundaries are rewritten git history or a compromised local adapter/MCP server/configuration.
 
-`scripts/verifier-preflight.js` runs on pre-commit when an active local profile exists, and fails closed if any verifier artifact or pinned adapter digest drifts, or if the checker loses its known positive/negative behavior. `scripts/mechanism-preflight.js` gives mechanism verdicts a real cost: a repository with mechanism state cannot commit while a mechanism is `unverified`, `expired`, or `bypassed`.
+`scripts/verifier-preflight.js` runs on pre-commit when an active local profile exists, and fails closed if any verifier artifact or pinned adapter digest drifts, or if the checker loses its known positive/negative behavior.
+
+The local trust anchor for erifiers.lock.json lives outside the repository (for this machine, under ~/.codex/hooks/). The repository preflight fails closed if the lock digest does not match that external anchor; the guard also blocks Write/Edit to erifiers.lock.json. `scripts/mechanism-preflight.js` gives mechanism verdicts a real cost: a repository with mechanism state cannot commit while a mechanism is `unverified`, `expired`, or `bypassed`.
 
 ## Verdicts
 
