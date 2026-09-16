@@ -72,9 +72,9 @@
 
 - [x] capability health as a projection of evidence: `capability health` reads the mechanism state each capability points at, degrading to `degraded` when the verdict is gone and to `offline` when the proof was rolled back; the projection is additive (no mechanism reference, old behaviour)
 
-## 1.3.0 (roadmap slot 0.9, planned)
+## 1.3.0 (roadmap slot 0.9)
 
-- [ ] candidate-side rollback: a promoted candidate whose outcome evidence no longer reproduces is retired with the fact that forced it, and preflight reports the escape count
+- [x] candidate-side rollback: `src/lib/candidate-lifecycle.js` recomputes hashed artifact evidence and retires a promoted candidate with `forced_by.artifact_mismatches` when it no longer reproduces; `scripts/mechanism-preflight.js` reports `stale_candidate_escape_count` and blocks with the exact command. Scope is stated: evidence without a hashed artifact is reported as `uncovered`, never as fresh, and never auto-retired
 
 ## 1.0
 

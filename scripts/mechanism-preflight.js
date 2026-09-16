@@ -13,16 +13,19 @@ const verify = require('../src/lib/verify');
 const repo = process.cwd();
 const state = path.resolve(process.env.AUTOARMORY_STATE || path.join(repo, '.selfforge'));
 const mechanismsFile = path.join(state, 'mechanisms.jsonl');
-if (!fs.existsSync(mechanismsFile)) {
+const transitionsFile = path.join(state, 'transitions.jsonl');
+if (!fs.existsSync(mechanismsFile) && !fs.existsSync(transitionsFile)) {
   process.stdout.write('mechanism preflight: no mechanism state\n');
   process.exit(0);
 }
 let records = [];
-try {
-  records = fs.readFileSync(mechanismsFile, 'utf8').split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); });
-} catch (error) {
-  process.stderr.write('MECHANISM_PREFLIGHT_BLOCK\nstate unreadable: ' + error.message + '\n');
-  process.exit(2);
+if (fs.existsSync(mechanismsFile)) {
+  try {
+    records = fs.readFileSync(mechanismsFile, 'utf8').split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); });
+  } catch (error) {
+    process.stderr.write('MECHANISM_PREFLIGHT_BLOCK\nstate unreadable: ' + error.message + '\n');
+    process.exit(2);
+  }
 }
 function readJsonl(file) {
   return fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); }) : [];
@@ -76,8 +79,29 @@ for (const record of records) {
     blockers.push(record.id + ': ' + status.status + ' but the supporting run is not fresh - ' + freshness.reason);
   }
 }
+// Candidate-side lifecycle: a promoted candidate whose hashed outcome evidence no longer
+// reproduces has to be retired with the fact that forced it, exactly like a mechanism.
+let staleCandidateEscapes = 0;
+let uncoveredCandidateEvidence = 0;
+try {
+  if (fs.existsSync(transitionsFile)) {
+    const candidateLifecycle = require('../src/lib/candidate-lifecycle');
+    const candidateState = candidateLifecycle.staleEscapes(readJsonl(transitionsFile), { repo: repo });
+    staleCandidateEscapes = candidateState.escapes;
+    uncoveredCandidateEvidence = candidateState.uncovered;
+    for (const detail of candidateState.details) {
+      if (!detail.freshness || !detail.freshness.covered || detail.freshness.ok) continue;
+      blockers.push(detail.candidate_id + ': promoted but its outcome evidence no longer reproduces ('
+        + detail.freshness.mismatches.map(function (item) { return item.path; }).join(', ')
+        + '); run: node scripts/candidate-lifecycle.js --rollback-if-stale');
+    }
+  }
+} catch (error) {
+  blockers.push('candidate lifecycle check failed: ' + error.message);
+}
+
 if (blockers.length) {
-  process.stderr.write('MECHANISM_PREFLIGHT_BLOCK\n' + blockers.join('\n') + '\n' + 'stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + '\n');
+  process.stderr.write('MECHANISM_PREFLIGHT_BLOCK\n' + blockers.join('\n') + '\n' + 'stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + ', stale_candidate_escape_count=' + staleCandidateEscapes + ', uncovered_candidate_evidence=' + uncoveredCandidateEvidence + '\n');
   process.exit(2);
 }
-process.stdout.write('mechanism preflight passed: ' + records.length + ' mechanism(s) verified/closed, stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + '\n');
+process.stdout.write('mechanism preflight passed: ' + records.length + ' mechanism(s) verified/closed, stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + ', stale_candidate_escape_count=' + staleCandidateEscapes + ', uncovered_candidate_evidence=' + uncoveredCandidateEvidence + '\n');

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+
+Roadmap slot 0.9: the candidate state machine gets the rule mechanisms got in 0.5 - a promotion does not outlive the evidence it rested on.
+
+- Added `src/lib/candidate-lifecycle.js`: a promoting transition that carries `evidence.artifacts[]` with a `sha256` is recomputed against the repository; a mismatch retires the candidate with `forced_by.artifact_mismatches` (path, expected, actual). Rollback is idempotent and only ever touches a promoted candidate whose hashed evidence no longer reproduces.
+- Added `scripts/candidate-lifecycle.js` (`--list`, `--rollback-if-stale`).
+- `scripts/mechanism-preflight.js` now reports `stale_candidate_escape_count` and `uncovered_candidate_evidence`, and blocks with the exact command while a promoted candidate outlives its hashed evidence.
+- Honest scope: only hashed artifact evidence is recomputable. A promotion resting on before/after observations is reported as `uncovered` - never as fresh, and never retired automatically, because nothing can be re-derived from it. `tests/candidate-rollback.js` drives reproducing=0, mutated=1 escape plus BLOCK, rollback with `forced_by`, a fresh candidate promoting again, and uncovered evidence staying uncovered.
+
 ## 1.2.0
 
 Roadmap slot 0.8: capability health stops being a claim of its own and becomes a projection of the evidence behind it.
