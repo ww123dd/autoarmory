@@ -133,9 +133,18 @@ try {
     documented.set(name, internal);
   }
   const missing = Array.from(documented.entries()).filter(function (entry) { return !known.has(entry[0]) && !entry[1]; }).map(function (entry) { return entry[0]; });
-  record('no-unimplemented-claims', clean && nonGoals && missing.length === 0,
+  // brought forward from the 2.0 critique: reports must not carry self-reported fields,
+  // and the shipped surface must not depend on this machine absolute paths
+  const reportRun = run(path.join(ROOT, 'bin', 'autoarmory.js'), ['report', ROOT]);
+  const reportText = String(reportRun.out || '') + String(fs.existsSync(path.join(ROOT, 'autoarmory-report.md')) ? fs.readFileSync(path.join(ROOT, 'autoarmory-report.md'), 'utf8') : '');
+  const selfReported = /verified_by|self_reported|"independent"/.test(reportText);
+  const grep = cp.spawnSync('git', ['grep', '-n', '-I', 'C:\\\\Users\\\\Administrator', '--', '.', ':!packages/skillcanary', ':!*.lock.json'], { cwd: ROOT, encoding: 'utf8' });
+  const machinePaths = grep.status === 1 ? [] : String(grep.stdout || '').split('\n').filter(Boolean);
+  record('no-unimplemented-claims', clean && nonGoals && missing.length === 0 && !selfReported && machinePaths.length === 0,
     'readme-clean=' + !forbidden.test(readme) + ' serve-hidden=' + !/\bserve\b/i.test(help) + ' non-goals=' + nonGoals
-    + ' documented_commands=' + documented.size + ' missing=' + (missing.length ? missing.join(',') : 'none'));
+    + ' documented_commands=' + documented.size + ' missing=' + (missing.length ? missing.join(',') : 'none')
+    + ' self_reported_fields=' + (selfReported ? 'present' : 'none')
+    + ' machine_paths_in_shipped_surface=' + machinePaths.length);
 } catch (error) {
   record('no-unimplemented-claims', false, String(error.message).slice(0, 160));
 }

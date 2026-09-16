@@ -56,11 +56,25 @@ const alpha = report.candidates.filter(function (item) { return item.id === 'ski
 must(alpha, 'the alpha skill must be discovered');
 must(/alpha handling/.test(alpha.trigger.when_to_use) && alpha.trigger.source === 'frontmatter.description', 'the trigger text must come from the skill own description');
 must(alpha.source.sha256 === sha(watched[0]) && alpha.source.path === watched[0], 'the candidate must carry the source path and hash');
-must(alpha.readiness.registerable === false && alpha.readiness.gaps.indexOf('no_evidence') !== -1, 'a skill without evidence must be a gap, not ready');
+must(alpha.trigger_surface.status === 'raw_metadata' && alpha.trigger_surface.curated === false, 'raw metadata must be labelled as uncurated, not presented as a routing surface');
+must(alpha.evidence_status === 'unassigned' && alpha.judgment_required.indexOf('evidence_refs') !== -1, 'the scan must not invent the verifier that should prove a skill');
+must(alpha.readiness.registerable === false && alpha.readiness.facts_consistent === true, 'a scanned candidate is fact-consistent but never registerable');
+must(report.summary.registerable === 0, 'a scan alone must never produce a registerable candidate');
 
 // 2
 const beta = report.candidates.filter(function (item) { return item.id === 'skill:beta-skill'; })[0];
 must(beta && beta.readiness.gaps.indexOf('no_trigger') !== -1, 'a skill without a description must be reported as no_trigger');
+
+// 2b: the falsifier - the scan must agree with the filesystem it read
+const second = JSON.parse(run(['--home', home, '--repo', repo, '--state', state, '--json']).out);
+const factsOf = function (r) { return r.candidates.map(function (c) { return c.id + ':' + c.source.sha256; }).sort().join('|'); };
+must(factsOf(second) === factsOf(report), 'two scans of the same filesystem must produce the same facts');
+const walked = [];
+(function walk(dir) { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else if (entry.name === 'SKILL.md') walked.push(full); } })(path.join(home, '.codex', 'skills'));
+const scannedSkills = report.candidates.filter(function (c) { return c.kind === 'skill'; });
+must(walked.length === scannedSkills.length, 'the scan must cover exactly the skill files that exist (' + scannedSkills.length + ' of ' + walked.length + ')');
+for (const candidate of scannedSkills) must(candidate.source.sha256 === sha(candidate.source.path), candidate.id + ': the recorded hash must equal the file on disk');
+
 
 // 3
 must(result.out.indexOf(SECRET) === -1 && result.err.indexOf(SECRET) === -1, 'an env value must never appear in the scan output');
@@ -71,10 +85,15 @@ must(JSON.stringify(mcp).indexOf(SECRET) === -1, 'the MCP candidate must not emb
 // 4
 const verifier = report.candidates.filter(function (item) { return item.id === 'verifier:file-sha256-license'; })[0];
 must(verifier && verifier.kind === 'evaluator' && verifier.evidence_refs[0] === 'file-sha256-license', 'a profile verifier must become an evaluator candidate with evidence_refs');
-must(verifier.readiness.registerable === true, 'a verifier with a statement and evidence is registerable');
+must(verifier.evidence_status === 'registered' && verifier.readiness.registerable === false, 'a verifier brings registered evidence but still needs judgment (curated trigger, task types) before registration');
 
 // 5
 must(watched.map(sha).join(',') === before.join(','), 'the scan must not modify anything it read');
+
+write(watched[0], fs.readFileSync(watched[0], 'utf8') + '\n<!-- changed -->\n');
+const afterChange = JSON.parse(run(['--home', home, '--repo', repo, '--state', state, '--json']).out);
+const alphaAfter = afterChange.candidates.filter(function (c) { return c.id === 'skill:alpha-skill'; })[0];
+must(alphaAfter.source.sha256 !== alpha.source.sha256, 'a changed file must produce a changed hash (scan vs filesystem drift is detectable)');
 
 // 6b
 result = run(['--home', home, '--repo', repo, '--state', state, '--write', '--json']);

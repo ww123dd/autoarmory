@@ -67,6 +67,7 @@ function skillCandidate(file) {
     name: name,
     source: { type: 'skill-file', path: file, sha256: sha256File(file) },
     trigger: { when_to_use: description, when_not_to_use: null, source: description ? 'frontmatter.description' : null },
+    trigger_surface: { status: description ? 'raw_metadata' : 'missing', raw: description, curated: false, needs_curation: true },
     capabilities: [],
     evidence_refs: [],
     lifecycle: 'candidate'
@@ -87,6 +88,7 @@ function mcpCandidates(configFile) {
       name: name,
       source: { type: 'mcp-config', path: configFile, sha256: configSha, entry_sha256: crypto.createHash('sha256').update(JSON.stringify(entry && entry.command || '') + '|' + String((entry && entry.args || []).length)).digest('hex') },
       trigger: { when_to_use: null, when_not_to_use: null, source: null },
+      trigger_surface: { status: 'missing', raw: null, curated: false, needs_curation: true },
       capabilities: [],
       evidence_refs: [],
       lifecycle: 'candidate'
@@ -107,8 +109,10 @@ function verifierCandidates(profileFile) {
       name: item.id,
       source: { type: 'verifier-profile', path: profileFile, sha256: sha256File(profileFile), bridge: item.bridge ? item.bridge.adapter : null },
       trigger: { when_to_use: item.statement || null, when_not_to_use: null, source: item.statement ? 'verifier.statement' : null },
+      trigger_surface: { status: item.statement ? 'raw_metadata' : 'missing', raw: item.statement || null, curated: false, needs_curation: true },
       capabilities: [],
       evidence_refs: [item.id],
+      evidence_status: 'registered',
       lifecycle: 'candidate'
     };
   });
@@ -125,12 +129,26 @@ function scan(options) {
     .concat(mcpCandidates(opts.mcpConfig || path.join(home, '.codex', 'mcp.json')))
     .concat(verifierCandidates(opts.profile || path.join(repo, 'verifiers.lock.json')));
 
+  // A scan produces facts (path, hash, existence, registered ids). It cannot produce
+  // judgment: a curated trigger surface, the verifier that should prove this module, or
+  // the task types it serves. Those are listed as judgment_required and never invented.
   for (const candidate of candidates) {
+    if (!candidate.evidence_status) candidate.evidence_status = 'unassigned';
     const gaps = [];
     if (!candidate.trigger.when_to_use) gaps.push('no_trigger');
     if (!candidate.evidence_refs.length) gaps.push('no_evidence');
     if (!candidate.capabilities.length) gaps.push('no_task_types');
-    candidate.readiness = { registerable: gaps.indexOf('no_trigger') === -1 && gaps.indexOf('no_evidence') === -1, gaps: gaps };
+    candidate.judgment_required = ['trigger_curation']; 
+    if (!candidate.evidence_refs.length) candidate.judgment_required.push('evidence_refs');
+    candidate.judgment_required.push('task_types');
+    candidate.facts_consistent = true;
+    candidate.readiness = {
+      facts_consistent: true,
+      judgment_complete: false,
+      registerable: false,
+      gaps: gaps,
+      judgment_required: candidate.judgment_required
+    };
   }
 
   const byKind = {};
@@ -149,7 +167,9 @@ function scan(options) {
     summary: {
       scanned: candidates.length,
       by_kind: byKind,
-      registerable: candidates.filter(function (item) { return item.readiness.registerable; }).length,
+      registerable: 0,
+      judgment_complete: 0,
+      facts_consistent: candidates.length,
       needs_attention: candidates.filter(function (item) { return !item.readiness.registerable; }).length,
       gaps: gapCount
     }
