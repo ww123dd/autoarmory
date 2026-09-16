@@ -23,8 +23,20 @@ autoarmory close --case case-id --run run-id --state .selfforge --repo <repo-roo
 A run is recorded from the mechanism declaration plus a fresh capture of its declared verifier:
 
 ```bash
+node scripts/mechanism-declare.js --descriptor mechanism-descriptor.json   # admit the case + register the mechanism
 node scripts/mechanism-record.js --mechanism mech-esc-3-pid-file --close --json
 ```
+
+`scripts/mechanism-declare.js` takes `{ "case": ..., "mechanism": ... }` and refuses a mechanism whose `verifier_id` the active profile does not register, so a mechanism cannot be declared against a verifier that cannot judge it.
+
+The one artefact an agent must never author is the operator approval. `scripts/approve.js` keeps the decision with the operator and does the boilerplate:
+
+```bash
+node scripts/approve.js --candidate <id> --dry-run            # print the approval request
+node scripts/approve.js --candidate <id> --quote "<operator words>"   # record the decision
+```
+
+It refuses to record anything without the operator own words in `--quote`, refuses a candidate that is not in `pending_approval`, and writes the record the transition needs (`requested_by: agent`, `approved_by: user`, scope, channel, quote).
 
 `scripts/mechanism-record.js` reads the mechanism and case from state, captures the ref through the active local profile, records the re-derived digests, and (with `--close`) closes the case. It is the mechanical step to run after `scripts/verifier-pin.js` changes a pin: a recorded run embeds the pinned bridge digest, so an unpinned run stops reproducing until it is re-recorded.
 

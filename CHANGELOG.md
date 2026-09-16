@@ -4,6 +4,7 @@
 
 - Repositioned AutoArmory as a local capability manager for one operator: the cross-vendor control-plane claim and the public `serve` entry were downgraded to optional internals.
 - Expanded the local verifier profile to eight heterogeneous fact sources, added `scripts/verifier-pin.js` for mechanical re-pinning, and added `tests/verifier-bridges.js` to enforce thin bridges.
+- Added `scripts/approve.js` (records the operator decision; refuses an approval without the operator own words) and `scripts/mechanism-declare.js` (admits a case and registers a mechanism, refusing an unregistered verifier), so the operator loop runs end to end without hand-written JSON. `tests/operator-loop.js` drives it: 7 steps, 6 mechanical, 1 operator decision.
 - Pinned artifacts that are not committed are now refused by `scripts/verifier-pin.js` unless they are declared with `--allow-untracked`, and are reported as local-only by the pin tool, `scripts/verifier-preflight.js` and the scorecard. `verifier-pin` also warns when several worktrees share the repository, because re-pinning invalidates the other sessions recorded runs.
 - Bound every mechanism run and closure to a runner identity (`runner_id`, `runner_sha256`, `invocation_contract_version`) and to the case it judges (`case_sha256`): close, status and preflight now share one freshness rule, a changed runner or a rewritten case can no longer keep a case closed, and `stale_verdict_escape_count` is reported as 0.
 ## 0.3.0
