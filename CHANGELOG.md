@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Repositioned AutoArmory as a local capability manager for one operator: the cross-vendor control-plane claim and the public `serve` entry were downgraded to optional internals.
+- Expanded the local verifier profile to eight heterogeneous fact sources, added `scripts/verifier-pin.js` for mechanical re-pinning, and added `tests/verifier-bridges.js` to enforce thin bridges.
 ## 0.3.0
 
 - Rebranded the public package and CLI to AutoArmory.

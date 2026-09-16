@@ -1,6 +1,6 @@
 # Architecture
 
-AutoArmory is an auto-battle control plane for agent capabilities.
+AutoArmory is a local capability manager for one operator and one Agent workflow.
 
 ```text
 local signals / logs / tests / issues
@@ -39,7 +39,7 @@ bin/autoarmory.js    unified AutoArmory CLI
 bin/selfforge.js     legacy CLI alias
 ```
 
-The root CLI exposes `autoarmory canary ...` for the vendored SkillCanary control plane. SkillCanary never imports the upper layers. Capability Manager extends capability state with runtime health, routing, outcomes, drift and retirement.
+The root CLI exposes `autoarmory canary ...` for the vendored SkillCanary control plane. SkillCanary never imports the upper layers. The local capability manager extends capability state with runtime health, routing, outcomes, drift and retirement for its operator.
 
 ## Observation adapters
 

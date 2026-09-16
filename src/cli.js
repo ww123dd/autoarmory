@@ -21,7 +21,6 @@ const bench = require('./commands/bench');
 const integrate = require('./commands/integrate');
 const admit = require('./commands/admit');
 const scenario = require('./commands/scenario');
-const serve = require('./commands/serve');
 const close = require('./commands/close');
 
 function usage() {
@@ -54,7 +53,6 @@ function usage() {
     '  autoarmory demo [--seed 7] [--output demo.md] [--json]',
     '  autoarmory bench [--seed 11] [--output bench.md] [--json]',
     '  autoarmory self-eval [--runs 3] [--json] [--output report.json]',
-    '  autoarmory serve [--host 127.0.0.1] [--port 8787] [--state .selfforge] [--allow-write]',
     '  autoarmory version',
     ''
   ].join('\n'));
@@ -65,7 +63,7 @@ function main(argv) {
   const rest = argv.slice(1);
   if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') { usage(); process.exit(0); }
   if (cmd === 'version' || cmd === '--version' || cmd === '-v') { process.stdout.write(require('../package.json').version + '\n'); process.exit(0); }
-  const commands = { init, observe, propose, gate, learn, doctor, report, environment, experiment, policy, acquire, evolve, record, transition, capability, canary, "self-eval": selfEval, demo, bench, integrate, admit, scenario, serve, close };
+  const commands = { init, observe, propose, gate, learn, doctor, report, environment, experiment, policy, acquire, evolve, record, transition, capability, canary, "self-eval": selfEval, demo, bench, integrate, admit, scenario, close };
   const fn = commands[cmd];
   if (!fn) { process.stderr.write('Unknown command: ' + cmd + '\n\n'); usage(); process.exit(2); }
   Promise.resolve().then(function () { return fn(rest); }).then(function (code) { process.exit(typeof code === 'number' ? code : 0); }).catch(function (err) { process.stderr.write((err && err.stack) ? err.stack : String(err)); process.stderr.write('\n'); process.exit(2); });

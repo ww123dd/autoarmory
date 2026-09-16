@@ -31,6 +31,13 @@ must(legacyVersion.status === 0 && legacyVersion.stdout.trim() === pkg.version, 
 result = run(['--help']);
 must(result.code === 0 && /AutoArmory/.test(result.out), 'help must use AutoArmory brand');
 
+const readmeText = fs.readFileSync(path.join(root, 'README.md'), 'utf8').toLowerCase();
+must(!readmeText.includes('cross-vendor') && !readmeText.includes('capability control plane'), 'README must use local capability manager positioning');
+must(!readmeText.includes('weapon') && !readmeText.includes('loadout'), 'README must not use the weapon metaphor');
+must(!/\bserve\b/i.test(result.out), 'serve must not be advertised in the public CLI');
+const description = String(pkg.description || '').toLowerCase();
+must(description.includes('local capability manager') && !description.includes('control plane'), 'package description must use local capability manager positioning');
+
 const vendoredSkillCanaryCli = path.join(root, 'packages', 'skillcanary', 'bin', 'skillcanary.js');
 must(fs.existsSync(vendoredSkillCanaryCli), 'vendored SkillCanary package');
 result = run(['canary', 'version']);
