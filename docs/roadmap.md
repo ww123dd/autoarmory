@@ -41,13 +41,29 @@
 - [x] scenario profile contracts for coding/support/research
 - [~] local API, SDK client and Team CLI kept as optional internals; CLI is the primary operator interface
 - [x] external adapter contract and descriptor schema
-- [ ] automatic proposal generation from issue history
-- [ ] shadow evaluation
-- [ ] canary and rollback records
-- [ ] cross-repository privacy-preserving learning
+- [ ] automatic proposal generation, shadow evaluation and canary/rollback records moved to the 0.5 plan below
+
+## 0.4
+
+- [x] runner identity: every mechanism run and closure names `runner_id`, `runner_sha256`, `invocation_contract_version`
+- [x] evidence freshness: runner, adapter, bridge, case or validity change invalidates a verdict; `close`, `status` and preflight share one rule; `stale_verdict_escape_count = 0`
+- [x] mechanical trust root: `scripts/verifier-pin.js` recomputes every pin and both halves of the trust root, refuses uncommitted artifacts unless declared, and warns when worktrees share the repository
+- [x] portable profile: `examples/profiles/portable.profile.json` runs in a sandbox and must show at least one PASS and one FAIL; `tests/portable-profile.js` flips an expectation to prove the verdict follows the bytes
+- [x] externally anchored facts: vendored npm artifact, PyPI artifact, PyPI JSON service digest and a git source blob, re-fetched and compared by `npm run check:anchors` (four channels)
+- [x] operator loop without hand-written JSON: `scripts/approve.js` records the operator decision (and refuses an unattributed one), `scripts/mechanism-declare.js` admits case + mechanism against a registered verifier
+- [x] live incident replay: the real esc-3 pid file truncated to 0 bytes, detected, refused and recovered (control 13)
+
+## 0.5 (planned)
+
+Ordered by what the current evidence can already support; each item needs the same PASS + FAIL shape before it is called done.
+
+- [ ] canary and rollback records: when a promoted capability loses its evidence (freshness fails, a re-derivation fails, or the runner changes), the system must emit a rollback or retire record carrying the evidence that forced it, and must not let a stale verdict keep a capability promoted (`stale_lifecycle_escape_count = 0`)
+- [ ] shadow evaluation: compare recorded routing decisions with what was actually chosen and executed, once a real task stream exists to compare against
+- [ ] automatic proposal generation from issue history: mechanical only; it produces candidates, no verdicts
 
 ## Deferred
 
 - Selection / execution / outcome contracts and the operator-friction policy were designed on `experiment/selection-execution-outcome-contracts`; the branch is retired and the design is archived at tag `freeze/selection-execution-outcome-contracts-20260916` (`git switch -c <branch> freeze/selection-execution-outcome-contracts-20260916`).
 - Trigger to revisit: the approval loop stays closed for real tasks, and the friction ledger shows a repeat complaint that the operator still had to act on.
 - The earlier mechanism-core line (a separate `mechanism` command plus `mechanism-effectiveness` and `usage-contract` schemas) was superseded by the lib-only mechanism core on master. It is retired and archived at tag `freeze/mechanism-core-20260915`.
+- Cross-repository privacy-preserving learning stays out: the product is a local capability manager for one operator, and shared learning would need a multi-party trust model we deliberately dropped.

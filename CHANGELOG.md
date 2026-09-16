@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
+
+Verification closure: a verdict may only claim success while the same runner, through the same fixed contract, re-derives the same fact; the shipped profile proves it to a stranger with facts anchored outside the repository.
 
 - Repositioned AutoArmory as a local capability manager for one operator: the cross-vendor control-plane claim and the public `serve` entry were downgraded to optional internals.
 - Expanded the local verifier profile to eight heterogeneous fact sources, added `scripts/verifier-pin.js` for mechanical re-pinning, and added `tests/verifier-bridges.js` to enforce thin bridges.
