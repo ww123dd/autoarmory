@@ -2,6 +2,8 @@
 
 The verifier core is intentionally thin. Each new source should add a small bridge, not another control plane.
 
+Every profile entry declares a human-readable `version` and an `invocation_contract_version` next to its pinned digests. The digests and the contract version form `runner_sha256`; the human-readable `version` is compatibility metadata and is deliberately excluded from it, so bumping it never invalidates a verdict on its own.
+
 Current local profile contains eight heterogeneous fact sources:
 
 | verifier | fact source | bridge lines |

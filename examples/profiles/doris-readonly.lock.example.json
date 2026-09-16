@@ -5,6 +5,8 @@
     {
       "id": "doris-readonly-count",
       "kind": "doris-mcp-readonly",
+      "version": "1.0.0",
+      "invocation_contract_version": "autoarmory/invocation-contract/v1",
       "readonly": true,
       "adapter": "scripts/verify/state-query.js",
       "adapter_sha256": "<sha256-of-scripts/verify/state-query.js>",

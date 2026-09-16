@@ -25,6 +25,7 @@ const LOCK_SCHEMA = 'autoarmory/verifiers-lock/v1';
 const ADAPTER_TIMEOUT_MS = 120000;
 const DEFAULT_TRIALS = 3;
 const HASH = /^[a-f0-9]{64}$/i;
+const INVOCATION_CONTRACT = 'autoarmory/invocation-contract/v1';
 
 function canonicalize(value) {
   if (Array.isArray(value)) return '[' + value.map(canonicalize).join(',') + ']';
@@ -38,6 +39,78 @@ function canonicalize(value) {
 
 function sha256Value(value) {
   return crypto.createHash('sha256').update(canonicalize(value)).digest('hex');
+}
+function sha256Text(value) { return crypto.createHash('sha256').update(String(value)).digest('hex'); }
+
+// Runner identity: who produced the fact, through which fixed contract.
+//
+// runner_sha256 covers every pinned artifact plus the declared statement and
+// assertion, so replacing any of them replaces the runner. The human-readable
+// `version` is deliberately excluded: it is compatibility metadata, not a trust
+// root, so bumping it must not invalidate an otherwise identical verdict.
+function runnerDescriptor(declared) {
+  const item = declared || {};
+  const bridge = item.bridge || {};
+  const server = bridge.server || {};
+  const contract = item.invocation_contract_version || INVOCATION_CONTRACT;
+  const identity = {
+    verifier_id: item.id || null,
+    adapter_sha256: item.adapter_sha256 || null,
+    bridge_adapter_sha256: bridge.adapter_sha256 || null,
+    server_config_sha256: server.config_sha256 || null,
+    server_entry_sha256: server.entry_sha256 || null,
+    statement_sha256: typeof item.statement === 'string' ? sha256Text(item.statement) : null,
+    assertion: item.assertion || null,
+    invocation_contract_version: contract
+  };
+  return {
+    runner_id: item.id || null,
+    runner_sha256: sha256Value(identity),
+    invocation_contract_version: contract,
+    verifier_version: item.version || null
+  };
+}
+
+// The single freshness rule used by close, status and preflight: a recorded
+// verdict is fresh only while it still names the runner the active profile
+// declares. Anything else is stale and must not be reported as verified/closed.
+function runnerFreshness(value, options) {
+  const opts = options || {};
+  const record = value || {};
+  const repo = resolveRepo(opts.repo || process.cwd());
+  const lock = loadLock(repo);
+  const refVerifier = Array.isArray(record.evidence_refs) && record.evidence_refs[0] ? record.evidence_refs[0].verifier : null;
+  const verifierId = opts.verifier || record.verifier || refVerifier || record.verifier_id || record.runner_id || null;
+  if (!lock.ok) return { ok: false, status: 'unregistered', reason: lock.reason, repo: repo, expected: null, recorded: null };
+  const declared = findVerifier(lock, verifierId);
+  if (!declared) return { ok: false, status: 'unregistered', reason: 'verifier is not registered: ' + verifierId, repo: repo, expected: null, recorded: null };
+  const expected = runnerDescriptor(declared);
+  const recorded = {
+    runner_id: record.runner_id || null,
+    runner_sha256: record.runner_sha256 || null,
+    invocation_contract_version: record.invocation_contract_version || null
+  };
+  const versionDrift = !!(record.verifier_version && expected.verifier_version && record.verifier_version !== expected.verifier_version);
+  const base = { repo: repo, expected: expected, recorded: recorded, version_drift: versionDrift };
+  if (!HASH.test(String(recorded.runner_sha256 || ''))) {
+    return Object.assign(base, { ok: false, status: 'unbound', reason: 'record carries no runner_sha256; a verdict that cannot name its runner is not fresh' });
+  }
+  if (recorded.runner_sha256 !== expected.runner_sha256 || recorded.runner_id !== expected.runner_id || (recorded.invocation_contract_version || '') !== expected.invocation_contract_version) {
+    return Object.assign(base, {
+      ok: false,
+      status: 'drifted',
+      reason: 'runner identity changed: recorded ' + String(recorded.runner_sha256).slice(0, 12) + '/' + String(recorded.invocation_contract_version) + ' vs current ' + expected.runner_sha256.slice(0, 12) + '/' + expected.invocation_contract_version
+    });
+  }
+  return Object.assign(base, { ok: true, status: 'current', reason: 'runner identity matches the active profile' });
+}
+
+function runnerFor(repoRoot, verifierId) {
+  const repo = resolveRepo(repoRoot || process.cwd());
+  const lock = loadLock(repo);
+  if (!lock.ok) return null;
+  const declared = findVerifier(lock, verifierId);
+  return declared ? runnerDescriptor(declared) : null;
 }
 
 function fileDigest(file) {
@@ -207,8 +280,10 @@ function inspectRef(repo, lock, ref, options) {
   }
 
   const trials = Math.max(1, Number(opts.trials || DEFAULT_TRIALS));
+  const declaredRunner = runnerDescriptor(declared);
   const payload = {
     ref: { id: id, verifier: verifierId, artifact: ref.artifact || null, params: ref.params || {} },
+    runner: declaredRunner,
     case_id: opts.case_id || null,
     mechanism_id: opts.mechanism_id || null,
     run_id: opts.run_id || null
@@ -222,8 +297,12 @@ function inspectRef(repo, lock, ref, options) {
       return { id: id, status: 'unverifiable', checks: checks.concat([check('unverifiable', 'rederivation', 'trial ' + (trial + 1) + '/' + trials + ': ' + run.reason)]), fresh: null };
     }
     const produced = run.result;
+    if (produced.runner && produced.runner.runner_sha256 !== declaredRunner.runner_sha256) {
+      return { id: id, status: 'mismatch', checks: checks.concat([check('mismatch', 'runner_identity', 'adapter reported runner ' + String(produced.runner.runner_sha256).slice(0, 12) + ' but the active profile declares ' + declaredRunner.runner_sha256.slice(0, 12))]), fresh: null };
+    }
     fresh = {
       verifier: verifierId,
+      runner: declaredRunner,
       input_sha256: String(produced.input_sha256),
       output_sha256: String(produced.output_sha256),
       exit_code: produced.exit_code,
@@ -296,13 +375,22 @@ function verifyRefs(refs, options) {
     input_sha256: input_sha256,
     output_sha256: output_sha256,
     exit_code: exit_code,
-    result: result
+    result: result,
+    runner: status === 'verified' && results[0] && results[0].fresh ? results[0].fresh.runner || null : null
   });
 }
 
 function verifyRecord(record, options) {
   const opts = options || {};
   const refs = record && Array.isArray(record.evidence_refs) ? record.evidence_refs : [];
+  const freshness = runnerFreshness(record, opts);
+  if (!freshness.ok) {
+    const staleStatus = freshness.status === 'drifted' ? 'mismatch' : 'unverifiable';
+    return report(freshness.repo, staleStatus, 'runner freshness: ' + freshness.reason, [check(staleStatus, 'runner_freshness', freshness.reason)], [], {
+      runner: { expected: freshness.expected || null, recorded: freshness.recorded || null },
+      version_drift: freshness.version_drift === true
+    });
+  }
   const result = verifyRefs(refs, opts);
   if (result.status !== 'verified') return result;
 
@@ -328,7 +416,7 @@ function verifyRecord(record, options) {
       result: result.result
     });
   }
-  return result;
+  return Object.assign({}, result, { runner: freshness.expected, version_drift: freshness.version_drift === true });
 }
 
 function captureRefs(refs, options) {
@@ -410,14 +498,19 @@ function listVerifiers(repoRoot) {
 
 module.exports = {
   STATUSES,
+  INVOCATION_CONTRACT,
   expandHome,
   LOCK_FILE,
   LOCK_SCHEMA,
   canonicalize,
   sha256Value,
+  sha256Text,
   fileDigest,
   resolveRepo,
   loadLock,
+  runnerDescriptor,
+  runnerFreshness,
+  runnerFor,
   verifyRefs,
   verifyRecord,
   captureRefs,
