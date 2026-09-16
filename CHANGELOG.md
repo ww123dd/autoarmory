@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+Lifecycle closure: a verdict is not a promotion, and a promotion does not outlive the evidence that justified it.
+
+- Added `mechanism.promote` / `rollbackIfStale` / `lifecycle` / `staleLifecycleEscapes`: a promotion names the run it rested on, refuses a verdict that is not `verified`/`closed`, and is retired by a rollback record carrying the fact that forced it (`status`, `reason`, `latest_run_id`, `runner_sha256`, `case_sha256`).
+- Added `scripts/mechanism-lifecycle.js` (`--promote`, `--rollback-if-stale`, `--list`) so the action is mechanical rather than a hand-written script.
+- `scripts/mechanism-preflight.js` now reports `stale_lifecycle_escape_count` and blocks with the exact command while a promoted mechanism outlives its evidence; a retired mechanism is a closed loop, not an unhandled failure.
+- Added `tests/rollback.js`: promote, healthy (no rollback), stale promoted (BLOCK, count 1), rollback (recorded + idempotent), after rollback (0 + pass), recovery (re-promoted), stale promotion (refused).
+
 ## 0.4.0
 
 Verification closure: a verdict may only claim success while the same runner, through the same fixed contract, re-derives the same fact; the shipped profile proves it to a stranger with facts anchored outside the repository.

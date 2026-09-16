@@ -95,6 +95,22 @@ A case is not bound to a runner at admission time: the case exists before a mech
 
 `tests/stale-verdict.js` drives the whole loop: verified -> runner change -> stale -> close refused -> re-bind -> re-verify -> closed, plus adapter tamper, invocation-contract change and case rewrite, and asserts `stale_verdict_escape_count=0`.
 
+## Lifecycle
+
+A verdict is not a promotion. `promote` records a separate, evidence-backed decision that names the run it rested on:
+
+```bash
+node scripts/mechanism-lifecycle.js --mechanism <id> --promote
+node scripts/mechanism-lifecycle.js --mechanism <id> --rollback-if-stale
+node scripts/mechanism-lifecycle.js --list
+```
+
+`--promote` refuses unless the current verdict is `verified` or `closed`, and records `from -> promoted` with an evidence pointer (run id, result, exit code, runner digest, case digest). `--rollback-if-stale` does nothing while the evidence holds; when the evidence is gone it appends `promoted -> retired` carrying the fact that forced it, and is idempotent per (evidence, status).
+
+`scripts/mechanism-preflight.js` refuses to let a promotion outlive its evidence: it reports `stale_lifecycle_escape_count` and blocks with the exact command until the rollback record exists. A retired mechanism is not an unhandled failure - the record explains why its verdict is gone - so preflight passes once the loop is closed, and re-promotion is allowed again after the runner is re-bound and re-verified.
+
+`tests/rollback.js` drives all of it: promote (evidence-backed), healthy (no rollback), stale promoted (BLOCK with count 1), rollback (recorded + idempotent), post-rollback (0 + pass), recovery (re-promoted), stale promotion (refused).
+
 ## Verdicts
 
 ```text

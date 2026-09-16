@@ -53,11 +53,13 @@
 - [x] operator loop without hand-written JSON: `scripts/approve.js` records the operator decision (and refuses an unattributed one), `scripts/mechanism-declare.js` admits case + mechanism against a registered verifier
 - [x] live incident replay: the real esc-3 pid file truncated to 0 bytes, detected, refused and recovered (control 13)
 
-## 0.5 (planned)
+## 0.5
+
+- [x] canary and rollback records: a promotion names the run it rested on and refuses a verdict that is not `verified`/`closed`; when the evidence goes stale the mechanism is retired by a rollback record carrying the forcing fact, and preflight reports `stale_lifecycle_escape_count = 0`
+
+## 0.6 (planned)
 
 Ordered by what the current evidence can already support; each item needs the same PASS + FAIL shape before it is called done.
-
-- [ ] canary and rollback records: when a promoted capability loses its evidence (freshness fails, a re-derivation fails, or the runner changes), the system must emit a rollback or retire record carrying the evidence that forced it, and must not let a stale verdict keep a capability promoted (`stale_lifecycle_escape_count = 0`)
 - [ ] shadow evaluation: compare recorded routing decisions with what was actually chosen and executed, once a real task stream exists to compare against
 - [ ] automatic proposal generation from issue history: mechanical only; it produces candidates, no verdicts
 

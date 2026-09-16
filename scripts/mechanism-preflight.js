@@ -35,9 +35,25 @@ const closures = readJsonl(path.join(state, 'closures.jsonl'));
 const cases = readJsonl(path.join(state, 'cases.jsonl'));
 const blockers = [];
 let staleVerdictEscapes = 0;
+let staleLifecycleEscapes = 0;
 for (const record of records) {
   const status = mechanism.status(state, record.id, { repo: repo });
-  if (!status.ok || (status.status !== 'verified' && status.status !== 'closed')) {
+  const life = mechanism.lifecycle(state, record.id);
+  const promoted = life.to === 'promoted';
+  const retired = life.to === 'retired';
+  const healthy = status.ok && (status.status === 'verified' || status.status === 'closed');
+  // A promotion outliving its evidence is the escape this loop exists to prevent:
+  // the verdict is already gone, yet the capability would stay promoted.
+  if (promoted && !healthy) {
+    staleLifecycleEscapes += 1;
+    blockers.push(record.id + ': promoted but ' + (status.status || 'error') + ' - ' + (status.reason || (status.errors || []).join('; '))
+      + '; run: node scripts/mechanism-lifecycle.js --mechanism ' + record.id + ' --rollback-if-stale');
+    continue;
+  }
+  if (!healthy) {
+    // A retired mechanism carries the record that explains why its verdict is gone:
+    // that is a closed loop, not an unhandled failure.
+    if (retired) continue;
     blockers.push(record.id + ': ' + (status.status || 'error') + ' - ' + (status.reason || (status.errors || []).join('; ')));
     continue;
   }
@@ -61,7 +77,7 @@ for (const record of records) {
   }
 }
 if (blockers.length) {
-  process.stderr.write('MECHANISM_PREFLIGHT_BLOCK\n' + blockers.join('\n') + '\n');
+  process.stderr.write('MECHANISM_PREFLIGHT_BLOCK\n' + blockers.join('\n') + '\n' + 'stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + '\n');
   process.exit(2);
 }
-process.stdout.write('mechanism preflight passed: ' + records.length + ' mechanism(s) verified/closed, stale_verdict_escape_count=' + staleVerdictEscapes + '\n');
+process.stdout.write('mechanism preflight passed: ' + records.length + ' mechanism(s) verified/closed, stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + '\n');

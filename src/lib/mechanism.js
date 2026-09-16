@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { readJsonl, writeJsonl } = require('./util');
+const { readJsonl, writeJsonl, sha256 } = require('./util');
 const verify = require('./verify');
 
 const STATUSES = ['unverified', 'verified', 'expired', 'bypassed', 'closed'];
@@ -11,7 +11,8 @@ function files(stateDir) {
     cases: path.join(stateDir, 'cases.jsonl'),
     mechanisms: path.join(stateDir, 'mechanisms.jsonl'),
     runs: path.join(stateDir, 'mechanism-runs.jsonl'),
-    closures: path.join(stateDir, 'closures.jsonl')
+    closures: path.join(stateDir, 'closures.jsonl'),
+    lifecycle: path.join(stateDir, 'lifecycle.jsonl')
   };
 }
 function read(file) { return fs.existsSync(file) ? readJsonl(file) : []; }
@@ -251,4 +252,119 @@ function status(stateDir, mechanismId, options) {
 }
 function listMechanisms(stateDir) { return read(files(stateDir).mechanisms); }
 
-module.exports = { STATUSES, files, admitCase, registerMechanism, recordMechanismRun, closeCase, status, listMechanisms };
+// Lifecycle: a verdict is not a promotion. 'promoted' is a separate, evidence-backed
+// decision, and it only holds while the verdict that justified it still holds. When the
+// evidence goes stale the mechanism is retired by a rollback record that carries the fact
+// which forced it - otherwise a stale verdict would keep a capability promoted forever.
+function lifecycleHistory(stateDir, mechanismId) {
+  return read(files(stateDir).lifecycle).filter(function (item) { return item.mechanism_id === mechanismId; });
+}
+function lifecycle(stateDir, mechanismId) {
+  const rows = lifecycleHistory(stateDir, mechanismId);
+  const latest = rows.length ? rows[rows.length - 1] : null;
+  return latest || { schema_version: 'autoarmory/mechanism-lifecycle/v1', id: null, mechanism_id: mechanismId, from: null, to: 'proposed', at: null };
+}
+function latestRun(stateDir, mechanismId) {
+  const runs = read(files(stateDir).runs).filter(function (item) { return item.mechanism_id === mechanismId; });
+  return runs.slice().sort(function (a, b) { return Date.parse(a.finished_at || a.recorded_at) - Date.parse(b.finished_at || b.recorded_at); }).pop() || null;
+}
+function evidencePointer(run) {
+  if (!run) return null;
+  return {
+    run_id: run.id,
+    result: run.result || null,
+    exit_code: Number.isInteger(run.exit_code) ? run.exit_code : null,
+    input_sha256: run.input_sha256 || null,
+    output_sha256: run.output_sha256 || null,
+    runner_sha256: run.runner_sha256 || null,
+    case_sha256: run.case_sha256 || null
+  };
+}
+function appendLifecycle(stateDir, record) {
+  const state = files(stateDir);
+  const rows = read(state.lifecycle);
+  rows.push(record);
+  writeJsonl(state.lifecycle, rows);
+  return record;
+}
+function promote(stateDir, mechanismId, options) {
+  const opts = options || {};
+  const mechanismRecord = read(files(stateDir).mechanisms).find(function (item) { return item.id === mechanismId; });
+  if (!mechanismRecord) return { ok: false, errors: ['mechanism not found: ' + mechanismId] };
+  const current = status(stateDir, mechanismId, opts);
+  if (!current.ok) return { ok: false, errors: ['mechanism status unavailable: ' + (current.errors || []).join('; ')] };
+  if (current.status !== 'verified' && current.status !== 'closed') {
+    return { ok: false, errors: ['cannot promote ' + mechanismId + ': verdict is ' + current.status + ' - ' + current.reason] };
+  }
+  const previous = lifecycle(stateDir, mechanismId);
+  if (previous.to === 'promoted') return { ok: true, action: 'none', lifecycle: previous };
+  const run = latestRun(stateDir, mechanismId);
+  const at = new Date().toISOString();
+  const record = {
+    schema_version: 'autoarmory/mechanism-lifecycle/v1',
+    id: 'lc-' + sha256(mechanismId + ':promoted:' + at).slice(0, 12),
+    mechanism_id: mechanismId,
+    case_id: run ? run.case_id : null,
+    from: previous.to,
+    to: 'promoted',
+    verdict: current.status,
+    reason: current.reason,
+    evidence_refs: [evidencePointer(run)].filter(Boolean),
+    actor: opts.actor || 'codex',
+    at: at
+  };
+  appendLifecycle(stateDir, record);
+  return { ok: true, action: 'promoted', lifecycle: record };
+}
+function rollbackIfStale(stateDir, mechanismId, options) {
+  const opts = options || {};
+  const previous = lifecycle(stateDir, mechanismId);
+  if (previous.to !== 'promoted') return { ok: true, action: 'none', reason: 'mechanism is not promoted', lifecycle: previous };
+  const current = status(stateDir, mechanismId, opts);
+  if (!current.ok) return { ok: false, errors: ['mechanism status unavailable: ' + (current.errors || []).join('; ')] };
+  if (current.status === 'verified' || current.status === 'closed') {
+    return { ok: true, action: 'none', reason: 'evidence still holds: ' + current.status, lifecycle: previous };
+  }
+  const run = latestRun(stateDir, mechanismId);
+  const pointer = evidencePointer(run) || {};
+  const already = read(files(stateDir).lifecycle).some(function (item) {
+    return item.mechanism_id === mechanismId && item.to === 'retired' && item.forced_by && item.forced_by.latest_run_id === pointer.run_id && item.forced_by.status === current.status;
+  });
+  if (already) return { ok: true, action: 'none', reason: 'already rolled back for this evidence', lifecycle: previous };
+  const at = new Date().toISOString();
+  const record = {
+    schema_version: 'autoarmory/mechanism-lifecycle/v1',
+    id: 'rb-' + sha256(mechanismId + ':' + String(pointer.run_id) + ':' + current.status).slice(0, 12),
+    mechanism_id: mechanismId,
+    case_id: run ? run.case_id : previous.case_id || null,
+    from: 'promoted',
+    to: 'retired',
+    verdict: current.status,
+    reason: 'promoted mechanism lost its evidence: ' + current.status + ' - ' + current.reason,
+    forced_by: {
+      status: current.status,
+      reason: current.reason,
+      latest_run_id: pointer.run_id || null,
+      runner_sha256: pointer.runner_sha256 || null,
+      case_sha256: pointer.case_sha256 || null,
+      promoted_by: previous.id || null
+    },
+    actor: opts.actor || 'codex',
+    at: at
+  };
+  appendLifecycle(stateDir, record);
+  return { ok: true, action: 'rolled_back', lifecycle: record };
+}
+function staleLifecycleEscapes(stateDir, options) {
+  const opts = options || {};
+  const mechanisms = read(files(stateDir).mechanisms);
+  let escapes = 0;
+  for (const item of mechanisms) {
+    if (lifecycle(stateDir, item.id).to !== 'promoted') continue;
+    const current = status(stateDir, item.id, opts);
+    if (!current.ok || (current.status !== 'verified' && current.status !== 'closed')) escapes += 1;
+  }
+  return escapes;
+}
+
+module.exports = { STATUSES, files, admitCase, registerMechanism, recordMechanismRun, closeCase, status, listMechanisms, lifecycle, lifecycleHistory, promote, rollbackIfStale, staleLifecycleEscapes };
