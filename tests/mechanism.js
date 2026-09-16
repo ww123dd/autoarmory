@@ -108,6 +108,20 @@ const cliClose = cliRun(['close', '--case', 'case-good', '--run', 'run-good', '-
 must(cliClose.code === 0 && JSON.parse(cliClose.out).status.status === 'closed', 'close CLI must pass repo root to the judge');
 must(mechanism.status(fixture.state, 'mech-good', { repo: fixture.repo }).status === 'closed', 'closed status must be derived from a fresh re-derivation');
 
+const recorder = path.resolve(__dirname, '..', 'scripts', 'mechanism-record.js');
+fixture = makeRepo('recorder');
+must(mechanism.admitCase(fixture.state, caseRecord('case-recorder', 'inc-recorder')).ok, 'recorder case admission');
+must(mechanism.registerMechanism(fixture.state, mechanismRecord('mech-recorder')).ok, 'recorder mechanism registration');
+const recorderRun = spawnSync(process.execPath, [recorder, '--mechanism', 'mech-recorder', '--case', 'case-recorder', '--counterexample-kind', 'count_gt_zero', '--state', fixture.state, '--repo', fixture.repo, '--close', '--json'], { cwd: fixture.repo, encoding: 'utf8' });
+must(recorderRun.status === 0, 'mechanism recorder must record and close: ' + String(recorderRun.stderr || recorderRun.stdout || '').slice(0, 300));
+const recorderReport = JSON.parse(recorderRun.stdout);
+must(recorderReport.run.result === 'pass' && recorderReport.run.exit_code === 0, 'mechanism recorder must store re-derived facts');
+must(/^[a-f0-9]{64}$/.test(recorderReport.run.input_sha256), 'mechanism recorder must store the re-derived input digest');
+must(recorderReport.closure && recorderReport.closure.run_id === recorderReport.run.id, 'mechanism recorder --close must close the recorded run');
+must(recorderReport.status.status === 'closed', 'mechanism recorder must report the closed verdict');
+const recorderUnknown = spawnSync(process.execPath, [recorder, '--mechanism', 'mech-missing', '--state', fixture.state, '--repo', fixture.repo, '--json'], { cwd: fixture.repo, encoding: 'utf8' });
+must(recorderUnknown.status !== 0 && /mechanism not found/.test(recorderUnknown.stdout + recorderUnknown.stderr), 'unknown mechanism must be rejected by the recorder');
+
 fixture = makeRepo('good-fail');
 must(mechanism.admitCase(fixture.state, caseRecord('case-fail', 'inc-fail')).ok, 'fail case admission');
 must(mechanism.registerMechanism(fixture.state, mechanismRecord('mech-fail')).ok, 'fail mechanism registration');

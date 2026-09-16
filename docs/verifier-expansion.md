@@ -35,6 +35,22 @@ node scripts/verifier-pin.js --dry-run
 
 `verifier-pin` recomputes every digest the profile pins (`adapter`, `bridge`, MCP `config`, MCP `entry`) and rewrites both halves of the trust root in one step: the gitignored `verifiers.lock.json` inside the repository and the external anchor `~/.codex/hooks/verifier-lock.sha256` outside it. It fails closed when the two halves already disagree, so a re-pin can never paper over drift. `--dry-run` prints the digest the profile would produce; when it differs from the lock on disk, the profile is not fully pinned.
 
+## Pinned files are byte-identical to their commits
+
+Every pinned artifact (`scripts/verify/state-query.js` and each `examples/adapters/*/bridge.js`) must have the same bytes in the working tree as in its committed blob, so `.gitattributes` pins both surfaces to `eol=lf`. `tests/verifier-bridges.js` fails closed when they differ: a CRLF working copy produces a digest that a fresh clone cannot reproduce, and the failure would otherwise surface only after the checkout silently rewrote the file.
+
+## Changing a pin invalidates recorded evidence
+
+A recorded `mechanism_run` embeds the pinned bridge digest inside its `input_sha256`. Re-pinning a bridge therefore invalidates every run that used it, and `scripts/mechanism-preflight.js` blocks the commit until a run is recorded against the new pin:
+
+```bash
+node scripts/verifier-pin.js
+node scripts/mechanism-record.js --mechanism <mechanism-id> --close
+node scripts/mechanism-preflight.js
+```
+
+`tests/mechanism.js` covers that recovery path. `mech-esc-3-pid-file` is the worked example: normalising `examples/adapters/pid-file-live/bridge.js` to LF moved its digest, the recorded run stopped reproducing, and a fresh capture plus `--close` closed the case again on the new pin.
+
 ## Reporting
 
 Run:
