@@ -31,6 +31,8 @@ A record is verified only when the judge can re-derive the fact now:
 - the record points to an `evidence_ref` whose `verifier` is registered in `verifiers.lock.json`;
 - the verifier is explicitly `readonly`;
 - the adapter is inside the repository and its SHA-256 matches the pinned adapter digest;
+- the bridge adapter, MCP config, and MCP server entry are also pinned by SHA-256;
+- the bridge verifies the configured `readonly_aa` user before querying the live read-only Doris MCP server;
 - the adapter is re-run and produces fresh `input_sha256`, `output_sha256`, and `exit_code`;
 - those fresh values match the recorded ref;
 - the same output digest reproduces across the configured trials (`Pass^k` style stability check);
@@ -40,7 +42,9 @@ Missing refs, unknown verifiers, non-readonly adapters, missing recorded hashes,
 
 `verified_by`, `independent: true`, and a stored `verification_result` are not trust roots. `closeCase` and `status` re-run the verifier at read time. A caller that writes `result: pass` while the verifier re-derives `exit_code: 1` is rejected.
 
-Boundary: this proves that the registered adapter re-derives the recorded fact under the committed lock. It does not prove that a bridge or external system is honest beyond that adapter/lock boundary, and it cannot protect against rewritten history.
+Boundary: this proves that the registered adapter re-derives the recorded fact through the pinned read-only MCP path. It does not protect against rewritten git history or a compromised MCP server binary/configuration; those remain explicit trust-root boundaries.
+
+`scripts/verifier-preflight.js` runs on pre-commit and fails closed if any verifier artifact or pinned MCP digest drifts, or if the checker loses its known positive/negative behavior. `scripts/mechanism-preflight.js` gives mechanism verdicts a real cost: a repository with mechanism state cannot commit while a mechanism is `unverified`, `expired`, or `bypassed`.
 
 ## Verdicts
 

@@ -1,21 +1,18 @@
 #!/usr/bin/env node
 'use strict';
 
-// Reference verifier adapter: re-derive a state fact by querying the live system
-// and applying the assertion pinned in verifiers.lock.json.
+// Reference verifier adapter: re-derive a state fact through a pinned,
+// read-only bridge and apply the assertion pinned in verifiers.lock.json.
 //
 // Contract (stdin JSON -> stdout JSON):
 //   in : { ref: { id, verifier, artifact, params }, case_id, mechanism_id, run_id }
 //   out: { ok: true, input_sha256, output_sha256, exit_code, observed }
 //     or { ok: false, reason }
 //
-// The statement being re-derived is pinned in verifiers.lock.json, never in the
-// record, so a caller cannot narrow the query until it agrees with the claim. The
-// assertion is pinned for the same reason: a caller cannot redefine "pass" after
-// seeing the observed value. A bridge command must be provided through the
-// environment variable named in the lock entry. If it is missing the adapter
-// declines - the caller then gets `unverifiable`, never `verified` (default deny:
-// an unconfigured verifier must not silently pass).
+// The statement and assertion are pinned in verifiers.lock.json, never in the
+// record. The bridge is also pinned by digest; a caller cannot replace it with
+// an arbitrary command or an echo. The bridge itself verifies the MCP config
+// digest, server entry digest, and readonly_aa before querying Doris.
 
 const fs = require('fs');
 const path = require('path');
@@ -35,7 +32,16 @@ function canonicalize(value) {
   return JSON.stringify(value);
 }
 function sha256Value(value) { return crypto.createHash('sha256').update(canonicalize(value)).digest('hex'); }
+function sha256Text(value) { return crypto.createHash('sha256').update(String(value)).digest('hex'); }
+function fileDigest(file) { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'); }
 function fail(reason) { process.stdout.write(JSON.stringify({ ok: false, reason: reason })); process.exit(3); }
+function insideRepo(relative) {
+  if (typeof relative !== 'string' || !relative || path.isAbsolute(relative)) return null;
+  const base = path.resolve(repo);
+  const full = path.resolve(base, relative);
+  if (full !== base && !full.startsWith(base + path.sep)) return null;
+  return full;
+}
 function readPath(value, expression) {
   if (!expression) return undefined;
   const parts = String(expression).split('.').filter(Boolean);
@@ -79,19 +85,33 @@ const declared = (lock.verifiers || []).find(function (item) { return item.id ==
 if (!declared) fail('verifier not declared in verifiers.lock.json: ' + verifierId);
 if (declared.readonly !== true) fail('verifier is not declared readonly; default deny');
 if (!declared.statement) fail('verifier declares no statement; nothing to re-derive');
+if (!declared.bridge || typeof declared.bridge !== 'object') fail('verifier declares no pinned bridge; default deny');
 
-const bridgeName = declared.bridge_env || 'AUTOARMORY_STATE_CMD';
-const bridge = process.env[bridgeName];
-if (!bridge) fail('no state bridge: set ' + bridgeName + ' to a read-only command that returns the query result on stdout');
+const bridgePath = insideRepo(declared.bridge.adapter);
+if (!bridgePath || !fs.existsSync(bridgePath)) fail('pinned bridge adapter is missing: ' + declared.bridge.adapter);
+if (!HASH.test(String(declared.bridge.adapter_sha256 || '')) || fileDigest(bridgePath) !== declared.bridge.adapter_sha256) {
+  fail('pinned bridge adapter digest mismatch');
+}
+if (!declared.bridge.server || typeof declared.bridge.server !== 'object') fail('pinned bridge declares no server descriptor');
 
-const result = spawnSync(bridge, { shell: true, cwd: repo, encoding: 'utf8', input: declared.statement + '\n', timeout: declared.timeout_ms || 60000 });
-if (result.error) fail('state bridge failed to start: ' + result.error.message);
-if (result.status !== 0) fail('state bridge exited ' + result.status + ': ' + String(result.stderr || '').trim().slice(0, 240));
-const raw = String(result.stdout || '');
-if (!raw.trim()) fail('state bridge returned nothing on stdout for: ' + declared.statement);
-
-let observed;
-try { observed = JSON.parse(raw.trim()); } catch (error) { observed = raw.trim(); }
+const bridgePayload = {
+  statement: declared.statement,
+  statement_sha256: sha256Text(declared.statement),
+  server: declared.bridge.server
+};
+const result = spawnSync(process.execPath, [bridgePath, '--json'], {
+  cwd: repo,
+  encoding: 'utf8',
+  input: JSON.stringify(bridgePayload),
+  timeout: declared.timeout_ms || 60000,
+  windowsHide: true
+});
+if (result.error) fail('pinned bridge failed to start: ' + result.error.message);
+if (result.status !== 0) fail('pinned bridge exited ' + result.status + ': ' + String(result.stderr || result.stdout || '').trim().slice(0, 400));
+let bridgeReport;
+try { bridgeReport = JSON.parse(String(result.stdout || '').trim()); } catch (error) { fail('pinned bridge produced no JSON: ' + error.message); }
+if (!bridgeReport || bridgeReport.ok !== true) fail('pinned bridge declined: ' + ((bridgeReport && bridgeReport.reason) || 'ok!=true'));
+const observed = bridgeReport.observed;
 
 let passed = false;
 let exitCode = 0;
@@ -102,18 +122,22 @@ if (declared.assertion) {
   passed = evaluated.passed === true;
   exitCode = passed ? 0 : 1;
   if (!passed) counterexample = { kind: 'state_assertion', expected: declared.assertion.value, observed: evaluated.actual };
-} else {
-  passed = true;
-  exitCode = 0;
 }
 
-const input = { verifier: verifierId, statement: declared.statement, assertion: declared.assertion || null };
+const input = {
+  verifier: verifierId,
+  statement: declared.statement,
+  assertion: declared.assertion || null,
+  bridge_adapter_sha256: declared.bridge.adapter_sha256,
+  server_config_sha256: declared.bridge.server.config_sha256 || null,
+  server_entry_sha256: declared.bridge.server.entry_sha256 || null
+};
 const output = { observed: observed, assertion: declared.assertion || null, passed: passed, exit_code: exitCode };
 if (counterexample) output.counterexample = counterexample;
 const report = {
   ok: true,
   verifier: verifierId,
-  broadcast: { statement: declared.statement, bridge: bridgeName },
+  broadcast: { statement: declared.statement, bridge: declared.bridge.adapter, server: declared.bridge.server.name },
   observed: observed,
   passed: passed,
   counterexample: counterexample,

@@ -26,7 +26,7 @@
     "verifiers.lock.json"
   ],
   "scripts": {
-    "test": "node tests/run.js && node tests/capability.js && node tests/failure-modes.js && node tests/demo.js && node tests/bench.js && node tests/integrate.js && node tests/admission.js && node tests/scenario.js && node tests/api.js && node tests/aliases.js && node packages/skillcanary/tests/run.js && node tests/change-gate.js && node scripts/pack-check.js && node tests/observe-precision.js && node tests/persistence.js && node tests/mechanism.js && node scripts/evolution-metrics.js && node tests/inc-real-02-checker.js && node tests/verification.js",
+    "test": "node tests/run.js && node tests/capability.js && node tests/failure-modes.js && node tests/demo.js && node tests/bench.js && node tests/integrate.js && node tests/admission.js && node tests/scenario.js && node tests/api.js && node tests/aliases.js && node packages/skillcanary/tests/run.js && node tests/change-gate.js && node scripts/pack-check.js && node tests/observe-precision.js && node tests/persistence.js && node tests/mechanism.js && node scripts/evolution-metrics.js && node tests/inc-real-02-checker.js && node tests/verification.js && node tests/mechanism-preflight.js",
     "observe:example": "node bin/autoarmory.js observe examples/incidents.jsonl --output .selfforge/incidents.jsonl",
     "propose:example": "node bin/autoarmory.js propose examples/incidents.jsonl --output .selfforge/candidates.jsonl",
     "learn:example": "node bin/autoarmory.js learn examples/decisions.jsonl",
@@ -46,7 +46,9 @@
     "test:mechanism": "node tests/mechanism.js",
     "test:metrics": "node scripts/evolution-metrics.js",
     "test:inc-real-02": "node tests/inc-real-02-checker.js",
-    "test:verification": "node tests/verification.js"
+    "test:verification": "node tests/verification.js",
+    "test:verifier-preflight": "node scripts/verifier-preflight.js",
+    "test:mechanism-preflight": "node tests/mechanism-preflight.js"
   },
   "engines": {
     "node": ">=18"

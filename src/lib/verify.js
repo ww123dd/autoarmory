@@ -15,6 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const os = require('os');
 const { spawnSync } = require('child_process');
 const { readJson } = require('./util');
 
@@ -41,6 +42,15 @@ function sha256Value(value) {
 
 function fileDigest(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+function expandHome(value) {
+  if (typeof value !== 'string' || !value) return value;
+  if (value === '~') return os.homedir();
+  if (value.indexOf('~/') === 0 || value.indexOf('~\\') === 0) return path.join(os.homedir(), value.slice(2));
+  return value;
+}
+function resolvePath(repo, value) {
+  return path.resolve(repo, expandHome(value));
 }
 
 function resolveRepo(start) {
@@ -100,7 +110,12 @@ function runAdapter(repo, adapterPath, payload, timeoutMs) {
   });
   if (result.error) return { ok: false, reason: 'adapter failed to start: ' + result.error.message };
   if (result.status !== 0) {
-    const detail = String(result.stderr || '').trim().replace(/\s+/g, ' ').slice(0, 240);
+    let detail = String(result.stderr || '').trim().replace(/\s+/g, ' ').slice(0, 240);
+    try {
+      const declined = JSON.parse(String(result.stdout || '').trim());
+      if (declined && declined.reason) detail = String(declined.reason);
+    } catch (_) {}
+    detail = String(detail || '').replace(/\s+/g, ' ').slice(0, 400);
     return { ok: false, reason: 'adapter exited ' + result.status + (detail ? ': ' + detail : '') };
   }
   let parsed = null;
@@ -351,16 +366,41 @@ function listVerifiers(repoRoot) {
   const lock = loadLock(repo);
   if (!lock.ok) return { ok: false, errors: [lock.reason], verifiers: [] };
   const verifiers = lock.verifiers.map(function (item) {
+    const checks = [];
     const adapterPath = insideRepo(repo, item.adapter);
-    const present = !!(adapterPath && fs.existsSync(adapterPath));
-    const digest = present ? fileDigest(adapterPath) : null;
-    return { id: item.id, adapter: item.adapter, present: present, integrity: !!digest && digest === item.adapter_sha256, kind: item.kind || 'artifact' };
+    const adapterPresent = !!(adapterPath && fs.existsSync(adapterPath));
+    const adapterDigest = adapterPresent ? fileDigest(adapterPath) : null;
+    checks.push({ id: 'adapter', ok: !!adapterDigest && adapterDigest === item.adapter_sha256, path: item.adapter });
+
+    let bridgeOk = true;
+    if (item.bridge && typeof item.bridge === 'object') {
+      const bridgePath = insideRepo(repo, item.bridge.adapter);
+      const bridgePresent = !!(bridgePath && fs.existsSync(bridgePath));
+      const bridgeDigest = bridgePresent ? fileDigest(bridgePath) : null;
+      bridgeOk = !!bridgeDigest && bridgeDigest === item.bridge.adapter_sha256;
+      checks.push({ id: 'bridge_adapter', ok: bridgeOk, path: item.bridge.adapter || null });
+
+      const server = item.bridge.server || {};
+      const configPath = server.config ? resolvePath(repo, server.config) : null;
+      const configOk = !!(configPath && fs.existsSync(configPath) && HASH.test(String(server.config_sha256 || '')) && fileDigest(configPath) === server.config_sha256);
+      checks.push({ id: 'bridge_config', ok: configOk, path: server.config || null });
+      const entryPath = server.entry ? resolvePath(repo, server.entry) : null;
+      const entryOk = !!(entryPath && fs.existsSync(entryPath) && HASH.test(String(server.entry_sha256 || '')) && fileDigest(entryPath) === server.entry_sha256);
+      checks.push({ id: 'bridge_entry', ok: entryOk, path: server.entry || null });
+      bridgeOk = bridgeOk && configOk && entryOk;
+    } else {
+      checks.push({ id: 'bridge_adapter', ok: true, path: null, optional: true });
+    }
+
+    return { id: item.id, adapter: item.adapter, present: adapterPresent, integrity: checks.every(function (check) { return check.ok === true; }), kind: item.kind || 'artifact', checks: checks };
   });
-  return { ok: true, repo: repo, verifiers: verifiers };
+  const ok = verifiers.every(function (item) { return item.integrity === true; });
+  return { ok: ok, repo: repo, verifiers: verifiers, errors: ok ? [] : ['one or more verifier artifacts failed integrity checks'] };
 }
 
 module.exports = {
   STATUSES,
+  expandHome,
   LOCK_FILE,
   LOCK_SCHEMA,
   canonicalize,

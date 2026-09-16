@@ -4,7 +4,6 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
-const { spawnSync } = require('child_process');
 const verify = require('../src/lib/verify');
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-verification-'));
@@ -100,38 +99,87 @@ write(path.join(repo, 'verifiers.lock.json'), JSON.stringify(failingLock, null, 
 result = verify.captureRefs([ref('adapter-exit')], { repo: repo });
 must(result.status === 'unverifiable' && /exited 2/.test(JSON.stringify(result.refs)), 'nonzero adapter exit must be unverifiable');
 
-// Integration check for the pinned reference adapter itself: the judge must not
-// trust a caller-provided assertion or a stale bridge result.
-const repoRoot = path.resolve(__dirname, '..');
-const stateQuery = path.join(repoRoot, 'scripts', 'verify', 'state-query.js');
-const bridge = path.join(root, 'state-query-bridge.js');
-write(bridge, [
-  "'use strict';",
-  "let input = '';",
-  "process.stdin.on('data', function (chunk) { input += chunk; });",
-  "process.stdin.on('end', function () { process.stdout.write(JSON.stringify({ cnt: Number(process.env.FIXTURE_COUNT || '0') })); });"
-].join('\n'));
-function runStateQuery(count, includeBridge, params) {
-  const env = Object.assign({}, process.env, { AUTOARMORY_REPO: repoRoot, FIXTURE_COUNT: String(count) });
-  if (includeBridge) env.AUTOARMORY_DORIS_MCP_CMD = '"' + process.execPath + '" "' + bridge + '"';
-  else { delete env.AUTOARMORY_DORIS_MCP_CMD; delete env.AUTOARMORY_STATE_CMD; }
-  return spawnSync(process.execPath, [stateQuery, '--json'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    input: JSON.stringify({ ref: { id: 'adapter', verifier: 'doris-readonly-count', params: params || {} }, case_id: 'case', mechanism_id: 'mech', run_id: 'run' }),
-    env: env
-  });
+// Integration check for the pinned MCP bridge: state-query must invoke the
+// pinned bridge, not an environment-provided shell command.
+function makeMcpFixture(name, count) {
+  const repo = path.join(root, name);
+  const scripts = path.join(repo, 'scripts', 'verify');
+  fs.mkdirSync(scripts, { recursive: true });
+  const stateQueryPath = path.join(scripts, 'state-query.js');
+  const bridgePath = path.join(scripts, 'doris-mcp-bridge.js');
+  write(stateQueryPath, fs.readFileSync(path.join(__dirname, '..', 'scripts', 'verify', 'state-query.js'), 'utf8'));
+  write(bridgePath, fs.readFileSync(path.join(__dirname, '..', 'scripts', 'verify', 'doris-mcp-bridge.js'), 'utf8'));
+  const serverPath = path.join(repo, 'fixture-mcp.js');
+  write(serverPath, [
+    "'use strict';",
+    "const readline = require('readline');",
+    "const rl = readline.createInterface({ input: process.stdin });",
+    "function send(message) { process.stdout.write(JSON.stringify(message) + '\\n'); }",
+    "rl.on('line', function (line) {",
+    "  let message; try { message = JSON.parse(line); } catch (_) { return; }",
+    "  if (message.method === 'initialize') {",
+    "    send({ jsonrpc: '2.0', id: message.id, result: { protocolVersion: '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: 'fixture', version: '1.0.0' } } });",
+    "  } else if (message.method === 'tools/call') {",
+    "    send({ jsonrpc: '2.0', id: message.id, result: { content: [{ type: 'text', text: JSON.stringify([{ cnt: Number(process.env.FIXTURE_COUNT || '0') }]) }], isError: false } });",
+    "  }",
+    "});"
+  ].join('\n'));
+  const configPath = path.join(repo, 'mcp.json');
+  const config = {
+    mcpServers: {
+      doris: {
+        command: process.execPath,
+        args: [serverPath],
+        env: { MYSQL_HOST: 'fixture', MYSQL_PORT: '3306', MYSQL_USER: 'readonly_aa', MYSQL_PASS: 'fixture', MYSQL_DB: 'fixture', FIXTURE_COUNT: String(count) }
+      }
+    }
+  };
+  write(configPath, JSON.stringify(config, null, 2) + '\n');
+  const lock = {
+    schema_version: 'autoarmory/verifiers-lock/v1',
+    verifiers: [{
+      id: 'fixture-doris',
+      kind: 'doris-mcp-readonly',
+      readonly: true,
+      adapter: 'scripts/verify/state-query.js',
+      adapter_sha256: sha256File(stateQueryPath),
+      statement: 'SELECT COUNT(*) AS cnt FROM fixture.table',
+      assertion: { path: 'cnt', op: 'eq', value: 0 },
+      timeout_ms: 30000,
+      bridge: {
+        adapter: 'scripts/verify/doris-mcp-bridge.js',
+        adapter_sha256: sha256File(bridgePath),
+        server: {
+          name: 'doris',
+          tool: 'mysql_query',
+          user: 'readonly_aa',
+          config: 'mcp.json',
+          config_sha256: sha256File(configPath),
+          entry: serverPath,
+          entry_sha256: sha256File(serverPath)
+        }
+      }
+    }]
+  };
+  write(path.join(repo, 'verifiers.lock.json'), JSON.stringify(lock, null, 2) + '\n');
+  return repo;
 }
-let adapterResult = runStateQuery(4998287, true, { assertion: { op: 'exists' } });
-must(adapterResult.status === 0, 'pinned state adapter must start');
-let adapterReport = JSON.parse(adapterResult.stdout);
-must(adapterReport.exit_code === 1 && adapterReport.passed === false && adapterReport.counterexample.observed === 4998287, 'pinned assertion must override caller params and fail on count>0');
-adapterResult = runStateQuery(0, true, { assertion: { op: 'exists' } });
-adapterReport = JSON.parse(adapterResult.stdout);
-must(adapterResult.status === 0 && adapterReport.exit_code === 0 && adapterReport.passed === true, 'pinned assertion must pass on count=0');
-adapterResult = runStateQuery(4998287, false, {});
-must(adapterResult.status !== 0 && /no state bridge/.test(adapterResult.stdout), 'missing bridge must be unverifiable, never pass');
-const verifierList = verify.listVerifiers(repoRoot);
+let mcpRepo = makeMcpFixture('mcp-dirty', 4998287);
+let mcpCapture = verify.captureRefs([{ id: 'mcp-dirty', verifier: 'fixture-doris' }], { repo: mcpRepo });
+must(mcpCapture.status === 'captured' && mcpCapture.captured[0].exit_code === 1, 'pinned MCP bridge must re-derive dirty state');
+let mcpVerified = verify.verifyRefs(mcpCapture.captured, { repo: mcpRepo });
+must(mcpVerified.status === 'verified' && mcpVerified.exit_code === 1, 'pinned MCP ref must verify');
+
+mcpRepo = makeMcpFixture('mcp-clean', 0);
+mcpCapture = verify.captureRefs([{ id: 'mcp-clean', verifier: 'fixture-doris' }], { repo: mcpRepo });
+must(mcpCapture.status === 'captured' && mcpCapture.captured[0].exit_code === 0, 'pinned MCP bridge must pass clean state');
+
+mcpRepo = makeMcpFixture('mcp-config-tamper', 0);
+fs.appendFileSync(path.join(mcpRepo, 'mcp.json'), '\n', 'utf8');
+mcpCapture = verify.captureRefs([{ id: 'mcp-tamper', verifier: 'fixture-doris' }], { repo: mcpRepo });
+must(mcpCapture.status === 'unverifiable' && /config digest mismatch/.test(JSON.stringify(mcpCapture.refs)), 'MCP config drift must be unverifiable');
+
+const verifierList = verify.listVerifiers(path.resolve(__dirname, '..'));
 const pinned = verifierList.verifiers.find(function (item) { return item.id === 'doris-readonly-count'; });
 must(verifierList.ok && pinned && pinned.integrity === true, 'reference adapter must match verifiers.lock.json');
 

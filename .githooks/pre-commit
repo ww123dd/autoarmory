@@ -1,3 +1,5 @@
 #!/bin/sh
 set -e
+node scripts/verifier-preflight.js
+node scripts/mechanism-preflight.js
 node scripts/change-gate.js --staged
