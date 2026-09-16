@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-// Verifier preflight: fail closed when any pinned verifier artifact is missing
+// Verifier rreflight: fail closed when any pinned verifier artifact is missing
 // or changed, and independently exercise the known positive/negative checker
 // vectors. This is intentionally not a report: failure exits 2 and blocks commit.
 
@@ -40,9 +40,15 @@ try {
 const lockFile = path.join(repo, 'verifiers.lock.json');
 let declaredVerifiers = [];
 try { declaredVerifiers = JSON.parse(fs.readFileSync(lockFile, 'utf8')).verifiers || []; } catch (error) { failures.push('verifier profile unreadable: ' + error.message); }
+const localOnlyPins = [];
 for (const item of declaredVerifiers) {
   if (typeof item.version !== 'string' || !item.version) failures.push('verifier declares no human-readable version: ' + item.id);
   if (item.invocation_contract_version !== verify.INVOCATION_CONTRACT) failures.push('verifier invocation contract mismatch: ' + item.id + ' declares ' + String(item.invocation_contract_version) + ', expected ' + verify.INVOCATION_CONTRACT);
+  for (const relative of [item.adapter].concat(item.bridge && item.bridge.adapter ? [item.bridge.adapter] : [])) {
+    const tracked = spawnSync('git', ['ls-files', '--error-unmatch', relative], { cwd: repo, encoding: 'utf8', windowsHide: true });
+    const notARepo = /not a git repository/i.test(String(tracked.stderr || ''));
+    if (!tracked.error && !notARepo && tracked.status !== 0) localOnlyPins.push(item.id + ' -> ' + relative);
+  }
 }
 
 const inventory = verify.listVerifiers(repo);
@@ -70,4 +76,4 @@ if (failures.length) {
   process.stderr.write('VERIFIER_PREFLIGHT_BLOCK\n' + failures.join('\n') + '\n');
   process.exit(2);
 }
-process.stdout.write('verifier preflight passed: pinned artifacts intact, runner identity declared for ' + declaredVerifiers.length + ' verifier(s), checker positive/negative vectors pass, verifier tests pass\n');
+process.stdout.write('verifier preflight passed: pinned artifacts intact, runner identity declared for ' + declaredVerifiers.length + ' verifier(s), checker positive/negative vectors pass, verifier tests pass' + (localOnlyPins.length ? '; local-only pins (not reproducible from a clone): ' + localOnlyPins.join(', ') : '') + '\n');

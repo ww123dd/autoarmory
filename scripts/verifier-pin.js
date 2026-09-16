@@ -20,6 +20,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const { spawnSync } = require('child_process');
 
 const repo = path.resolve(process.env.AUTOARMORY_REPO || process.cwd());
 const flags = new Set(process.argv.slice(2).filter(function (value) { return value.indexOf('--') === 0; }));
@@ -32,12 +33,28 @@ const anchorPath = path.resolve(arg('--anchor') || process.env.AUTOARMORY_LOCK_A
 const mergeFile = arg('--merge');
 const dryRun = flags.has('--dry-run');
 const allowDrift = flags.has('--allow-drift');
+const allowUntracked = flags.has('--allow-untracked');
 
 function fail(message) {
   process.stderr.write('VERIFIER_PIN_BLOCK\n' + message + '\n');
   process.exit(2);
 }
 function sha256File(file) { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'); }
+// Is this artifact committed? A pin on an uncommitted file is not reproducible from
+// a clone, so it is only allowed as an explicitly declared local instrument.
+// null means the question cannot be answered here (not a git checkout).
+function isTracked(relative) {
+  const result = spawnSync('git', ['ls-files', '--error-unmatch', relative], { cwd: repo, encoding: 'utf8', windowsHide: true });
+  if (result.error) return null;
+  if (result.status !== 0 && /not a git repository/i.test(String(result.stderr || ''))) return null;
+  return result.status === 0;
+}
+function sharedCheckoutNote() {
+  const listed = spawnSync('git', ['worktree', 'list', '--porcelain'], { cwd: repo, encoding: 'utf8', windowsHide: true });
+  if (listed.status !== 0) return null;
+  const count = String(listed.stdout || '').split(/\r?\n/).filter(function (line) { return line.indexOf('worktree ') === 0; }).length;
+  return count > 1 ? count + ' worktrees share this repository; re-pinning invalidates recorded runs in the others' : null;
+}
 function expandHome(value) {
   if (typeof value !== 'string' || !value) return value;
   if (value === '~') return os.homedir();
@@ -89,7 +106,15 @@ for (const item of lock.verifiers) {
   item.adapter_sha256 = sha256File(adapterPath);
   if (typeof item.version !== 'string' || !item.version) fail(item.id + ': verifier.version must be declared (human-readable compatibility label)');
   if (typeof item.invocation_contract_version !== 'string' || !item.invocation_contract_version) fail(item.id + ': verifier.invocation_contract_version must be declared');
-  const row = { id: item.id, kind: item.kind || null, version: item.version, contract: item.invocation_contract_version, adapter: item.adapter + '@' + item.adapter_sha256.slice(0, 12), bridge: null, bridge_sha256: null, extras: [] };
+  const row = { id: item.id, kind: item.kind || null, version: item.version, contract: item.invocation_contract_version, adapter: item.adapter + '@' + item.adapter_sha256.slice(0, 12), bridge: null, bridge_sha256: null, extras: [], localOnly: [] };
+  for (const relative of [item.adapter].concat(item.bridge && item.bridge.adapter ? [item.bridge.adapter] : [])) {
+    const tracked = isTracked(relative);
+    if (tracked === true) continue;
+    row.localOnly.push(relative + (tracked === null ? ' (tracking unknown: not a git checkout)' : ' (not committed)'));
+    if (tracked === false && !allowUntracked && !dryRun) {
+      fail(item.id + ': pinned artifact is not committed: ' + relative + '; commit it, or declare it as a local instrument with --allow-untracked');
+    }
+  }
   if (item.bridge && typeof item.bridge === 'object') {
     if (typeof item.bridge.adapter !== 'string' || !inside(resolveFromRepo(item.bridge.adapter), repo)) fail(item.id + ': bridge must stay inside the repository');
     const bridgePath = resolveFromRepo(item.bridge.adapter);
@@ -113,16 +138,23 @@ const text = JSON.stringify(lock, null, 2) + '\n';
 const nextDigest = crypto.createHash('sha256').update(text, 'utf8').digest('hex');
 const summary = rows.map(function (row) {
   const parts = [row.id, row.kind || 'unknown', 'v' + row.version, row.contract, row.adapter];
+  if (row.localOnly.length) parts.push('local-only: ' + row.localOnly.join(', '));
   if (row.bridge) parts.push(row.bridge + '@' + row.bridge_sha256.slice(0, 12));
   if (row.extras.length) parts.push(row.extras.join(','));
   return '  ' + parts.join(' | ');
 }).join('\n');
 
+const localOnlyRows = rows.filter(function (row) { return row.localOnly.length; });
+const localOnlyNote = localOnlyRows.length
+  ? '  local instruments (pins not reproducible from a clone): ' + localOnlyRows.map(function (row) { return row.id; }).join(', ') + '\n'
+  : '';
+const sharedNote = sharedCheckoutNote();
+const sharedText = sharedNote ? '  note: ' + sharedNote + '\n' : '';
 if (dryRun) {
-  process.stdout.write('verifier pin (dry run): ' + rows.length + ' verifiers\n' + summary + '\n  next lock digest ' + nextDigest + ' (anchor not written)\n');
+  process.stdout.write('verifier pin (dry run): ' + rows.length + ' verifiers\n' + summary + '\n' + localOnlyNote + sharedText + '  next lock digest ' + nextDigest + ' (anchor not written)\n');
   process.exit(0);
 }
 fs.writeFileSync(lockPath, text, 'utf8');
 fs.mkdirSync(path.dirname(anchorPath), { recursive: true });
 fs.writeFileSync(anchorPath, nextDigest + '\n', 'utf8');
-process.stdout.write('verifier pin: ' + rows.length + ' verifiers pinned\n' + summary + '\n  lock   ' + lockPath + ' @ ' + nextDigest.slice(0, 12) + '\n  anchor ' + anchorPath + '\n');
+process.stdout.write('verifier pin: ' + rows.length + ' verifiers pinned\n' + summary + '\n' + localOnlyNote + sharedText + '  lock   ' + lockPath + ' @ ' + nextDigest.slice(0, 12) + '\n  anchor ' + anchorPath + '\n');

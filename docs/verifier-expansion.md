@@ -63,6 +63,22 @@ Independence, stated honestly: every portable entry is content-addressed **insid
 
 File targets are restricted to the surfaces pinned to `eol=lf` in `.gitattributes`, because a working-tree hash is not checkout-stable otherwise. The repository-history entry does not depend on the working tree at all: it reads git objects.
 
+## Shipped facts vs local instruments
+
+A pinned artifact that is not committed is a **local instrument**: the pin works on this machine, but it is not reproducible from a clone. `scripts/verifier-pin.js` refuses to pin one unless it is declared with `--allow-untracked`, and every consumer reports it instead of hiding it:
+
+- `verifier-pin` prints `local-only: <path> (not committed)` on the row plus a `local instruments (pins not reproducible from a clone): <ids>` summary, in `--dry-run` and when writing;
+- `scripts/verifier-preflight.js` appends `local-only pins (not reproducible from a clone): <id> -> <path>` to its pass line;
+- `verifier-scorecard` carries `tracked: false` on the row.
+
+Today exactly one entry is in that class: `meta-skill-load-count` pins `examples/adapters/local-transcript/bridge.js`, which is a working-tree file. Committing that bridge, or dropping the entry, is what removes the note. The portable profile never contains a local instrument, so nothing in `examples/profiles/portable.profile.json` depends on an uncommitted file.
+
+## One writer per trust root
+
+`verifiers.lock.json` and the external anchor are a single-writer resource. A re-pin changes the runner identity, so every recorded mechanism run that used that runner goes stale - that is the freshness rule working, not a bug, but two sessions sharing one checkout will invalidate each other silently. `verifier-pin` prints `N worktrees share this repository; re-pinning invalidates recorded runs in the others` when it sees more than one worktree.
+
+The rule: one writer at a time per profile, and prefer one checkout per session. Each checkout keeps its own repo-relative `verifiers.lock.json`, but the external anchor is one file per machine, so a second session needs its own pair (`verifier-pin --lock <path> --anchor <path>`, and `AUTOARMOR_LOCK_PATH` / `AUTOARMOR_LOCK_ANCHOR` for the readers) or an explicit agreement about who re-pins when.
+
 ## Apparatus freeze
 
 The apparatus was frozen across the first live replay (`docs/negative-controls.md`, control 13): no new field, schema or verifier was added while it ran, so the replay measures the existing chain rather than an explanation invented alongside it. Any change after this point cites that replay output as its input.

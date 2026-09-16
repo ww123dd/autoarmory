@@ -117,4 +117,22 @@ write(incomplete, JSON.stringify([{ id: 'fixture-third', kind: 'fixture', readon
 result = pin(fixture, ['--merge', incomplete]);
 must(result.status === 2 && /verifier\.version must be declared/.test(result.stderr), 'a declaration without version must be refused');
 
-console.log('verifier pin tests passed: bootstrap, declare-from-descriptor, drift=fail-closed, allow-drift=recovery, incomplete=refused');
+// 5. A pin on an uncommitted artifact is refused by default and only allowed when it
+//    is explicitly declared as a local instrument - and then it has to be reported.
+const gitFixture = makeRepo('untracked-pin');
+spawnSync('git', ['init', '--quiet'], { cwd: gitFixture.repo, windowsHide: true });
+spawnSync('git', ['add', 'scripts/verify/state-query.js'], { cwd: gitFixture.repo, windowsHide: true });
+const localInstrument = path.join(work, 'local-instrument.json');
+write(localInstrument, JSON.stringify([{
+  id: 'fixture-untracked-bridge', kind: 'fixture', version: '1.0.0', invocation_contract_version: CONTRACT, readonly: true,
+  adapter: 'scripts/verify/state-query.js', adapter_sha256: '', statement: 'local instrument', timeout_ms: 10000,
+  bridge: { adapter: 'examples/adapters/fixture-bridge/bridge.js', adapter_sha256: '', server: { name: 'fixture' } }
+}], null, 2) + '\n');
+result = pin(gitFixture, ['--merge', localInstrument]);
+must(result.status === 2 && /is not committed/.test(result.stderr), 'an uncommitted pinned artifact must be refused by default: ' + String(result.stderr || '').slice(0, 200));
+result = pin(gitFixture, ['--merge', localInstrument, '--allow-untracked']);
+must(result.status === 0, '--allow-untracked must land the local instrument: ' + String(result.stderr || result.stdout).slice(0, 300));
+must(/local instruments \(pins not reproducible from a clone\): fixture-untracked-bridge/.test(result.stdout), 'the local instrument must be reported, not silently accepted');
+assertFullyPinned(gitFixture, 'with a local instrument');
+
+console.log('verifier pin tests passed: bootstrap, declare-from-descriptor, drift=fail-closed, allow-drift=recovery, incomplete=refused, local-instrument=refused-without-flag-and-reported');

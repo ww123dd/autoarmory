@@ -93,9 +93,15 @@ if (fs.existsSync(lockPath)) {
     pinnedFiles.set(item.adapter, item.id);
     if (item.bridge && item.bridge.adapter) pinnedFiles.set(item.bridge.adapter, item.id);
   }
+  const localOnly = [];
   for (const [relative, id] of pinnedFiles) {
     const tracked = spawnSync('git', ['ls-files', '--error-unmatch', relative], { cwd: ROOT, encoding: 'utf8', windowsHide: true });
-    if (tracked.status !== 0) continue;
+    if (tracked.status !== 0) {
+      // Pinned but not committed: allowed only as an explicitly declared local
+      // instrument, and it must be visible rather than silently skipped.
+      localOnly.push(relative + ' (' + id + ')');
+      continue;
+    }
     const blob = spawnSync('git', ['cat-file', 'blob', ':' + relative], { cwd: ROOT, encoding: 'buffer', maxBuffer: 33554432, windowsHide: true });
     must(blob.status === 0 && Buffer.isBuffer(blob.stdout), relative + ': cannot read the committed blob');
     const working = fs.readFileSync(path.join(ROOT, relative));
