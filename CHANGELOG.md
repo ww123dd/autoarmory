@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+Attestations: the vendored anchors are now in-toto Statements, so third-party tooling can parse them without reading our prose.
+
+- Each `*.provenance.json` gained the in-toto shell: `_type: https://in-toto.io/Statement/v1`, `subject[{name,digest.sha256}]` (the bytes we ship) and a **custom** `predicateType: https://autoarmory.dev/attestation/upstream-artifact/v1` with `predicate` holding the publisher, URL, published field/digest and fetcher. `slsa.dev/provenance/v1` was deliberately not used: its required `buildDefinition`/`runDetails` do not describe what we record.
+- Added `scripts/check-attestations.js` (`npm run check:attestations`, wired into `npm test`): every statement must use the statement type, our predicateType, a subject digest equal to the artifact bytes, and a predicate consistent with the flat record. Current result: 4 statements verified.
+- Signing is explicitly out of scope until a second party exists; the shell is what lets other tooling read us today.
+
 ## 1.4.1
 
 - Inventory corrected per review: the scan reports facts only (path, sha256, existence, registered ids) and lists `judgment_required` (trigger_curation, evidence_refs, task_types) instead of filling what it cannot judge; `registerable` from a scan is now 0 by construction.

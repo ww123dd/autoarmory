@@ -20,5 +20,36 @@
     ]
   },
   "fetched_via": "node agent-guard/tools/egress.js <url> --raw, then read urls[].digests.sha256",
-  "fetched_at": "2026-09-16"
+  "fetched_at": "2026-09-16",
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "examples/anchors/pypi-six-1.16.0.tar.gz",
+      "digest": {
+        "sha256": "1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"
+      }
+    }
+  ],
+  "predicateType": "https://autoarmory.dev/attestation/upstream-artifact/v1",
+  "predicate": {
+    "publisher": "read-only REST service (pypi.org JSON API)",
+    "url": "https://pypi.org/pypi/six/1.16.0/json",
+    "published_field": "urls[packagetype=sdist].digests.sha256",
+    "algorithm": "sha256",
+    "encoding": "hex",
+    "published_digest": "1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
+    "fetcher": {
+      "kind": "http-json-digest",
+      "url": "https://pypi.org/pypi/six/1.16.0/json",
+      "list_field": "urls",
+      "filter_field": "packagetype",
+      "filter_value": "sdist",
+      "digest_path": [
+        "digests",
+        "sha256"
+      ]
+    },
+    "fetched_via": "node agent-guard/tools/egress.js <url> --raw, then read urls[].digests.sha256",
+    "fetched_at": "2026-09-16"
+  }
 }
