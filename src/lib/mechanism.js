@@ -90,11 +90,24 @@ function recordMechanismRun(stateDir, value, options) {
   if (!input.counterexample || typeof input.counterexample !== 'object' || Array.isArray(input.counterexample) || Object.keys(input.counterexample).length === 0) errors.push('mechanism_run.counterexample must be a non-empty object');
   if (input.regression !== undefined && typeof input.regression !== 'boolean') errors.push('mechanism_run.regression must be boolean when present');
 
-  const verification = verify.verifyRecord(input, {
+  // Bind the record to the runner the active profile declares. Explicit values
+  // supplied by the caller are kept, so a forged identity is judged, not patched.
+  const candidate = Object.assign({}, input);
+  if (mechanism) {
+    const runner = verify.runnerFor(opts.repo || stateDir, mechanism.verifier_id);
+    if (runner) {
+      for (const key of ['runner_id', 'runner_sha256', 'invocation_contract_version', 'verifier_version']) {
+        if (candidate[key] === undefined || candidate[key] === null) candidate[key] = runner[key];
+      }
+    }
+  }
+
+  const verification = verify.verifyRecord(candidate, {
     repo: opts.repo || stateDir,
-    case_id: input.case_id,
-    mechanism_id: input.mechanism_id,
-    run_id: input.id,
+    verifier: mechanism ? mechanism.verifier_id : null,
+    case_id: candidate.case_id,
+    mechanism_id: candidate.mechanism_id,
+    run_id: candidate.id,
     trials: opts.trials,
     require_record: false
   });
@@ -107,7 +120,7 @@ function recordMechanismRun(stateDir, value, options) {
   }
   if (errors.length) return { ok: false, errors: errors };
 
-  const record = Object.assign({}, input, {
+  const record = Object.assign({}, candidate, {
     schema_version: 'autoarmory/mechanism-run/v1',
     input_sha256: verification.input_sha256,
     output_sha256: verification.output_sha256,
@@ -140,6 +153,7 @@ function closeCase(stateDir, caseId, runId, options) {
   if (!usesVerifier(run, mechanism.verifier_id)) return { ok: false, errors: ['run does not use mechanism verifier: ' + mechanism.verifier_id] };
   const verification = verify.verifyRecord(run, {
     repo: opts.repo || stateDir,
+    verifier: mechanism.verifier_id,
     case_id: caseId,
     mechanism_id: run.mechanism_id,
     run_id: runId,
@@ -151,7 +165,19 @@ function closeCase(stateDir, caseId, runId, options) {
   if (run.regression === true) return { ok: false, errors: ['run introduced a regression'] };
   if (!run.counterexample || typeof run.counterexample !== 'object' || Object.keys(run.counterexample).length === 0) return { ok: false, errors: ['run is missing a counterexample'] };
   if (closures.some(function (entry) { return entry.case_id === caseId && entry.run_id === runId; })) return { ok: false, errors: ['case already closed for this run'] };
-  const closure = { schema_version: 'autoarmory/closure/v1', id: 'close-' + runId, case_id: caseId, mechanism_id: run.mechanism_id, run_id: runId, status: 'closed', closed_at: new Date().toISOString() };
+  const closure = {
+    schema_version: 'autoarmory/closure/v1',
+    id: 'close-' + runId,
+    case_id: caseId,
+    mechanism_id: run.mechanism_id,
+    run_id: runId,
+    status: 'closed',
+    runner_id: run.runner_id || null,
+    runner_sha256: run.runner_sha256 || null,
+    invocation_contract_version: run.invocation_contract_version || null,
+    verifier_version: run.verifier_version || null,
+    closed_at: new Date().toISOString()
+  };
   append(state.closures, closure);
   return { ok: true, closure: closure };
 }
@@ -171,6 +197,7 @@ function status(stateDir, mechanismId, options) {
   } else if (latest) {
     const checkResult = verify.verifyRecord(latest, {
       repo: opts.repo || stateDir,
+      verifier: mechanism.verifier_id,
       case_id: latest.case_id,
       mechanism_id: mechanismId,
       run_id: latest.id,
@@ -179,13 +206,40 @@ function status(stateDir, mechanismId, options) {
     });
     const ageDays = (Date.now() - Date.parse(latest.finished_at || latest.recorded_at)) / 86400000;
     const staleDays = Number(mechanism.verification_stale_days || 30);
+    // A closure is only valid while the run that produced it is still fresh, so a
+    // runner change cannot leave a case closed on evidence that no longer holds.
+    const closure = closures.filter(function (item) { return item.case_id === latest.case_id; }).sort(function (a, b) { return Date.parse(a.closed_at || 0) - Date.parse(b.closed_at || 0); }).pop() || null;
+    const closureRun = closure ? runs.find(function (item) { return item.id === closure.run_id; }) || null : null;
+    const closureCheck = closureRun ? verify.verifyRecord(closureRun, {
+      repo: opts.repo || stateDir,
+      verifier: mechanism.verifier_id,
+      case_id: closureRun.case_id,
+      mechanism_id: mechanismId,
+      run_id: closureRun.id,
+      trials: opts.trials,
+      require_record: true
+    }) : null;
     if (checkResult.status !== 'verified') { verdict = 'unverified'; reason = verificationFailure(checkResult); }
     else if (latest.result !== 'pass' || latest.regression === true) { verdict = 'bypassed'; reason = 'latest run failed or regressed'; }
     else if (ageDays > staleDays) { verdict = 'expired'; reason = 'latest run is older than verification_stale_days'; }
-    else if (closures.some(function (item) { return item.case_id === latest.case_id; })) { verdict = 'closed'; reason = 'latest verified run closed the case'; }
+    else if (closure && (!closureCheck || closureCheck.status !== 'verified')) {
+      verdict = 'unverified';
+      reason = 'closure run is no longer fresh: ' + (closureCheck ? verificationFailure(closureCheck) : ('closure run missing: ' + closure.run_id));
+    } else if (closure) { verdict = 'closed'; reason = 'latest verified run closed the case'; }
     else { verdict = 'verified'; reason = 'latest run verification passed and has not been closed'; }
   }
-  return { ok: true, schema_version: 'autoarmory/mechanism-status/v1', mechanism_id: mechanismId, status: verdict, reason: reason, latest_run_id: latest ? latest.id : null, verified_at: latest ? (latest.finished_at || latest.recorded_at) : null };
+  return {
+    ok: true,
+    schema_version: 'autoarmory/mechanism-status/v1',
+    mechanism_id: mechanismId,
+    status: verdict,
+    reason: reason,
+    latest_run_id: latest ? latest.id : null,
+    runner_id: latest ? latest.runner_id || null : null,
+    runner_sha256: latest ? latest.runner_sha256 || null : null,
+    invocation_contract_version: latest ? latest.invocation_contract_version || null : null,
+    verified_at: latest ? (latest.finished_at || latest.recorded_at) : null
+  };
 }
 function listMechanisms(stateDir) { return read(files(stateDir).mechanisms); }
 

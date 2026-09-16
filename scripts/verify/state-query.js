@@ -137,6 +137,7 @@ if (counterexample) output.counterexample = counterexample;
 const report = {
   ok: true,
   verifier: verifierId,
+  runner: payload.runner || null,
   broadcast: { statement: declared.statement, bridge: declared.bridge.adapter, server: declared.bridge.server.name },
   observed: observed,
   passed: passed,

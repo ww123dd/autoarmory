@@ -87,7 +87,9 @@ for (const item of lock.verifiers) {
   const adapterPath = resolveFromRepo(item.adapter);
   if (!fs.existsSync(adapterPath)) fail(item.id + ': adapter missing: ' + item.adapter);
   item.adapter_sha256 = sha256File(adapterPath);
-  const row = { id: item.id, kind: item.kind || null, adapter: item.adapter + '@' + item.adapter_sha256.slice(0, 12), bridge: null, bridge_sha256: null, extras: [] };
+  if (typeof item.version !== 'string' || !item.version) fail(item.id + ': verifier.version must be declared (human-readable compatibility label)');
+  if (typeof item.invocation_contract_version !== 'string' || !item.invocation_contract_version) fail(item.id + ': verifier.invocation_contract_version must be declared');
+  const row = { id: item.id, kind: item.kind || null, version: item.version, contract: item.invocation_contract_version, adapter: item.adapter + '@' + item.adapter_sha256.slice(0, 12), bridge: null, bridge_sha256: null, extras: [] };
   if (item.bridge && typeof item.bridge === 'object') {
     if (typeof item.bridge.adapter !== 'string' || !inside(resolveFromRepo(item.bridge.adapter), repo)) fail(item.id + ': bridge must stay inside the repository');
     const bridgePath = resolveFromRepo(item.bridge.adapter);
@@ -110,7 +112,7 @@ for (const item of lock.verifiers) {
 const text = JSON.stringify(lock, null, 2) + '\n';
 const nextDigest = crypto.createHash('sha256').update(text, 'utf8').digest('hex');
 const summary = rows.map(function (row) {
-  const parts = [row.id, row.kind || 'unknown', row.adapter];
+  const parts = [row.id, row.kind || 'unknown', 'v' + row.version, row.contract, row.adapter];
   if (row.bridge) parts.push(row.bridge + '@' + row.bridge_sha256.slice(0, 12));
   if (row.extras.length) parts.push(row.extras.join(','));
   return '  ' + parts.join(' | ');

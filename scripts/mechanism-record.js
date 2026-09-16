@@ -105,6 +105,10 @@ const report = {
     exit_code: recorded.run.exit_code,
     input_sha256: recorded.run.input_sha256,
     output_sha256: recorded.run.output_sha256,
+    runner_id: recorded.run.runner_id || null,
+    runner_sha256: recorded.run.runner_sha256 || null,
+    invocation_contract_version: recorded.run.invocation_contract_version || null,
+    verifier_version: recorded.run.verifier_version || null,
     observed: observed
   },
   closure: closure,

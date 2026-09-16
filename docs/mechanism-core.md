@@ -55,6 +55,32 @@ Boundary: this proves that the registered adapter re-derives the recorded fact t
 
 The local trust anchor for erifiers.lock.json lives outside the repository (for this machine, under ~/.codex/hooks/). The repository preflight fails closed if the lock digest does not match that external anchor; the guard also blocks Write/Edit to erifiers.lock.json. `scripts/mechanism-preflight.js` gives mechanism verdicts a real cost: a repository with mechanism state cannot commit while a mechanism is `unverified`, `expired`, or `bypassed`.
 
+## Runner identity and freshness
+
+A verdict is only as good as the runner that produced it. Every mechanism run and closure records:
+
+```json
+{
+  "runner_id": "<verifier id>",
+  "runner_sha256": "<sha256 over adapter, bridge, declared MCP config/entry, statement, assertion and invocation contract version>",
+  "invocation_contract_version": "autoarmory/invocation-contract/v1",
+  "verifier_version": "<human-readable compatibility label>"
+}
+```
+
+The rules:
+
+- a record that cannot name its runner is `unverifiable`;
+- a record whose runner differs from the active profile is `mismatch`;
+- a closure is only valid while the run that produced it is still fresh, so changing the runner cannot leave a case closed;
+- `close`, `status` and `scripts/mechanism-preflight.js` share this single rule, and the preflight reports `stale_verdict_escape_count`;
+- `runner_sha256` covers the pinned artifacts, the declared statement/assertion and the invocation contract; the human-readable `version` is excluded, so bumping it is compatibility metadata rather than a change of trust;
+- `scripts/mechanism-record.js` binds a new run to the runner the active profile declares instead of accepting a caller-supplied identity.
+
+A case is not bound to a runner at admission time: the case exists before a mechanism chooses one. The binding lives on the mechanism (`verifier_id`), then on each run, then on the closure.
+
+`tests/stale-verdict.js` drives the whole loop: verified -> runner change -> stale -> close refused -> re-bind -> re-verify -> closed, and asserts `stale_verdict_escape_count=0`.
+
 ## Verdicts
 
 ```text

@@ -99,7 +99,7 @@ if (fs.existsSync(lockPath)) {
     const blob = spawnSync('git', ['cat-file', 'blob', ':' + relative], { cwd: ROOT, encoding: 'buffer', maxBuffer: 33554432, windowsHide: true });
     must(blob.status === 0 && Buffer.isBuffer(blob.stdout), relative + ': cannot read the committed blob');
     const working = fs.readFileSync(path.join(ROOT, relative));
-    must(Buffer.compare(working, blob.stdout) === 0, relative + ' (' + id + '): working-tree bytes differ from the committed blob (' + working.length + ' vs ' + blob.stdout.length + ' bytes); the pinned digest would not reproduce on a fresh clone');
+    must(Buffer.compare(working, blob.stdout) === 0, relative + ' (' + id + '): working-tree bytes differ from the staged blob (' + working.length + ' vs ' + blob.stdout.length + ' bytes); stage the pinned file (git add) and re-pin (node scripts/verifier-pin.js) so the pin describes a committed artifact');
   }
   profile = lock.verifiers.length + ' verifiers pinned and anchored, ' + pinnedFiles.size + ' pinned files byte-identical to their committed blobs';
 }

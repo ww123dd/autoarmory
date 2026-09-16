@@ -35,14 +35,15 @@ function makeRepo(name, options) {
   write(adapter, adapterSource(options));
   const lock = {
     schema_version: 'autoarmory/verifiers-lock/v1',
-    verifiers: [{ id: 'fixture', kind: 'fixture', readonly: true, adapter: 'scripts/verify/fixture.js', adapter_sha256: sha256File(adapter), timeout_ms: 10000 }]
+    verifiers: [{ id: 'fixture', kind: 'fixture', version: '1.0.0', invocation_contract_version: 'autoarmory/invocation-contract/v1', readonly: true, adapter: 'scripts/verify/fixture.js', adapter_sha256: sha256File(adapter), timeout_ms: 10000 }]
   };
   write(path.join(repo, 'verifiers.lock.json'), JSON.stringify(lock, null, 2) + '\n');
   return repo;
 }
 function ref(id, mode) { return { id: id, verifier: 'fixture', params: { mode: mode || 'pass' } }; }
-function recordFor(captured) {
-  return {
+function runnerFor(repo) { return verify.runnerFor(repo, 'fixture'); }
+function recordFor(captured, repo) {
+  return Object.assign({
     schema_version: 'autoarmory/mechanism-run/v1',
     id: 'run-' + captured.id,
     evidence_refs: [captured],
@@ -51,7 +52,7 @@ function recordFor(captured) {
     output_sha256: captured.output_sha256,
     exit_code: captured.exit_code,
     counterexample: { kind: 'fixture', expected: 0, observed: captured.exit_code === 0 ? 0 : 4998287 }
-  };
+  }, runnerFor(repo));
 }
 
 let repo = makeRepo('valid');
@@ -59,7 +60,7 @@ let capture = verify.captureRefs([ref('valid')], { repo: repo });
 must(capture.status === 'captured' && capture.captured.length === 1, 'capture must derive a replayable ref');
 let result = verify.verifyRefs(capture.captured, { repo: repo });
 must(result.status === 'verified' && result.result === 'pass', 'captured ref must verify and derive pass');
-must(verify.verifyRecord(recordFor(capture.captured[0]), { repo: repo }).status === 'verified', 'record with re-derived hashes must verify');
+must(verify.verifyRecord(recordFor(capture.captured[0], repo), { repo: repo }).status === 'verified', 'record with re-derived hashes must verify');
 
 repo = makeRepo('missing-verifier');
 capture = verify.captureRefs([{ id: 'missing', verifier: 'not-registered' }], { repo: repo });
@@ -70,7 +71,7 @@ must(result.status === 'unverifiable', 'missing verifier must fail verification'
 repo = makeRepo('missing-refs');
 result = verify.verifyRefs([], { repo: repo });
 must(result.status === 'unverifiable', 'no refs must be unverifiable');
-result = verify.verifyRecord({ evidence_refs: [], verification: { independent: true, verifier_id: 'self' }, input_sha256: '0'.repeat(64), output_sha256: '0'.repeat(64), exit_code: 0, result: 'pass' }, { repo: repo });
+result = verify.verifyRecord(Object.assign({ evidence_refs: [], verification: { independent: true, verifier_id: 'self' }, input_sha256: '0'.repeat(64), output_sha256: '0'.repeat(64), exit_code: 0, result: 'pass' }, runnerFor(repo)), { repo: repo });
 must(result.status === 'unverifiable' && /no evidence refs/.test(result.reason), 'self-reported verification must not create verification');
 
 repo = makeRepo('missing-hashes');
@@ -85,10 +86,27 @@ must(result.status === 'mismatch' && /adapter_integrity/.test(JSON.stringify(res
 
 repo = makeRepo('mismatched-record');
 capture = verify.captureRefs([ref('mismatch')], { repo: repo });
-const mismatched = recordFor(capture.captured[0]);
+const mismatched = recordFor(capture.captured[0], repo);
 mismatched.input_sha256 = 'f'.repeat(64);
 result = verify.verifyRecord(mismatched, { repo: repo });
 must(result.status === 'mismatch' && /input_sha256/.test(result.reason), 'record hash mismatch must be rejected');
+
+repo = makeRepo('stale-runner');
+capture = verify.captureRefs([ref('stale-runner')], { repo: repo });
+const staleRunner = recordFor(capture.captured[0], repo);
+staleRunner.runner_sha256 = 'e'.repeat(64);
+result = verify.verifyRecord(staleRunner, { repo: repo });
+must(result.status === 'mismatch' && /runner identity changed/.test(result.reason), 'a record whose runner changed must not verify');
+const unboundRunner = recordFor(capture.captured[0], repo);
+delete unboundRunner.runner_sha256;
+delete unboundRunner.runner_id;
+delete unboundRunner.invocation_contract_version;
+result = verify.verifyRecord(unboundRunner, { repo: repo });
+must(result.status === 'unverifiable' && /no runner_sha256/.test(result.reason), 'a record that cannot name its runner must not verify');
+const versionOnly = recordFor(capture.captured[0], repo);
+versionOnly.verifier_version = '9.9.9';
+result = verify.verifyRecord(versionOnly, { repo: repo });
+must(result.status === 'verified' && result.version_drift === true, 'a human version bump must not invalidate a verdict');
 
 repo = makeRepo('adapter-exit');
 const failingAdapter = path.join(repo, 'scripts', 'verify', 'fixture.js');
@@ -180,4 +198,4 @@ mcpCapture = verify.captureRefs([{ id: 'mcp-tamper', verifier: 'fixture-doris' }
 must(mcpCapture.status === 'unverifiable' && /config digest mismatch/.test(JSON.stringify(mcpCapture.refs)), 'MCP config drift must be unverifiable');
 
 
-console.log('verification tests passed: capture, verified, missing-verifier=unverifiable, no-refs=unverifiable, missing-hash=unverifiable, adapter-tamper=mismatch, record-mismatch=mismatch, adapter-exit=unverifiable, pinned-assertion=tested');
+console.log('verification tests passed: capture, verified, runner-change=mismatch, unbound-runner=unverifiable, version-bump=verified, missing-verifier=unverifiable, no-refs=unverifiable, missing-hash=unverifiable, adapter-tamper=mismatch, record-mismatch=mismatch, adapter-exit=unverifiable, pinned-assertion=tested');

@@ -37,6 +37,14 @@ try {
 } catch (error) {
   failures.push('external verifier lock anchor unavailable: ' + error.message);
 }
+const lockFile = path.join(repo, 'verifiers.lock.json');
+let declaredVerifiers = [];
+try { declaredVerifiers = JSON.parse(fs.readFileSync(lockFile, 'utf8')).verifiers || []; } catch (error) { failures.push('verifier profile unreadable: ' + error.message); }
+for (const item of declaredVerifiers) {
+  if (typeof item.version !== 'string' || !item.version) failures.push('verifier declares no human-readable version: ' + item.id);
+  if (item.invocation_contract_version !== verify.INVOCATION_CONTRACT) failures.push('verifier invocation contract mismatch: ' + item.id + ' declares ' + String(item.invocation_contract_version) + ', expected ' + verify.INVOCATION_CONTRACT);
+}
+
 const inventory = verify.listVerifiers(repo);
 if (!inventory.ok) failures.push('verifier inventory: ' + inventory.errors.join('; '));
 for (const item of inventory.verifiers) {
@@ -62,4 +70,4 @@ if (failures.length) {
   process.stderr.write('VERIFIER_PREFLIGHT_BLOCK\n' + failures.join('\n') + '\n');
   process.exit(2);
 }
-process.stdout.write('verifier preflight passed: pinned artifacts intact, checker positive/negative vectors pass, verifier tests pass\n');
+process.stdout.write('verifier preflight passed: pinned artifacts intact, runner identity declared for ' + declaredVerifiers.length + ' verifier(s), checker positive/negative vectors pass, verifier tests pass\n');
