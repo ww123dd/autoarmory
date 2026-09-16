@@ -28,7 +28,7 @@ A record is verified only when the judge can re-derive the fact now:
 
 - the mechanism declares a registered `verifier_id`, and its adapter integrity is checked at registration;
 - the run's `evidence_refs` include that same `verifier`; a run that uses an unrelated registered verifier is rejected even if that unrelated verifier re-derives successfully;
-- the record points to an `evidence_ref` whose `verifier` is registered in the active local `verifiers.lock.json`; the core repo ships `verifiers.lock.example.json`, not a machine-specific lock;
+- the record points to an `evidence_ref` whose `verifier` is registered in the active local `verifiers.lock.json`; the core repo ships an example under `examples/profiles/`, not a machine-specific lock;
 - the verifier is explicitly `readonly`;
 - the adapter is inside the repository and its SHA-256 matches the pinned adapter digest;
 - the active local profile pins the bridge adapter and its source-specific descriptor; the shipped Doris/MCP adapter is only an example, not a core assumption;
