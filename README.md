@@ -41,7 +41,9 @@ autoarmory gate .selfforge/candidate.json --cases examples/skillcanary-cases.jso
 autoarmory record --candidate cand-1 --action add_case --reward 1.5 --verified true --gate .selfforge/gate.json --evidence .selfforge/outcome-evidence.json
 autoarmory close --case case-id --run run-id --state .selfforge
 autoarmory transition .selfforge/candidate.json --to pending_approval --state .selfforge
-autoarmory transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --approval .selfforge/approval.json --state .selfforge
+node scripts/approve.js --candidate <id> --quote "<operator words>"   # the one operator decision; the record is written for you
+autoarmory transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --approval .selfforge/approvals/<id>.json --state .selfforge
+node scripts/mechanism-declare.js --descriptor mechanism-descriptor.json
 autoarmory transition .selfforge/candidate.json --to shadow --gate .selfforge/gate.json --state .selfforge
 autoarmory learn .selfforge/decisions.jsonl
 autoarmory environment --write
