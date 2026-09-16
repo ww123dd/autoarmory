@@ -30,6 +30,13 @@ function run(profile) {
   return { status: result.status, report: report, stdout: result.stdout, stderr: result.stderr };
 }
 function entryOf(report, id) { return report.entries.filter(function (entry) { return entry.id === id; })[0] || null; }
+// git object ids are sha1 over 'blob <length>\0<bytes>', not over the bytes alone
+function digestOf(bytes, algorithm, encoding) {
+  if (algorithm === 'git-blob-sha1') {
+    return crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob ' + bytes.length + '\0', 'utf8'), bytes])).digest(encoding);
+  }
+  return crypto.createHash(algorithm).update(bytes).digest(encoding);
+}
 
 must(fs.existsSync(PROFILE), 'examples/profiles/portable.profile.json must exist');
 const profile = JSON.parse(fs.readFileSync(PROFILE, 'utf8'));
@@ -58,7 +65,7 @@ const pinnedProfile = JSON.parse(fs.readFileSync(PROFILE, 'utf8'));
 for (const name of provenanceFiles) {
   const record = JSON.parse(fs.readFileSync(path.join(provenanceDir, name), 'utf8'));
   const bytes = fs.readFileSync(path.join(ROOT, record.artifact));
-  const recomputed = crypto.createHash(record.algorithm).update(bytes).digest(record.encoding);
+  const recomputed = digestOf(bytes, record.algorithm, record.encoding);
   must(recomputed === record.published_digest, name + ': vendored bytes must match the publisher digest (' + recomputed + ' != ' + record.published_digest + ')');
   must(crypto.createHash('sha256').update(bytes).digest('hex') === record.our_sha256, name + ': the provenance sha256 must match the vendored bytes');
   const entry = pinnedProfile.verifiers.filter(function (item) { return item.bridge.server.path === record.artifact; })[0];
@@ -67,8 +74,14 @@ for (const name of provenanceFiles) {
   must(run && run.verdict === 'PASS', name + ': the anchored entry must pass in the sandbox run');
   publishers.add(record.publisher);
 }
-must(publishers.size >= 2, 'anchors must come from at least two publishers, saw: ' + Array.from(publishers).join(', '));
-must(clean.report.verifiers === pinnedProfile.verifiers.length && pinnedProfile.verifiers.length === 7, 'the portable profile must carry seven facts (two externally anchored)');
+must(publishers.size >= 3, 'anchors must come from at least three channels, saw: ' + Array.from(publishers).join(', '));
+// cross-channel: the git source blob and the published npm tarball must agree
+const tarMember = spawnSync('tar', ['-xOzf', path.join(ROOT, 'examples', 'anchors', 'ms-2.1.3.tgz'), 'package/index.js'], { maxBuffer: 8 * 1024 * 1024 });
+if (!tarMember.error && tarMember.status === 0) {
+  const gitBlob = fs.readFileSync(path.join(ROOT, 'examples', 'anchors', 'ms-2.1.3-index.js'));
+  must(Buffer.compare(tarMember.stdout, gitBlob) === 0, 'the git source blob must be byte-identical to the copy inside the npm tarball');
+}
+must(clean.report.verifiers === pinnedProfile.verifiers.length && pinnedProfile.verifiers.length === 8, 'the portable profile must carry eight facts (three externally anchored)');
 
 const missingCommit = entryOf(clean.report, 'portable-negative-commit-missing');
 must(missingCommit && missingCommit.verdict === 'FAIL' && missingCommit.observed && missingCommit.observed.exists === false, 'an all-zero commit control must fail');
@@ -122,4 +135,4 @@ must(localLockBefore === localLockAfter, 'portable profile runs must not modify 
 must(spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim() === headBefore, 'a portable run must not move the checkout HEAD');
 must(spawnSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' }).stdout === statusBefore, 'a portable run must not change the checkout state');
 
-console.log('portable profile tests passed: sandbox run, pass=' + clean.report.pass + ' fail=' + clean.report.fail + ' (' + publishers.size + ' publishers verified against their published digests, repo commit found, both controls fail), expectation change flips the verdict, all-pass profile refused, trust root + checkout untouched');
+console.log('portable profile tests passed: sandbox run, pass=' + clean.report.pass + ' fail=' + clean.report.fail + ' (' + publishers.size + ' channels verified against their published digests, git blob matches the npm tarball, repo commit found, both controls fail), expectation change flips the verdict, all-pass profile refused, trust root + checkout untouched');

@@ -53,7 +53,7 @@ Acceptance shape: the run must re-derive every fact and must show **at least one
 
 Portability gate: `profile-run` refuses a profile that names an absolute path or climbs out with `..`, then copies the profile and its artifacts into a temp repository. A portable profile cannot depend on this machine.
 
-Seven entries ship today: two externally anchored upstream artifacts (npm registry, PyPI), two content hashes (the file-sha256 bridge bytes, the verifier core adapter bytes), one repository-history fact, and the two negative controls.
+Eight entries ship today: three externally anchored upstream artifacts (npm registry, PyPI, and the git source commit npm published as `gitHead`), two content hashes (the file-sha256 bridge bytes, the verifier core adapter bytes), one repository-history fact, and the two negative controls.
 
 The repository-history entry is the first shippable fact that is not about this machine: `git-commit-exists` with `repo: "."` resolves against the clone that runs the profile. `profile-run` links the clone object database into the sandbox with a `gitdir:` pointer and only ever runs `git cat-file`, so judging a commit never writes to the checkout. If the history around that commit is rewritten, the commit disappears and the entry fails — a third party can watch the same thing happen after a force-push.
 
@@ -61,14 +61,15 @@ Observed both ways: a full clone reports `PASS portable-repo-commit-exists`, whi
 
 Independence, stated honestly: five of the six portable entries are content-addressed **inside this repository** (bridge bytes, adapter bytes, a commit sha). They are deterministic, machine-independent, offline and checkout-stable, and they are a real drift and tamper detector — but the author still chooses those values, so those five are not independent of the author.
 
-Two entries are anchored outside the repository, from two different publishers:
+Three entries are anchored outside the repository, from three different channels:
 
 - `examples/anchors/ms-2.1.3.tgz` is vendored byte for byte from the npm publication of `ms@2.1.3` (registry `dist.integrity`, sha512);
-- `examples/anchors/pypi-six-1.16.0.tar.gz` is vendored byte for byte from the PyPI publication of `six@1.16.0` (`urls[].digests.sha256`).
+- `examples/anchors/pypi-six-1.16.0.tar.gz` is vendored byte for byte from the PyPI publication of `six@1.16.0` (`urls[].digests.sha256`);
+- `examples/anchors/ms-2.1.3-index.js` is the source blob at commit `1c6264b7…` of `github.com/vercel/ms` - the commit the npm publication of `ms@2.1.3` names as `gitHead` - and its git object id is the published value (sha1 over `blob <length>\0<bytes>`).
 
 Each artifact carries a `<file>.provenance.json` record (publisher, URL, published field, algorithm, published digest, pinned sha256), and `tests/portable-profile.js` recomputes the published digest from the vendored bytes on every run, then checks that the portable profile pins those same bytes. We choose to vendor an artifact; we do not choose its bytes or its published digest.
 
-Honest limits: the npm artifact was pulled through `registry.npmmirror.com`, a mirror of the canonical registry, so the agreement observed between the mirror and `registry.npmjs.org` is a consistency check rather than a second independent publisher — the PyPI anchor is what makes the anchor set span two publishers today. A third-party read-only service body would add a third channel. An entry graduates to that class only when its expectation is anchored outside the repository: an upstream published artifact hash, a vendored file upstream provenance hash, or the content hash of a third-party read-only service body. Those anchors need a network or a vendored artifact with a published hash; the remaining machine-local verifiers do not qualify, because they pin this machine absolute paths or a live process.
+The npm and git anchors overlap on purpose: the git source blob is byte-identical to `package/index.js` inside the published npm tarball, and `tests/portable-profile.js` checks that equality, so the registry channel and the source channel are cross-validated rather than merely co-existing. Honest limits: the npm artifact was pulled through `registry.npmmirror.com`, a mirror of the canonical registry, so agreement between the mirror and `registry.npmjs.org` is a consistency check rather than a second publisher; a third-party read-only service body would add a fourth, fully independent channel. An entry graduates to that class only when its expectation is anchored outside the repository: an upstream published artifact hash, a vendored file upstream provenance hash, or the content hash of a third-party read-only service body. Those anchors need a network or a vendored artifact with a published hash; the remaining machine-local verifiers do not qualify, because they pin this machine absolute paths or a live process.
 
 File targets are restricted to the surfaces pinned to `eol=lf` in `.gitattributes`, because a working-tree hash is not checkout-stable otherwise. The repository-history entry does not depend on the working tree at all: it reads git objects.
 

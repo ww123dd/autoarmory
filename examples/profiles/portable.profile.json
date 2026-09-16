@@ -1,6 +1,6 @@
 {
   "schema_version": "autoarmory/verifiers-lock/v1",
-  "note": "Portable profile: deterministic, machine-independent, offline. Run it with `node scripts/profile-run.js --profile examples/profiles/portable.profile.json`; the run must show at least one PASS and one FAIL. Two entries are anchored outside this repository, in examples/anchors/, from two different publishers (npm registry, PyPI): the vendored bytes and the published digests are recorded in <file>.provenance.json and re-checked by tests/portable-profile.js. The remaining entries are content-addressed inside this repository, so they detect drift but are not independent of the author; the repository-history entry reads git objects instead of the working tree.",
+  "note": "Portable profile: deterministic, machine-independent, offline. Run it with `node scripts/profile-run.js --profile examples/profiles/portable.profile.json`; the run must show at least one PASS and one FAIL. Three entries are anchored outside this repository, in examples/anchors/, from three different channels (npm registry, PyPI, the git source repository named by the npm publication): the vendored bytes and the published digests are recorded in <file>.provenance.json and re-checked by tests/portable-profile.js. The remaining entries are content-addressed inside this repository, so they detect drift but are not independent of the author; the repository-history entry reads git objects instead of the working tree.",
   "verifiers": [
     {
       "id": "portable-upstream-ms-tarball",
@@ -49,6 +49,31 @@
           "name": "portable-file",
           "path": "examples/anchors/pypi-six-1.16.0.tar.gz",
           "sha256": "1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"
+        }
+      }
+    },
+    {
+      "id": "portable-upstream-ms-git-blob",
+      "kind": "file-sha256",
+      "version": "1.0.0",
+      "invocation_contract_version": "autoarmory/invocation-contract/v1",
+      "readonly": true,
+      "adapter": "scripts/verify/state-query.js",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "statement": "The vendored source blob of ms@2.1.3 must still match the git object published at the commit npm named as gitHead (examples/anchors/ms-2.1.3-index.js.provenance.json).",
+      "assertion": {
+        "path": "match",
+        "op": "eq",
+        "value": true
+      },
+      "timeout_ms": 10000,
+      "bridge": {
+        "adapter": "examples/adapters/file-sha256/bridge.js",
+        "adapter_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
+        "server": {
+          "name": "portable-file",
+          "path": "examples/anchors/ms-2.1.3-index.js",
+          "sha256": "e5f0b6a946a9b2b356a28557728410717df54ea2f599edb619f9839df6b7b0e9"
         }
       }
     },

@@ -1,0 +1,13 @@
+{
+  "artifact": "examples/anchors/ms-2.1.3-index.js",
+  "publisher": "git repository (github.com/vercel/ms)",
+  "url": "https://github.com/vercel/ms",
+  "canonical": "https://github.com/vercel/ms/blob/1c6264b795492e8fdecbc82cb8802fcfbfc08d26/index.js",
+  "published_field": "git object id of 1c6264b795492e8fdecbc82cb8802fcfbfc08d26:index.js (the commit npm published as gitHead for ms@2.1.3)",
+  "algorithm": "git-blob-sha1",
+  "encoding": "hex",
+  "published_digest": "ea734fb73820316ed1c0f6a2f6e96dce0e3eb6f0",
+  "our_sha256": "e5f0b6a946a9b2b356a28557728410717df54ea2f599edb619f9839df6b7b0e9",
+  "fetched_via": "git clone https://github.com/vercel/ms, then git cat-file blob 1c6264b7:index.js",
+  "fetched_at": "2026-09-16"
+}
