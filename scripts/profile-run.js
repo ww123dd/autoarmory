@@ -58,7 +58,7 @@ if (!Array.isArray(profile.verifiers) || profile.verifiers.length === 0) fail('p
 const portability = [];
 for (const item of profile.verifiers) {
   const server = (item.bridge && item.bridge.server) || {};
-  const referenced = [item.adapter, item.bridge && item.bridge.adapter, server.path, server.root, server.config, server.entry].filter(function (value) { return typeof value === 'string' && value; });
+  const referenced = [item.adapter, item.bridge && item.bridge.adapter, server.path, server.root, server.repo, server.config, server.entry].filter(function (value) { return typeof value === 'string' && value; });
   for (const value of referenced) {
     if (ABSOLUTE.test(value) || value.split(/[\\/]/).indexOf('..') !== -1) portability.push({ id: item.id, path: value });
   }
@@ -75,6 +75,18 @@ try {
     copyInto(sandbox, item.adapter);
     if (item.bridge && item.bridge.adapter) copyInto(sandbox, item.bridge.adapter);
     if (typeof server.path === 'string' && server.path) copyInto(sandbox, server.path);
+  }
+  // A fact about this repository (server.repo = ".") has to be judged against the
+  // clone that runs the profile. Linking its object database keeps that read-only:
+  // the sandbox only ever runs `git cat-file`, never a command that writes.
+  const cloneGitDir = path.join(ROOT, '.git');
+  const repositoryAnchored = profile.verifiers.some(function (item) {
+    const server = (item.bridge && item.bridge.server) || {};
+    return server.repo === '.';
+  });
+  if (repositoryAnchored) {
+    if (!fs.existsSync(cloneGitDir)) fail('a verifier targets this repository (repo: ".") but ' + ROOT + ' is not a git checkout');
+    fs.writeFileSync(path.join(sandbox, '.git'), 'gitdir: ' + path.resolve(cloneGitDir) + '\n', 'utf8');
   }
 
   const entries = [];

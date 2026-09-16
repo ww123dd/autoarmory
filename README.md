@@ -90,7 +90,7 @@ node scripts/profile-run.js --profile examples/profiles/portable.profile.json
 npm run test:portable-profile
 ```
 
-That run judges the same chain both ways — at least one entry must PASS and at least one must FAIL — so a reader watches the checker accept and reject instead of trusting a summary. The machine-local trust root (`verifiers.lock.json`) is gitignored on purpose: it pins this machine's paths and live facts, and `scripts/verifier-pin.js` regenerates it.
+That run judges the same chain both ways — at least one entry must PASS and at least one must FAIL — so a reader watches the checker accept and reject instead of trusting a summary. One entry checks that the commit this profile was written against still exists in the history of the clone running it, so a rewritten history shows up as a FAIL instead of a story. The machine-local trust root (`verifiers.lock.json`) is gitignored on purpose: it pins this machine's paths and live facts, and `scripts/verifier-pin.js` regenerates it.
 
 See [Verifier Expansion](docs/verifier-expansion.md) and [Mechanism Core](docs/mechanism-core.md).
 
