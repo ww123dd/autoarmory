@@ -49,13 +49,19 @@ node scripts/profile-run.js --profile examples/profiles/portable.profile.json
 npm run test:portable-profile
 ```
 
-Acceptance shape: the run must re-derive every fact and must show **at least one PASS and at least one FAIL**. The failing entry is the deliberate negative control (`portable-negative-control-sha256`); a profile that only passes is refused, because it would not show that the checker can reject. `tests/portable-profile.js` additionally flips a positive expectation and asserts the verdict flips with the bytes, and asserts that a portable run leaves the machine-local trust root untouched.
+Acceptance shape: the run must re-derive every fact and must show **at least one PASS and at least one FAIL**. The failing entries are deliberate negative controls — the file-sha256 bridge against an all-zero digest, and an all-zero commit that cannot exist; a profile that only passes is refused, because it would not show that the checker can reject. `tests/portable-profile.js` additionally flips a positive expectation and asserts the verdict flips with the bytes, and asserts that a portable run leaves both the machine-local trust root and the checkout untouched.
 
 Portability gate: `profile-run` refuses a profile that names an absolute path or climbs out with `..`, then copies the profile and its artifacts into a temp repository. A portable profile cannot depend on this machine.
 
-Independence, stated honestly: the current portable entries are content-addressed **inside this repository** (the file-sha256 bridge bytes and the verifier core adapter bytes). That makes them deterministic, machine-independent, offline and checkout-stable, and makes them a real drift detector — but the author still chooses those bytes, so they are not independent of the author. An entry graduates to that class only when its expectation is anchored outside the repository: an upstream published artifact hash, a vendored file upstream provenance hash, or the content hash of a third-party read-only service body. Those anchors need a network or a vendored artifact with a published hash, and none of the machine-local verifiers qualifies: they pin this machine absolute paths and a live process.
+Five entries ship today: two content hashes (the file-sha256 bridge bytes, the verifier core adapter bytes), one repository-history fact, and the two negative controls.
 
-Targets are restricted to the surfaces pinned to `eol=lf` in `.gitattributes`, because a working-tree hash is not checkout-stable otherwise.
+The repository-history entry is the first shippable fact that is not about this machine: `git-commit-exists` with `repo: "."` resolves against the clone that runs the profile. `profile-run` links the clone object database into the sandbox with a `gitdir:` pointer and only ever runs `git cat-file`, so judging a commit never writes to the checkout. If the history around that commit is rewritten, the commit disappears and the entry fails — a third party can watch the same thing happen after a force-push.
+
+Observed both ways: a full clone reports `PASS portable-repo-commit-exists`, while a clone that does not carry that commit (`git clone --depth 1 file:///...`) reports `FAIL portable-repo-commit-exists` with `exists:false` while the two content hashes still pass — `pass=2 fail=3`, shape valid. The run never writes to the checkout it judges.
+
+Independence, stated honestly: every portable entry is content-addressed **inside this repository** (bridge bytes, adapter bytes, a commit sha). That makes them deterministic, machine-independent, offline and checkout-stable, and it makes them a real drift and tamper detector — but the author still chooses those values, so they are not independent of the author. An entry graduates to that class only when its expectation is anchored outside the repository: an upstream published artifact hash, a vendored file upstream provenance hash, or the content hash of a third-party read-only service body. Those anchors need a network or a vendored artifact with a published hash; the remaining machine-local verifiers do not qualify, because they pin this machine absolute paths or a live process.
+
+File targets are restricted to the surfaces pinned to `eol=lf` in `.gitattributes`, because a working-tree hash is not checkout-stable otherwise. The repository-history entry does not depend on the working tree at all: it reads git objects.
 
 ## Apparatus freeze
 

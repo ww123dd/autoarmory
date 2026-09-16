@@ -34,6 +34,8 @@ function entryOf(report, id) { return report.entries.filter(function (entry) { r
 must(fs.existsSync(PROFILE), 'examples/profiles/portable.profile.json must exist');
 const profile = JSON.parse(fs.readFileSync(PROFILE, 'utf8'));
 const localLockBefore = fs.existsSync(LOCAL_LOCK) ? sha256(LOCAL_LOCK) : null;
+const headBefore = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim();
+const statusBefore = spawnSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' }).stdout;
 
 // 1. the committed profile runs and shows both verdicts.
 const clean = run(PROFILE);
@@ -42,7 +44,12 @@ must(clean.report && clean.report.shape_ok === true, 'clean run must report shap
 must(clean.report.re_derived === clean.report.verifiers, 'every portable fact must be re-derived, not skipped');
 must(clean.report.pass >= 1 && clean.report.fail >= 1, 'clean run must show at least one PASS and one FAIL');
 const negative = entryOf(clean.report, 'portable-negative-control-sha256');
-must(negative && negative.verdict === 'FAIL' && negative.exit_code === 1, 'the negative control must fail');
+must(negative && negative.verdict === 'FAIL' && negative.exit_code === 1, 'the content negative control must fail');
+const repoCommit = entryOf(clean.report, 'portable-repo-commit-exists');
+must(repoCommit && repoCommit.verdict === 'PASS', 'the repository commit must be found in the clone that runs the profile');
+must(repoCommit.observed && repoCommit.observed.exists === true, 'the repository commit fact must report exists:true');
+const missingCommit = entryOf(clean.report, 'portable-negative-commit-missing');
+must(missingCommit && missingCommit.verdict === 'FAIL' && missingCommit.observed && missingCommit.observed.exists === false, 'an all-zero commit control must fail');
 
 // 2. the profile is portable and fully pinned to the committed bytes.
 const text = fs.readFileSync(PROFILE, 'utf8');
@@ -50,12 +57,17 @@ must(!/[A-Za-z]:[\\/]/.test(text.replace(/\\\//g, '/')) && text.indexOf('/Users/
 for (const item of profile.verifiers) {
   must(sha256(path.join(ROOT, item.adapter)) === item.adapter_sha256, item.id + ': adapter_sha256 must match the committed adapter');
   must(sha256(path.join(ROOT, item.bridge.adapter)) === item.bridge.adapter_sha256, item.id + ': bridge digest must match the committed bridge');
-  const target = item.bridge.server.path;
-  const actual = sha256(path.join(ROOT, target));
-  if (item.id.indexOf('negative-control') !== -1) {
-    must(actual !== item.bridge.server.sha256, item.id + ': a negative control must pin a digest the bytes do not have');
-  } else {
-    must(actual === item.bridge.server.sha256, item.id + ': pinned target digest must match ' + target);
+  const negativeId = item.id.indexOf('negative') !== -1;
+  if (item.bridge.server.path) {
+    const target = item.bridge.server.path;
+    const actual = sha256(path.join(ROOT, target));
+    if (negativeId) must(actual !== item.bridge.server.sha256, item.id + ': a negative control must pin a digest the bytes do not have');
+    else must(actual === item.bridge.server.sha256, item.id + ': pinned target digest must match ' + target);
+  } else if (item.bridge.server.commit) {
+    must(item.bridge.server.repo === '.', item.id + ': a repository fact must target the clone it runs in (repo: ".")');
+    const exists = spawnSync('git', ['cat-file', '-e', item.bridge.server.commit + '^{commit}'], { cwd: ROOT, encoding: 'utf8' }).status === 0;
+    if (negativeId) must(exists === false, item.id + ': a negative control must pin a commit the repository does not have');
+    else must(exists === true, item.id + ': a positive repository fact must pin a commit the repository has');
   }
 }
 
@@ -74,6 +86,7 @@ must(flippedEntry && flippedEntry.verdict === 'FAIL', 'a changed expectation mus
 // 4. a profile that only passes is refused.
 const allPass = JSON.parse(JSON.stringify(profile));
 allPass.verifiers.filter(function (item) { return item.id === 'portable-negative-control-sha256'; })[0].bridge.server.sha256 = sha256(path.join(ROOT, 'examples', 'adapters', 'file-sha256', 'bridge.js'));
+allPass.verifiers.filter(function (item) { return item.id === 'portable-negative-commit-missing'; })[0].bridge.server.commit = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim();
 const allPassFile = path.join(work, 'all-pass.profile.json');
 fs.writeFileSync(allPassFile, JSON.stringify(allPass, null, 2) + '\n', 'utf8');
 const allPassRun = run(allPassFile);
@@ -84,5 +97,7 @@ must(/at least one PASS and one FAIL/.test(refusal), 'refusal must name the shap
 // 5. running a portable profile must not touch the machine-local trust root.
 const localLockAfter = fs.existsSync(LOCAL_LOCK) ? sha256(LOCAL_LOCK) : null;
 must(localLockBefore === localLockAfter, 'portable profile runs must not modify the machine-local trust root');
+must(spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim() === headBefore, 'a portable run must not move the checkout HEAD');
+must(spawnSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' }).stdout === statusBefore, 'a portable run must not change the checkout state');
 
-console.log('portable profile tests passed: sandbox run, pass=' + clean.report.pass + ' fail=' + clean.report.fail + ', expectation change flips the verdict, all-pass profile refused, local trust root untouched');
+console.log('portable profile tests passed: sandbox run, pass=' + clean.report.pass + ' fail=' + clean.report.fail + ' (repo commit found, both controls fail), expectation change flips the verdict, all-pass profile refused, trust root + checkout untouched');
