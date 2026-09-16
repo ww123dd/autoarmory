@@ -56,19 +56,28 @@ try {
   record('external-anchors', false, String(error.message).slice(0, 160));
 }
 
-// 3 + 4. freshness metrics from the mechanism preflight
+// 3 + 4. the freshness rules have to be demonstrated, not passed vacuously: the two
+// fixtures drive a stale verdict and a stale promotion on real re-derivation, and the
+// local mechanism state (when this checkout has one) must also report zero.
 try {
+  const verdictFixture = run(path.join(ROOT, 'tests', 'stale-verdict.js'));
+  const verdictLine = String(verdictFixture.out || '').trim();
+  const verdictDemonstrated = verdictFixture.code === 0 && /stale_verdict_escape_count=0/.test(verdictLine);
+  const lifecycleFixture = run(path.join(ROOT, 'tests', 'rollback.js'));
+  const lifecycleLine = String(lifecycleFixture.out || '').trim();
+  const lifecycleDemonstrated = lifecycleFixture.code === 0 && /stale_lifecycle_escape_count=1/.test(lifecycleLine) && /after-rollback=0/.test(lifecycleLine);
   const preflight = run(path.join(ROOT, 'scripts', 'mechanism-preflight.js'));
-  const text = String(preflight.out || '') + String(preflight.err || '');
-  if (/no mechanism state/.test(text)) {
-    record('stale-verdict-escapes', true, 'no mechanism state in this checkout; nothing can escape');
-    record('stale-lifecycle-escapes', true, 'no mechanism state in this checkout; nothing can escape');
-  } else {
-    const verdictMatch = text.match(/stale_verdict_escape_count=(\d+)/);
-    const lifeMatch = text.match(/stale_lifecycle_escape_count=(\d+)/);
-    record('stale-verdict-escapes', preflight.code === 0 && verdictMatch && verdictMatch[1] === '0', 'exit=' + preflight.code + ' ' + (verdictMatch ? 'count=' + verdictMatch[1] : 'metric missing'));
-    record('stale-lifecycle-escapes', preflight.code === 0 && lifeMatch && lifeMatch[1] === '0', 'exit=' + preflight.code + ' ' + (lifeMatch ? 'count=' + lifeMatch[1] : 'metric missing'));
+  const preflightText = String(preflight.out || '') + String(preflight.err || '');
+  let localNote = 'no local mechanism state';
+  let localOk = true;
+  if (!/no mechanism state/.test(preflightText)) {
+    const verdictMatch = preflightText.match(/stale_verdict_escape_count=(\d+)/);
+    const lifeMatch = preflightText.match(/stale_lifecycle_escape_count=(\d+)/);
+    localOk = preflight.code === 0 && !!verdictMatch && verdictMatch[1] === '0' && !!lifeMatch && lifeMatch[1] === '0';
+    localNote = 'local state: exit=' + preflight.code + ' verdict=' + (verdictMatch ? verdictMatch[1] : '?') + ' lifecycle=' + (lifeMatch ? lifeMatch[1] : '?');
   }
+  record('stale-verdict-escapes', verdictDemonstrated && localOk, 'fixture demonstrated=' + verdictDemonstrated + '; ' + localNote);
+  record('stale-lifecycle-escapes', lifecycleDemonstrated && localOk, 'fixture demonstrated=' + lifecycleDemonstrated + '; ' + localNote);
 } catch (error) {
   record('stale-verdict-escapes', false, String(error.message).slice(0, 160));
   record('stale-lifecycle-escapes', false, String(error.message).slice(0, 160));

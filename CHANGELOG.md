@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Fixed the acceptance check passing vacuously: criteria 3 and 4 now *demonstrate* the freshness rules by running `tests/stale-verdict.js` and `tests/rollback.js` (requiring `stale_verdict_escape_count=0` and a rollback that closes the loop) instead of reporting PASS when a checkout has no mechanism state, and they still fold in the local state metric when it exists.
+- First real shadow record: the router was used for a genuine decision - which verification path gates the 1.0.1 anchors - over two registered, real capabilities (`verifier.offline-sandbox`, `verifier.live-refresh`). It recommended the offline path, the offline path was what ran (`node scripts/anchor-refresh.js`, 4/4 `OFFLINE-OK`), and the usage was recorded with `--source agent`. `shadow-report` now prints `follow_rate=1 (n=1)`: one decision, one attributed actual, no divergence. n=1 is a first data point, not a benchmark.
+
 ## 1.0.0
 
 Acceptance: the local capability manager does what it claims, and every claim is checked mechanically by `npm run check:acceptance`.
