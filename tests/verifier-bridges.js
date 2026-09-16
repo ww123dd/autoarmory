@@ -68,7 +68,24 @@ if (fs.existsSync(lockPath)) {
   const anchored = fs.readFileSync(anchor, 'utf8').trim().toLowerCase();
   must(anchored === onDisk, 'external verifier-lock anchor drifted: ' + anchored.slice(0, 12) + ' != lock ' + onDisk.slice(0, 12));
   const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-  profile = lock.verifiers.length + ' verifiers pinned and anchored';
+  // A pinned digest has to be reproducible from the commit. A pinned file whose
+  // working-tree bytes differ from its committed blob (CRLF vs LF is the usual
+  // cause) is a pin that a fresh clone cannot reproduce, so fail closed here
+  // instead of discovering it after a checkout silently rewrites the file.
+  const pinnedFiles = new Map();
+  for (const item of lock.verifiers) {
+    pinnedFiles.set(item.adapter, item.id);
+    if (item.bridge && item.bridge.adapter) pinnedFiles.set(item.bridge.adapter, item.id);
+  }
+  for (const [relative, id] of pinnedFiles) {
+    const tracked = spawnSync('git', ['ls-files', '--error-unmatch', relative], { cwd: ROOT, encoding: 'utf8', windowsHide: true });
+    if (tracked.status !== 0) continue;
+    const blob = spawnSync('git', ['cat-file', 'blob', ':' + relative], { cwd: ROOT, encoding: 'buffer', maxBuffer: 33554432, windowsHide: true });
+    must(blob.status === 0 && Buffer.isBuffer(blob.stdout), relative + ': cannot read the committed blob');
+    const working = fs.readFileSync(path.join(ROOT, relative));
+    must(Buffer.compare(working, blob.stdout) === 0, relative + ' (' + id + '): working-tree bytes differ from the committed blob (' + working.length + ' vs ' + blob.stdout.length + ' bytes); the pinned digest would not reproduce on a fresh clone');
+  }
+  profile = lock.verifiers.length + ' verifiers pinned and anchored, ' + pinnedFiles.size + ' pinned files byte-identical to their committed blobs';
 }
 
 console.log('verifier bridge tests passed: ' + dirs.length + ' heterogeneous fact sources, local profile ' + profile + '\n' + rows.join('\n'));

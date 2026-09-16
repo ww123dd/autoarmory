@@ -1,1 +1,2 @@
 examples/adapters/**/*.js text eol=lf
+scripts/verify/** text eol=lf

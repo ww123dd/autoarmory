@@ -20,6 +20,14 @@ autoarmory close --case case-id --run run-id --state .selfforge --repo <repo-roo
 
 `close` returns the resulting verdict, so no separate status command is required.
 
+A run is recorded from the mechanism declaration plus a fresh capture of its declared verifier:
+
+```bash
+node scripts/mechanism-record.js --mechanism mech-esc-3-pid-file --close --json
+```
+
+`scripts/mechanism-record.js` reads the mechanism and case from state, captures the ref through the active local profile, records the re-derived digests, and (with `--close`) closes the case. It is the mechanical step to run after `scripts/verifier-pin.js` changes a pin: a recorded run embeds the pinned bridge digest, so an unpinned run stops reproducing until it is re-recorded.
+
 ## External fact verification
 
 `src/lib/verify.js` defines `verifyRefs` / `verifyRecord` / `captureRefs`.
