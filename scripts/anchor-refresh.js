@@ -42,7 +42,21 @@ function fetchTo(command, args, target) {
   return result;
 }
 function egressFetch(url, target) {
-  if (!fs.existsSync(EGRESS)) throw new Error('no audited egress wrapper found; set AGENT_GUARD_EGRESS to use the HTTP channel');
+  // Portable path: a clone must be able to re-fetch an anchor without this machine's
+  // guard tooling. scripts/lib/http-bytes.js keeps the same two properties (no body in
+  // stdout, an audit line per fetch) and prefers the machine wrapper when it exists.
+  if (!fs.existsSync(EGRESS)) {
+    const portable = path.join(ROOT, 'scripts', 'lib', 'http-bytes.js');
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const result = cp.spawnSync(process.execPath, [portable, url, '--output', target, '--max-bytes', '5000000'], { encoding: 'utf8', windowsHide: true });
+      if (result.status === 0) return 'in-repo http-bytes (attempt ' + attempt + ')';
+      if (attempt < 3) cp.spawnSync(process.execPath, ['-e', 'setTimeout(function(){}, 1500)'], { windowsHide: true });
+      var portableLast = String(result.stdout || result.stderr || '').slice(0, 200);
+    }
+    const portableError = new Error('unreachable after 3 attempts: ' + portableLast);
+    portableError.unreachable = true;
+    throw portableError;
+  }
   // A release qualification must not confuse a flaky link with a changed artifact:
   // retry briefly, then report the channel as unreachable rather than as a mismatch.
   let last = null;

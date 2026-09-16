@@ -85,6 +85,8 @@ The primary interface is the local CLI. HTTP, SDK and Team CLI files remain avai
 
 ## Verification
 
+`npm run check:anchors` re-fetches every vendored anchor through the channel its provenance record names, preferring the machine audited egress wrapper and falling back to the in-repo `scripts/lib/http-bytes.js` (bytes unchanged, sha256 plus an audit line, body never printed), so a plain clone can re-verify its own anchors.
+
 The trust root is a pinned local profile: every verifier is a registered, read-only bridge over one external fact source, and every digest is re-derived instead of trusted.
 
 A profile that travels with the repository needs no local state:

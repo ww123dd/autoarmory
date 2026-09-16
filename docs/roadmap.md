@@ -62,6 +62,20 @@
 - [~] shadow evaluation: `capability route` persists recommendations and `scripts/shadow-report.js` compares them with recorded actual usage (follow rate, divergences, outcome splits); the comparator refuses to print metrics while the actual stream is empty (`insufficient_real_stream`), so the number is pending a real consumer rather than fabricated
 - [x] automatic proposal generation from issue history: `autoarmory evolve <issues.json> --format github` runs observe -> propose -> acquire -> gate mechanically (verified: one issue produced one incident, one candidate and a gate result)
 
+> Version note: the 0.7 / 0.8 / 0.9 slots were not released before 1.0.0. Their content is delivered on the post-1.0 line as 1.1.0, 1.2.0 and 1.3.0: SemVer does not allow returning to a 0.x line after 1.0 has been published. The slot each release fills is named in its heading.
+
+## 1.1.0 (roadmap slot 0.7)
+
+- [x] portable anchor path: `scripts/lib/http-bytes.js` gives the repository its own audited byte fetcher (bytes unchanged, metadata + sha256 only, an audit line per fetch, https-only with a loopback exception), and `anchor-refresh` falls back to it when the machine guard wrapper is absent, so `npm run check:anchors` is runnable from a plain clone
+
+## 1.2.0 (roadmap slot 0.8, planned)
+
+- [ ] capability health as a projection of evidence: a capability whose evidence is stale or retired must not report `healthy`
+
+## 1.3.0 (roadmap slot 0.9, planned)
+
+- [ ] candidate-side rollback: a promoted candidate whose outcome evidence no longer reproduces is retired with the fact that forced it, and preflight reports the escape count
+
 ## 1.0
 
 1.0 is not a feature; it is the statement that the local capability manager does what it claims. `scripts/acceptance-check.js` prints one PASS/FAIL per line, exits non-zero on any FAIL, and runs inside `npm test` (`npm run check:acceptance`):

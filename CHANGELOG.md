@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0
+
+Roadmap slot 0.7: the anchor path no longer depends on machine-local tooling, so a clone can re-verify its own anchors.
+
+- Added `scripts/lib/http-bytes.js`: an in-repo audited byte fetcher (https only, plus a loopback exception for tests) that writes bytes unchanged, prints only metadata plus a sha256, and appends an audit line per fetch. `scripts/anchor-refresh.js` prefers the machine guard wrapper when it exists and falls back to this path otherwise, so `npm run check:anchors` works on a machine that never installed the guard.
+- Added `tests/http-bytes.js`: bytes identical on disk, sha256 and audit line recorded, body suppressed from stdout/stderr, plaintext http to a remote host refused, a fetch without `--output` refused.
+- Verified the fallback end to end: with `AGENT_GUARD_EGRESS` pointing at a nonexistent file, `anchor-refresh --fetch` still verified all four channels and wrote its own audit line.
+
 ## 1.0.1
 
 - Fixed the acceptance check passing vacuously: criteria 3 and 4 now *demonstrate* the freshness rules by running `tests/stale-verdict.js` and `tests/rollback.js` (requiring `stale_verdict_escape_count=0` and a rollback that closes the loop) instead of reporting PASS when a checkout has no mechanism state, and they still fold in the local state metric when it exists.
