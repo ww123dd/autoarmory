@@ -1,2 +1,4 @@
 examples/adapters/**/*.js text eol=lf
 scripts/verify/** text eol=lf
+# vendored third-party bytes: never converted, or the published digest stops matching
+examples/anchors/** -text
