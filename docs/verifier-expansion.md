@@ -40,6 +40,23 @@ Never hand-write `verifiers.lock.json`. It is the trust root, and the Codex guar
 
 `verifier-pin` recomputes every digest the profile pins (`adapter`, `bridge`, MCP `config`, MCP `entry`) and rewrites both halves of the trust root in one step: the gitignored `verifiers.lock.json` inside the repository and the external anchor `~/.codex/hooks/verifier-lock.sha256` outside it. It fails closed when the two halves already disagree, so a re-pin can never paper over drift. `--dry-run` prints the digest the profile would produce; when it differs from the lock on disk, the profile is not fully pinned.
 
+## Portable profile
+
+`examples/profiles/portable.profile.json` is a complete committed profile (no placeholders), and `scripts/profile-run.js` judges with it inside a sandbox, so the repository alone is enough:
+
+```bash
+node scripts/profile-run.js --profile examples/profiles/portable.profile.json
+npm run test:portable-profile
+```
+
+Acceptance shape: the run must re-derive every fact and must show **at least one PASS and at least one FAIL**. The failing entry is the deliberate negative control (`portable-negative-control-sha256`); a profile that only passes is refused, because it would not show that the checker can reject. `tests/portable-profile.js` additionally flips a positive expectation and asserts the verdict flips with the bytes, and asserts that a portable run leaves the machine-local trust root untouched.
+
+Portability gate: `profile-run` refuses a profile that names an absolute path or climbs out with `..`, then copies the profile and its artifacts into a temp repository. A portable profile cannot depend on this machine.
+
+Independence, stated honestly: the current portable entries are content-addressed **inside this repository** (the file-sha256 bridge bytes and the verifier core adapter bytes). That makes them deterministic, machine-independent, offline and checkout-stable, and makes them a real drift detector — but the author still chooses those bytes, so they are not independent of the author. An entry graduates to that class only when its expectation is anchored outside the repository: an upstream published artifact hash, a vendored file upstream provenance hash, or the content hash of a third-party read-only service body. Those anchors need a network or a vendored artifact with a published hash, and none of the machine-local verifiers qualifies: they pin this machine absolute paths and a live process.
+
+Targets are restricted to the surfaces pinned to `eol=lf` in `.gitattributes`, because a working-tree hash is not checkout-stable otherwise.
+
 ## Apparatus freeze
 
 The apparatus was frozen across the first live replay (`docs/negative-controls.md`, control 13): no new field, schema or verifier was added while it ran, so the replay measures the existing chain rather than an explanation invented alongside it. Any change after this point cites that replay output as its input.
