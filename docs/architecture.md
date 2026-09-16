@@ -72,6 +72,18 @@ An approval that moves `pending_approval -> gated` writes a `selfforge/consumpti
 
 A decision is only appended when it carries a successful SkillCanary gate proof. Verified decisions also carry structured outcome evidence and an environment fingerprint, so later learning can distinguish changes that worked from changes that only appeared to work in a different environment.
 
+## Shadow evaluation
+
+A routing recommendation is only a recommendation until it is durable and comparable. `autoarmory capability route <request.json>` writes the decision to `<state>/routing-decisions.jsonl`; after a task runs, the actual usage and its outcome are recorded against that decision:
+
+```bash
+autoarmory capability route request.json --state .selfforge
+node scripts/shadow-report.js --record --decision <request_id> --used <capability_id> --outcome success --source operator --state .selfforge
+node scripts/shadow-report.js --state .selfforge
+```
+
+The report answers one question with real records only: when the router recommended something and the operator or agent used something else, what happened? It prints `follow_rate`, the divergence list and outcome splits per group. An actual usage without `--source operator|agent|service` is refused, and an empty actual stream yields `shadow_status: insufficient_real_stream` with no metrics.
+
 ## Planes
 
 - **SkillCanary**: evidence, provenance, compatibility and the change gate.

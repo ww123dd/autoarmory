@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0
+
+Routing decisions become durable, and the router is judged against what actually happened instead of against itself.
+
+- `autoarmory capability route <request.json>` persists every recommendation to `<state>/routing-decisions.jsonl` (a decision that is not durable cannot be evaluated later).
+- Added `scripts/shadow-report.js`: `--record` appends an attributed actual usage (`--source operator|agent|service` is required, an unattributed observation is refused), and the default mode compares recommendations with real usage - follow rate, divergence list and outcome splits per group. With no actual stream it prints `shadow_status: insufficient_real_stream` and **no metrics at all**; a follow rate invented from an empty stream would be a fabricated number.
+- Added `tests/shadow.js`: durable recommendation, empty stream = no metrics, unattributed = refused, `follow_rate=0.5` with outcome splits, unlinked actuals surfaced.
+- Verified the issue-history automation end to end: `autoarmory evolve <issues.json> --format github` runs observe -> propose -> acquire -> gate (1 issue -> 1 incident -> 1 candidate -> gated) with no hand-written step.
+
 ## 0.5.0
 
 Lifecycle closure: a verdict is not a promotion, and a promotion does not outlive the evidence that justified it.
