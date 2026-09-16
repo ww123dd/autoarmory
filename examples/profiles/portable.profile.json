@@ -1,0 +1,81 @@
+{
+  "schema_version": "autoarmory/verifiers-lock/v1",
+  "note": "Portable profile: deterministic, machine-independent, offline. Run it with `node scripts/profile-run.js --profile examples/profiles/portable.profile.json`; the run must show at least one PASS and one FAIL. Targets are limited to the surfaces pinned to eol=lf in .gitattributes, because a working-tree hash is not checkout-stable otherwise. Entries are content-addressed inside this repository, so they detect drift and prove the checker can fail; an entry is only independent of the author when its expectation is anchored outside the repository (an upstream published hash or a third-party read-only service body).",
+  "verifiers": [
+    {
+      "id": "portable-bridge-self-sha256",
+      "kind": "file-sha256",
+      "version": "1.0.0",
+      "invocation_contract_version": "autoarmory/invocation-contract/v1",
+      "readonly": true,
+      "adapter": "scripts/verify/state-query.js",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "statement": "The committed file-sha256 bridge must still hash to its pinned digest.",
+      "assertion": {
+        "path": "match",
+        "op": "eq",
+        "value": true
+      },
+      "timeout_ms": 10000,
+      "bridge": {
+        "adapter": "examples/adapters/file-sha256/bridge.js",
+        "adapter_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
+        "server": {
+          "name": "portable-file",
+          "path": "examples/adapters/file-sha256/bridge.js",
+          "sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6"
+        }
+      }
+    },
+    {
+      "id": "portable-verifier-core-sha256",
+      "kind": "file-sha256",
+      "version": "1.0.0",
+      "invocation_contract_version": "autoarmory/invocation-contract/v1",
+      "readonly": true,
+      "adapter": "scripts/verify/state-query.js",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "statement": "The committed verifier core adapter must still hash to its pinned digest.",
+      "assertion": {
+        "path": "match",
+        "op": "eq",
+        "value": true
+      },
+      "timeout_ms": 10000,
+      "bridge": {
+        "adapter": "examples/adapters/file-sha256/bridge.js",
+        "adapter_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
+        "server": {
+          "name": "portable-file",
+          "path": "scripts/verify/state-query.js",
+          "sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097"
+        }
+      }
+    },
+    {
+      "id": "portable-negative-control-sha256",
+      "kind": "file-sha256",
+      "version": "1.0.0",
+      "invocation_contract_version": "autoarmory/invocation-contract/v1",
+      "readonly": true,
+      "adapter": "scripts/verify/state-query.js",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "statement": "Negative control: the file-sha256 bridge must NOT hash to an all-zero digest. This entry is expected to FAIL; a checker that reports PASS here is dead.",
+      "assertion": {
+        "path": "match",
+        "op": "eq",
+        "value": true
+      },
+      "timeout_ms": 10000,
+      "bridge": {
+        "adapter": "examples/adapters/file-sha256/bridge.js",
+        "adapter_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
+        "server": {
+          "name": "portable-file",
+          "path": "examples/adapters/file-sha256/bridge.js",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      }
+    }
+  ]
+}

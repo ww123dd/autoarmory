@@ -81,20 +81,16 @@ The primary interface is the local CLI. HTTP, SDK and Team CLI files remain avai
 
 ## Verification
 
-The trust root is a pinned local profile: every verifier is a registered, read-only bridge over one external fact source, and every digest is re-derived instead of trusted. `npm run test:verifier-scorecard` prints fresh-capture status; `npm run test:verifier-bridges` enforces that a fact source stays a thin bridge, that a verdict names its runner, and that pinned files are byte-identical to what is committed. Real output from this machine:
+The trust root is a pinned local profile: every verifier is a registered, read-only bridge over one external fact source, and every digest is re-derived instead of trusted.
 
-```text
-verifier bridge tests passed: 8 committed heterogeneous fact sources, local profile 9 verifiers pinned and anchored, 10 pinned files byte-identical to their committed blobs
-untracked local adapters skipped: local-transcript
-doris-readonly bridge_lines=139 empty_input=declined
-file-sha256 bridge_lines=14 empty_input=observed
-git-commit-exists bridge_lines=10 empty_input=observed
-local-http-health bridge_lines=28 empty_input=declined
-pid-file-live bridge_lines=16 empty_input=observed
-tls-peer-certificate bridge_lines=50 empty_input=observed
-windows-registry-value bridge_lines=26 empty_input=observed
-windows-service-state bridge_lines=23 empty_input=observed
+A profile that travels with the repository needs no local state:
+
+```bash
+node scripts/profile-run.js --profile examples/profiles/portable.profile.json
+npm run test:portable-profile
 ```
+
+That run judges the same chain both ways — at least one entry must PASS and at least one must FAIL — so a reader watches the checker accept and reject instead of trusting a summary. The machine-local trust root (`verifiers.lock.json`) is gitignored on purpose: it pins this machine's paths and live facts, and `scripts/verifier-pin.js` regenerates it.
 
 See [Verifier Expansion](docs/verifier-expansion.md) and [Mechanism Core](docs/mechanism-core.md).
 
