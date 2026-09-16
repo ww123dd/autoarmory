@@ -45,9 +45,19 @@ module.exports = function run(argv) {
   }
 
   if (sub === 'health') {
-    const rows = capability.healthRows(capability.readCapabilities(file));
-    const result = { schema_version: 'autoarmory/capability-health/v1', generated_at: new Date().toISOString(), summary: { total: rows.length, healthy: rows.filter(function (row) { return row.status === 'healthy'; }).length, degraded: rows.filter(function (row) { return row.status === 'degraded'; }).length, offline: rows.filter(function (row) { return row.status === 'offline'; }).length }, capabilities: rows };
-    if (args.json) printJson(result); else for (const row of rows) process.stdout.write('  ' + row.status + '  ' + row.id + '  age=' + row.age_days.toFixed(1) + 'd\n');
+    // Project the mechanism evidence this capability points at: a capability cannot be
+    // healthier than the facts that back it.
+    const mechanism = require('../lib/mechanism');
+    const evidence = {};
+    if (fs.existsSync(path.join(state, 'mechanisms.jsonl'))) {
+      for (const item of mechanism.listMechanisms(state)) {
+        const status = mechanism.status(state, item.id, { repo: process.cwd() });
+        evidence[item.id] = { status: status.status, reason: status.reason, lifecycle: mechanism.lifecycle(state, item.id).to };
+      }
+    }
+    const rows = capability.healthRows(capability.readCapabilities(file), { evidence: evidence });
+    const result = { schema_version: 'autoarmory/capability-health/v1', generated_at: new Date().toISOString(), summary: { total: rows.length, healthy: rows.filter(function (row) { return row.status === 'healthy'; }).length, degraded: rows.filter(function (row) { return row.status === 'degraded'; }).length, offline: rows.filter(function (row) { return row.status === 'offline'; }).length, evidence_checked: rows.filter(function (row) { return row.evidence && row.evidence.length; }).length }, capabilities: rows };
+    if (args.json) printJson(result); else for (const row of rows) process.stdout.write('  ' + row.status + '  ' + row.id + '  age=' + row.age_days.toFixed(1) + 'd' + (row.reason ? '  ' + row.reason : '') + '\n');
     return rows.length ? 0 : 1;
   }
 

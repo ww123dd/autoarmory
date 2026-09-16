@@ -68,9 +68,9 @@
 
 - [x] portable anchor path: `scripts/lib/http-bytes.js` gives the repository its own audited byte fetcher (bytes unchanged, metadata + sha256 only, an audit line per fetch, https-only with a loopback exception), and `anchor-refresh` falls back to it when the machine guard wrapper is absent, so `npm run check:anchors` is runnable from a plain clone
 
-## 1.2.0 (roadmap slot 0.8, planned)
+## 1.2.0 (roadmap slot 0.8)
 
-- [ ] capability health as a projection of evidence: a capability whose evidence is stale or retired must not report `healthy`
+- [x] capability health as a projection of evidence: `capability health` reads the mechanism state each capability points at, degrading to `degraded` when the verdict is gone and to `offline` when the proof was rolled back; the projection is additive (no mechanism reference, old behaviour)
 
 ## 1.3.0 (roadmap slot 0.9, planned)
 

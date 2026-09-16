@@ -80,8 +80,14 @@ function registerCapability(file, value, options) {
   return { ok: true, capability: capability, count: capabilities.length };
 }
 
+// Health is a projection, not a claim of its own. When the caller supplies the state of
+// the mechanisms a capability points at (options.evidence: { mechanism_id: { status,
+// lifecycle } }), stale or retired evidence downgrades the capability: a capability whose
+// proof was rolled back is offline, and one whose proof no longer verifies is degraded.
 function healthRows(capabilities, options) {
-  const now = options && options.now ? options.now : Date.now();
+  const opts = options || {};
+  const now = opts.now ? opts.now : Date.now();
+  const evidence = opts.evidence || {};
   return (capabilities || []).map(function (capability) {
     const ageDays = (now - Date.parse(capability.freshness)) / 86400000;
     let status = capability.health;
@@ -89,7 +95,25 @@ function healthRows(capabilities, options) {
     else if (ageDays > 30) status = 'degraded';
     else if (capability.health === 'healthy' && ['verified', 'live', 'ci-gated'].indexOf(capability.conformance_level) !== -1) status = 'healthy';
     else if (capability.health === 'healthy') status = 'unknown';
-    return { id: capability.id, kind: capability.kind, status: status, age_days: Math.max(0, ageDays), conformance_level: capability.conformance_level, health: capability.health };
+    let reason = null;
+    const checked = [];
+    for (const ref of (capability.evidence_refs || [])) {
+      if (typeof ref !== 'string' || !evidence[ref]) continue;
+      const state = evidence[ref];
+      checked.push({ ref: ref, status: state.status || null, lifecycle: state.lifecycle || null });
+      if (state.lifecycle === 'retired') {
+        status = 'offline';
+        reason = 'evidence retired: ' + ref + ' (' + (state.reason || 'rolled back') + ')';
+        break;
+      }
+      if (state.status !== 'verified' && state.status !== 'closed') {
+        status = 'degraded';
+        reason = 'evidence stale: ' + ref + ' (' + state.status + ')';
+        break;
+      }
+      reason = reason || 'evidence ok: ' + ref + ' (' + state.status + ')';
+    }
+    return { id: capability.id, kind: capability.kind, status: status, age_days: Math.max(0, ageDays), conformance_level: capability.conformance_level, health: capability.health, reason: reason, evidence: checked };
   });
 }
 

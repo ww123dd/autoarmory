@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+Roadmap slot 0.8: capability health stops being a claim of its own and becomes a projection of the evidence behind it.
+
+- `capability.healthRows(capabilities, { evidence })` now reads the mechanism state a capability points at through `evidence_refs`: a retired mechanism takes the capability `offline`, a mechanism whose verdict is no longer `verified`/`closed` degrades it, and a live verdict keeps it `healthy`. Each row carries the `reason` and the `evidence` it checked.
+- `autoarmory capability health` builds that evidence map from the local mechanism state, so `healthy` cannot survive its own proof: `tests/capability-evidence-health.js` drives promoted=healthy, stale=degraded, retired=offline, and a capability with no mechanism references keeps the old behaviour (the projection is additive).
+
 ## 1.1.0
 
 Roadmap slot 0.7: the anchor path no longer depends on machine-local tooling, so a clone can re-verify its own anchors.
