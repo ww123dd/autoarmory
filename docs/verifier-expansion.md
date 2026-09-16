@@ -40,6 +40,10 @@ Never hand-write `verifiers.lock.json`. It is the trust root, and the Codex guar
 
 `verifier-pin` recomputes every digest the profile pins (`adapter`, `bridge`, MCP `config`, MCP `entry`) and rewrites both halves of the trust root in one step: the gitignored `verifiers.lock.json` inside the repository and the external anchor `~/.codex/hooks/verifier-lock.sha256` outside it. It fails closed when the two halves already disagree, so a re-pin can never paper over drift. `--dry-run` prints the digest the profile would produce; when it differs from the lock on disk, the profile is not fully pinned.
 
+## Apparatus freeze
+
+The apparatus was frozen across the first live replay (`docs/negative-controls.md`, control 13): no new field, schema or verifier was added while it ran, so the replay measures the existing chain rather than an explanation invented alongside it. Any change after this point cites that replay output as its input.
+
 ## Pinned files are byte-identical to their commits
 
 Every pinned artifact (`scripts/verify/state-query.js` and each `examples/adapters/*/bridge.js`) must have the same bytes in the working tree as in its committed blob, so `.gitattributes` pins both surfaces to `eol=lf`. `tests/verifier-bridges.js` fails closed when they differ: a CRLF working copy produces a digest that a fresh clone cannot reproduce, and the failure would otherwise surface only after the checkout silently rewrote the file.
