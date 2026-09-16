@@ -128,10 +128,28 @@ result = run(['transition', candidateFile, '--to', 'canary', '--gate', gateProof
 must(result.code === 1 && /invalid transition/i.test(result.out + result.err), 'state machine must reject candidate -> canary');
 
 result = run(['transition', candidateFile, '--to', 'gated', '--state', transitionState, '--json']);
-must(result.code === 1 && /gate proof/i.test(result.out + result.err), 'gated transition must require a gate proof');
+must(result.code === 1 && /invalid transition/i.test(result.out + result.err), 'candidate -> gated must pass through approval');
+
+result = run(['transition', candidateFile, '--to', 'pending_approval', '--state', transitionState, '--json']);
+must(result.code === 0 && JSON.parse(result.out).to === 'pending_approval', 'candidate -> pending_approval transition');
 
 result = run(['transition', candidateFile, '--to', 'gated', '--gate', gateProofFile, '--state', transitionState, '--json']);
-must(result.code === 0 && JSON.parse(result.out).to === 'gated', 'candidate -> gated transition');
+must(result.code === 1 && /approval/i.test(result.out + result.err), 'pending_approval -> gated must require user approval');
+
+const approvalFile = path.join(temp, 'approval.json');
+fs.writeFileSync(approvalFile, JSON.stringify({
+  schema_version: 'selfforge/approval/v1',
+  id: 'appr-transition',
+  candidate_id: candidate.id,
+  requested_by: 'agent',
+  approved_by: 'user',
+  approved_at: '2026-09-16T00:00:00.000Z',
+  channel: 'conversation',
+  scope: 'gated',
+  status: 'approved'
+}, null, 2), 'utf8');
+result = run(['transition', candidateFile, '--to', 'gated', '--gate', gateProofFile, '--approval', approvalFile, '--state', transitionState, '--json']);
+must(result.code === 0 && JSON.parse(result.out).to === 'gated' && JSON.parse(result.out).approval && JSON.parse(result.out).approval.approved_by === 'user', 'approved candidate -> gated transition');
 
 result = run(['transition', candidateFile, '--to', 'shadow', '--gate', gateProofFile, '--state', transitionState, '--json']);
 must(result.code === 0 && JSON.parse(result.out).to === 'shadow', 'gated -> shadow transition');
@@ -148,7 +166,7 @@ must(result.code === 1 && /outcome evidence/i.test(result.out + result.err), 'pr
 result = run(['transition', candidateFile, '--to', 'promoted', '--evidence', outcomeEvidenceFile, '--state', transitionState, '--json']);
 must(result.code === 0 && JSON.parse(result.out).to === 'promoted', 'canary -> promoted transition');
 const transitions = fs.readFileSync(path.join(transitionState, 'transitions.jsonl'), 'utf8').trim().split(String.fromCharCode(10)).filter(Boolean);
-must(transitions.length === 4 && transitions.every(function (line) { return JSON.parse(line).schema_version === 'selfforge/transition/v1'; }), 'state transitions must be recorded');
+must(transitions.length === 5 && transitions.every(function (line) { return JSON.parse(line).schema_version === 'selfforge/transition/v1'; }), 'state transitions must be recorded');
 const rejectedCandidate = JSON.parse(JSON.stringify(candidate));
 rejectedCandidate.id = 'cand-rejected-state';
 rejectedCandidate.incident_id = 'inc-rejected-state';

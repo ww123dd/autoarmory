@@ -45,6 +45,12 @@ module.exports = function run(argv) {
     return fail('transition requires a successful SkillCanary gate proof', !!args.json);
   }
 
+  let approval = null;
+  if (args.approval) approval = readJson(path.resolve(args.approval));
+  if (state.requiresApproval(args.to) && !state.isApprovalPass(approval, candidateId, args.to)) {
+    return fail('transition target ' + args.to + ' requires approved_by user approval evidence', !!args.json);
+  }
+
   let evidence = null;
   if (args.evidence) evidence = readJson(path.resolve(args.evidence));
   if (state.requiresEvidence(args.to) && !hasOutcomeEvidence(evidence)) {
@@ -62,6 +68,7 @@ module.exports = function run(argv) {
     to: args.to,
     reason: args.reason || null,
     gate: gate || null,
+    approval: approval || null,
     evidence: evidence || null,
     environment: fingerprint(args.dir || '.'),
     at: new Date().toISOString()

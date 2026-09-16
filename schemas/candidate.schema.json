@@ -71,7 +71,11 @@
     "status": {
       "enum": [
         "candidate",
+        "pending_approval",
         "gated",
+        "shadow",
+        "canary",
+        "promoted",
         "rejected",
         "executed",
         "retired"

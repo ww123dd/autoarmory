@@ -6,6 +6,7 @@ const { spawnSync } = require('child_process');
 
 const COMMANDS = [
   { id: 'tests', command: 'node tests/run.js' },
+  { id: 'approval_loop', command: 'node tests/approval-loop.js' },
   { id: 'capability', command: 'node tests/capability.js' },
   { id: 'failure_modes', command: 'node tests/failure-modes.js' },
   { id: 'demo', command: 'node tests/demo.js' },

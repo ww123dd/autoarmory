@@ -42,7 +42,8 @@ autoarmory propose .selfforge/incidents.jsonl --output .selfforge/candidates.jso
 autoarmory gate .selfforge/candidate.json --cases examples/skillcanary-cases.json
 autoarmory record --candidate cand-1 --action add_case --reward 1.5 --verified true --gate .selfforge/gate.json --evidence .selfforge/outcome-evidence.json
 autoarmory close --case case-id --run run-id --state .selfforge
-autoarmory transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --state .selfforge
+autoarmory transition .selfforge/candidate.json --to pending_approval --state .selfforge
+autoarmory transition .selfforge/candidate.json --to gated --gate .selfforge/gate.json --approval .selfforge/approval.json --state .selfforge
 autoarmory transition .selfforge/candidate.json --to shadow --gate .selfforge/gate.json --state .selfforge
 autoarmory learn .selfforge/decisions.jsonl
 autoarmory environment --write
@@ -123,7 +124,9 @@ The v0.5 slice answers one question: for a reproducible failure case, does a reg
 
 A gate-ready candidate carries a `change` object. AutoArmory fills the shared change fields (`id`, `target`, `expected_transition`, `prediction`) from the candidate, then passes the resulting `skillcanary/change/v1` record to `skillcanary gate`. Case targets must provide a cases file; deterministic targets do not.
 
-Candidate promotion follows a recorded state machine: `candidate -> gated -> shadow -> canary -> promoted`, with `rejected` available before promotion and `retired` after it. Gate proof is mandatory for `gated` and `shadow`; outcome evidence is mandatory for `canary` and `promoted`.
+Candidate promotion follows a recorded state machine: `candidate -> pending_approval -> gated -> shadow -> canary -> promoted`, with `rejected` available before promotion and `retired` after it. Gate proof is mandatory for `gated` and `shadow`; user approval is also mandatory for `pending_approval -> gated`. Outcome evidence is mandatory for `canary` and `promoted`.
+
+Approval is an authorization decision, not verification evidence. The Agent prepares the candidate, gate proof, rollback and verification commands; the user only approves. After approval, the Agent performs the transition and the remaining mechanical work.
 
 `record` refuses to append a decision unless a successful SkillCanary gate proof is provided or found on the stored candidate. A verified decision also requires outcome evidence with artifacts or before/after observations.
 
