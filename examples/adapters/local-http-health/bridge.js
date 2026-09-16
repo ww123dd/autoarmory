@@ -6,7 +6,11 @@ const https = require('https');
 let payload = {};
 try { payload = JSON.parse(fs.readFileSync(0, 'utf8')); } catch (_) {}
 const cfg = payload.server || {};
-const url = new URL(String(cfg.url || ''));
+let url = null;
+try { url = new URL(String(cfg.url || '')); } catch (error) {
+  process.stdout.write(JSON.stringify({ ok: false, reason: 'url is required and must be absolute: ' + error.message }));
+  process.exit(3);
+}
 const client = url.protocol === 'https:' ? https : http;
 const request = client.get(url, { rejectUnauthorized: cfg.allow_insecure !== true ? true : false }, function (response) {
   let body = '';
