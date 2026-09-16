@@ -56,6 +56,27 @@ module.exports = function run(argv) {
     return fail('Refusing to record verified decision: outcome evidence with artifacts or before/after is required.');
   }
 
+  const transitionFile = path.join(state, 'transitions.jsonl');
+  const transitions = fs.existsSync(transitionFile) ? readJsonl(transitionFile) : [];
+  const consumptions = transitions.map(function (item) { return item.consumption; }).filter(function (item) { return item && item.decision_id === record.candidate_id; });
+  let consumptionRef = null;
+  if (args.consumption) {
+    const hit = consumptions.find(function (item) { return item.id === args.consumption; });
+    if (!hit) return fail('Refusing to record decision: consumption event not found: ' + args.consumption);
+    consumptionRef = hit;
+  } else if (consumptions.length) {
+    consumptionRef = consumptions[consumptions.length - 1];
+  }
+  if (consumptionRef) {
+    record.consumption_ref = {
+      schema_version: 'selfforge/consumption-ref/v1',
+      id: consumptionRef.id,
+      consumer: consumptionRef.consumer,
+      consumed_at: consumptionRef.consumed_at,
+      action: consumptionRef.action,
+      downstream_action: consumptionRef.downstream_action
+    };
+  }
   record.gate = gate;
   record.environment = record.environment || fingerprint(dir);
   record.outcome_evidence = evidence || null;

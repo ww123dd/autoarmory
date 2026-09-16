@@ -131,6 +131,9 @@
         }
       }
     },
+    "consumption_ref": {
+      "type": ["object", "null"]
+    },
     "recorded_at": {
       "type": "string"
     }

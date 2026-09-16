@@ -53,6 +53,19 @@ Observation accepts files, directories, stdin, article text and OTel GenAI spans
 
 Candidate state transitions are append-only records in `.selfforge/transitions.jsonl`: `candidate -> pending_approval -> gated -> shadow -> canary -> promoted`. `rejected` may terminate a pre-promotion path with a reason, and `retired` closes a promoted candidate. Gate proof is required before `gated`/`shadow`; user approval is required to leave `pending_approval` for `gated`; structured outcome evidence is required before `canary`/`promoted`.
 
+## Consumption evidence
+
+A decision is not considered consumed merely because it was generated. It is consumed when a consumer reads it and changes the next action:
+
+```text
+decision_id
+-> consumer (operator / agent / service)
+-> consumption_action
+-> downstream_action
+-> outcome_ref
+```
+
+An approval that moves `pending_approval -> gated` writes a `selfforge/consumption/v1` record. The downstream decision record links back with `consumption_ref`.
 ## Decision evidence
 
 A decision is only appended when it carries a successful SkillCanary gate proof. Verified decisions also carry structured outcome evidence and an environment fingerprint, so later learning can distinguish changes that worked from changes that only appeared to work in a different environment.

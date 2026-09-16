@@ -60,6 +60,17 @@ module.exports = function run(argv) {
     return fail('rejected transition requires --reason', !!args.json);
   }
 
+  const consumption = approval && state.requiresApproval(args.to) ? {
+    schema_version: 'selfforge/consumption/v1',
+    id: 'cons-' + sha256(candidateId + ':' + (approval.id || '') + ':' + args.to).slice(0, 12),
+    decision_id: candidateId,
+    consumer: { type: 'operator', id: approval.approved_by },
+    consumed_at: approval.approved_at,
+    action: 'approved',
+    downstream_action: args.to,
+    channel: approval.channel || null,
+    outcome_ref: null
+  } : null;
   const record = {
     schema_version: 'selfforge/transition/v1',
     id: 'tr-' + sha256(candidateId + ':' + from + ':' + args.to + ':' + Date.now()).slice(0, 12),
@@ -69,6 +80,7 @@ module.exports = function run(argv) {
     reason: args.reason || null,
     gate: gate || null,
     approval: approval || null,
+    consumption: consumption,
     evidence: evidence || null,
     environment: fingerprint(args.dir || '.'),
     at: new Date().toISOString()
