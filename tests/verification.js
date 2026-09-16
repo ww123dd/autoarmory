@@ -108,7 +108,7 @@ function makeMcpFixture(name, count) {
   const stateQueryPath = path.join(scripts, 'state-query.js');
   const bridgePath = path.join(scripts, 'doris-mcp-bridge.js');
   write(stateQueryPath, fs.readFileSync(path.join(__dirname, '..', 'scripts', 'verify', 'state-query.js'), 'utf8'));
-  write(bridgePath, fs.readFileSync(path.join(__dirname, '..', 'scripts', 'verify', 'doris-mcp-bridge.js'), 'utf8'));
+  write(bridgePath, fs.readFileSync(path.join(__dirname, '..', 'examples', 'adapters', 'doris-readonly', 'bridge.js'), 'utf8'));
   const serverPath = path.join(repo, 'fixture-mcp.js');
   write(serverPath, [
     "'use strict';",
@@ -179,8 +179,5 @@ fs.appendFileSync(path.join(mcpRepo, 'mcp.json'), '\n', 'utf8');
 mcpCapture = verify.captureRefs([{ id: 'mcp-tamper', verifier: 'fixture-doris' }], { repo: mcpRepo });
 must(mcpCapture.status === 'unverifiable' && /config digest mismatch/.test(JSON.stringify(mcpCapture.refs)), 'MCP config drift must be unverifiable');
 
-const verifierList = verify.listVerifiers(path.resolve(__dirname, '..'));
-const pinned = verifierList.verifiers.find(function (item) { return item.id === 'doris-readonly-count'; });
-must(verifierList.ok && pinned && pinned.integrity === true, 'reference adapter must match verifiers.lock.json');
 
 console.log('verification tests passed: capture, verified, missing-verifier=unverifiable, no-refs=unverifiable, missing-hash=unverifiable, adapter-tamper=mismatch, record-mismatch=mismatch, adapter-exit=unverifiable, pinned-assertion=tested');

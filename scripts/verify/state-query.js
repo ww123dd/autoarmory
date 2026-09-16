@@ -2,17 +2,17 @@
 'use strict';
 
 // Reference verifier adapter: re-derive a state fact through a pinned,
-// read-only bridge and apply the assertion pinned in verifiers.lock.json.
+// read-only bridge and apply the assertion pinned in the active local profile.
 //
 // Contract (stdin JSON -> stdout JSON):
 //   in : { ref: { id, verifier, artifact, params }, case_id, mechanism_id, run_id }
 //   out: { ok: true, input_sha256, output_sha256, exit_code, observed }
 //     or { ok: false, reason }
 //
-// The statement and assertion are pinned in verifiers.lock.json, never in the
-// record. The bridge is also pinned by digest; a caller cannot replace it with
-// an arbitrary command or an echo. The bridge itself verifies the MCP config
-// digest, server entry digest, and readonly_aa before querying Doris.
+// The statement and assertion are pinned in the active local verifier profile,
+// never in the record. The bridge adapter is also pinned by digest; a caller
+// cannot replace it with an arbitrary command or an echo. The bridge owns its
+// source-specific checks; the core adapter does not assume a particular external system.
 
 const fs = require('fs');
 const path = require('path');

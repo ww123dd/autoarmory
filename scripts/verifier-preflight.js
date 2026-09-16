@@ -5,12 +5,17 @@
 // or changed, and independently exercise the known positive/negative checker
 // vectors. This is intentionally not a report: failure exits 2 and blocks commit.
 
+const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const verify = require('../src/lib/verify');
 
 const repo = path.resolve(__dirname, '..');
 const failures = [];
+if (!fs.existsSync(path.join(repo, 'verifiers.lock.json'))) {
+  process.stdout.write('verifier preflight: no active local verifier profile\n');
+  process.exit(0);
+}
 
 function run(args) {
   return spawnSync(process.execPath, args, { cwd: repo, encoding: 'utf8', timeout: 60000, windowsHide: true });

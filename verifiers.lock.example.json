@@ -1,0 +1,33 @@
+{
+  "schema_version": "autoarmory/verifiers-lock/v1",
+  "note": "Example only. Copy to verifiers.lock.json (gitignored) and pin your local bridge/adapters. The core does not assume Doris, MCP, paths, or readonly_aa.",
+  "verifiers": [
+    {
+      "id": "doris-readonly-count",
+      "kind": "doris-mcp-readonly",
+      "readonly": true,
+      "adapter": "scripts/verify/state-query.js",
+      "adapter_sha256": "<sha256-of-scripts/verify/state-query.js>",
+      "statement": "SELECT COUNT(*) AS cnt FROM your_table",
+      "assertion": {
+        "path": "cnt",
+        "op": "eq",
+        "value": 0
+      },
+      "timeout_ms": 60000,
+      "bridge": {
+        "adapter": "examples/adapters/doris-readonly/bridge.js",
+        "adapter_sha256": "<sha256-of-examples/adapters/doris-readonly/bridge.js>",
+        "server": {
+          "name": "doris",
+          "tool": "mysql_query",
+          "user": "readonly_aa",
+          "config": "~/.codex/mcp.json",
+          "config_sha256": "<sha256-of-your-mcp.json>",
+          "entry": "~/AppData/Roaming/npm/node_modules/mcp-server-mysql/index.js",
+          "entry_sha256": "<sha256-of-your-mcp-server-entry>"
+        }
+      }
+    }
+  ]
+}

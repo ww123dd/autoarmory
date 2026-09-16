@@ -28,11 +28,10 @@ A record is verified only when the judge can re-derive the fact now:
 
 - the mechanism declares a registered `verifier_id`, and its adapter integrity is checked at registration;
 - the run's `evidence_refs` include that same `verifier`; a run that uses an unrelated registered verifier is rejected even if that unrelated verifier re-derives successfully;
-- the record points to an `evidence_ref` whose `verifier` is registered in `verifiers.lock.json`;
+- the record points to an `evidence_ref` whose `verifier` is registered in the active local `verifiers.lock.json`; the core repo ships `verifiers.lock.example.json`, not a machine-specific lock;
 - the verifier is explicitly `readonly`;
 - the adapter is inside the repository and its SHA-256 matches the pinned adapter digest;
-- the bridge adapter, MCP config, and MCP server entry are also pinned by SHA-256;
-- the bridge verifies the configured `readonly_aa` user before querying the live read-only Doris MCP server;
+- the active local profile pins the bridge adapter and its source-specific descriptor; the shipped Doris/MCP adapter is only an example, not a core assumption;
 - the adapter is re-run and produces fresh `input_sha256`, `output_sha256`, and `exit_code`;
 - those fresh values match the recorded ref;
 - the same output digest reproduces across the configured trials (`Pass^k` style stability check);
@@ -42,9 +41,9 @@ Missing refs, unknown verifiers, non-readonly adapters, missing recorded hashes,
 
 `verified_by`, `independent: true`, and a stored `verification_result` are not trust roots. `closeCase` and `status` re-run the verifier at read time. A caller that writes `result: pass` while the verifier re-derives `exit_code: 1` is rejected.
 
-Boundary: this proves that the registered adapter re-derives the recorded fact through the pinned read-only MCP path. It does not protect against rewritten git history or a compromised MCP server binary/configuration; those remain explicit trust-root boundaries.
+Boundary: this proves that the registered adapter re-derives the recorded fact through the active local profile's pinned read-only path. The core is environment-neutral; Doris, MCP, paths, and `readonly_aa` belong to the example profile, not to the judge core. The remaining trust-root boundaries are rewritten git history or a compromised local adapter/MCP server/configuration.
 
-`scripts/verifier-preflight.js` runs on pre-commit and fails closed if any verifier artifact or pinned MCP digest drifts, or if the checker loses its known positive/negative behavior. `scripts/mechanism-preflight.js` gives mechanism verdicts a real cost: a repository with mechanism state cannot commit while a mechanism is `unverified`, `expired`, or `bypassed`.
+`scripts/verifier-preflight.js` runs on pre-commit when an active local profile exists, and fails closed if any verifier artifact or pinned adapter digest drifts, or if the checker loses its known positive/negative behavior. `scripts/mechanism-preflight.js` gives mechanism verdicts a real cost: a repository with mechanism state cannot commit while a mechanism is `unverified`, `expired`, or `bypassed`.
 
 ## Verdicts
 
