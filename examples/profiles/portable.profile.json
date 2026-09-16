@@ -1,7 +1,32 @@
 {
   "schema_version": "autoarmory/verifiers-lock/v1",
-  "note": "Portable profile: deterministic, machine-independent, offline. Run it with `node scripts/profile-run.js --profile examples/profiles/portable.profile.json`; the run must show at least one PASS and one FAIL. Entries target only surfaces that are stable across checkouts: files pinned to eol=lf in .gitattributes, and this repository own history (server.repo = \".\", resolved read-only against the clone that runs the profile). Every entry is content-addressed inside this repository, so the run detects drift and proves the checker can fail; an entry is only independent of the author when its expectation is anchored outside the repository (an upstream published artifact hash, a vendored file upstream provenance hash, or a third-party read-only service body).",
+  "note": "Portable profile: deterministic, machine-independent, offline. Run it with `node scripts/profile-run.js --profile examples/profiles/portable.profile.json`; the run must show at least one PASS and one FAIL. One entry is anchored outside this repository: examples/anchors/ms-2.1.3.tgz is vendored byte for byte from the npm registry publication of ms@2.1.3, and the published sha512 is recorded and re-checked in tests/portable-profile.js. The remaining entries are content-addressed inside this repository, so they detect drift but are not independent of the author; the repository-history entry reads git objects instead of the working tree.",
   "verifiers": [
+    {
+      "id": "portable-upstream-ms-tarball",
+      "kind": "file-sha256",
+      "version": "1.0.0",
+      "invocation_contract_version": "autoarmory/invocation-contract/v1",
+      "readonly": true,
+      "adapter": "scripts/verify/state-query.js",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "statement": "The vendored npm artifact ms@2.1.3 must still hash to the registry published bytes (see examples/anchors/README.md).",
+      "assertion": {
+        "path": "match",
+        "op": "eq",
+        "value": true
+      },
+      "timeout_ms": 10000,
+      "bridge": {
+        "adapter": "examples/adapters/file-sha256/bridge.js",
+        "adapter_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
+        "server": {
+          "name": "portable-file",
+          "path": "examples/anchors/ms-2.1.3.tgz",
+          "sha256": "f6616e15e530ed552f9daa2d3ce71963947c6bc7c98c9b64fd3e673fd02622c6"
+        }
+      }
+    },
     {
       "id": "portable-bridge-self-sha256",
       "kind": "file-sha256",
@@ -73,7 +98,7 @@
         "server": {
           "name": "portable-git",
           "repo": ".",
-          "commit": "06cdbccbaa1faa0d7752a846272e21db36c3f366"
+          "commit": "7c57fa64279549993b24229b0d1979a44e7c1aa4"
         }
       }
     },

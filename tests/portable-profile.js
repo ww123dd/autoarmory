@@ -48,6 +48,16 @@ must(negative && negative.verdict === 'FAIL' && negative.exit_code === 1, 'the c
 const repoCommit = entryOf(clean.report, 'portable-repo-commit-exists');
 must(repoCommit && repoCommit.verdict === 'PASS', 'the repository commit must be found in the clone that runs the profile');
 must(repoCommit.observed && repoCommit.observed.exists === true, 'the repository commit fact must report exists:true');
+const anchored = entryOf(clean.report, 'portable-upstream-ms-tarball');
+must(anchored && anchored.verdict === 'PASS', 'the externally anchored upstream artifact must pass');
+must(anchored.observed && /^[a-f0-9]{64}$/.test(String(anchored.observed.sha256)), 'the anchored entry must report the vendored artifact digest');
+const anchorDoc = fs.readFileSync(path.join(ROOT, 'examples', 'anchors', 'README.md'), 'utf8');
+const publishedSha512 = (anchorDoc.match(/sha512-[A-Za-z0-9+/=]{20,}/) || [])[0];
+must(publishedSha512, 'examples/anchors/README.md must record the published sha512');
+const vendoredBytes = fs.readFileSync(path.join(ROOT, 'examples', 'anchors', 'ms-2.1.3.tgz'));
+must('sha512-' + crypto.createHash('sha512').update(vendoredBytes).digest('base64') === publishedSha512, 'the vendored artifact must match the upstream published sha512');
+must(clean.report.verifiers === 6, 'the portable profile must carry six facts (one externally anchored)');
+
 const missingCommit = entryOf(clean.report, 'portable-negative-commit-missing');
 must(missingCommit && missingCommit.verdict === 'FAIL' && missingCommit.observed && missingCommit.observed.exists === false, 'an all-zero commit control must fail');
 
@@ -100,4 +110,4 @@ must(localLockBefore === localLockAfter, 'portable profile runs must not modify 
 must(spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim() === headBefore, 'a portable run must not move the checkout HEAD');
 must(spawnSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' }).stdout === statusBefore, 'a portable run must not change the checkout state');
 
-console.log('portable profile tests passed: sandbox run, pass=' + clean.report.pass + ' fail=' + clean.report.fail + ' (repo commit found, both controls fail), expectation change flips the verdict, all-pass profile refused, trust root + checkout untouched');
+console.log('portable profile tests passed: sandbox run, pass=' + clean.report.pass + ' fail=' + clean.report.fail + ' (upstream sha512 verified, repo commit found, both controls fail), expectation change flips the verdict, all-pass profile refused, trust root + checkout untouched');
