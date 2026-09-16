@@ -62,16 +62,16 @@
 - [~] shadow evaluation: `capability route` persists recommendations and `scripts/shadow-report.js` compares them with recorded actual usage (follow rate, divergences, outcome splits); the comparator refuses to print metrics while the actual stream is empty (`insufficient_real_stream`), so the number is pending a real consumer rather than fabricated
 - [x] automatic proposal generation from issue history: `autoarmory evolve <issues.json> --format github` runs observe -> propose -> acquire -> gate mechanically (verified: one issue produced one incident, one candidate and a gate result)
 
-## 1.0 (acceptance)
+## 1.0
 
-1.0 is not a feature; it is the statement that the local capability manager does what it claims. Each line has to be checkable mechanically, and `scripts/acceptance-check.js` must print one PASS/FAIL per line and exit non-zero on any FAIL:
+1.0 is not a feature; it is the statement that the local capability manager does what it claims. `scripts/acceptance-check.js` prints one PASS/FAIL per line, exits non-zero on any FAIL, and runs inside `npm test` (`npm run check:acceptance`):
 
-- [ ] a stranger can clone the repository and get PASS and FAIL verdicts offline (`npm test`, `node scripts/profile-run.js`)
-- [ ] external anchors from at least three channels re-verify (`npm run check:anchors`)
-- [ ] a verdict that cannot name its runner, or whose runner/case changed, is never reported verified or closed (`stale_verdict_escape_count = 0`)
-- [ ] a promotion cannot outlive its evidence (`stale_lifecycle_escape_count = 0`)
-- [ ] the operator loop needs exactly one human decision and no hand-written JSON (`tests/operator-loop.js`)
-- [ ] the shipped surface claims nothing it does not do: no cross-vendor control plane, `serve` is an internal, and the non-goals are written down (`docs/non-goals.md`)
+- [x] a stranger can clone the repository and get PASS and FAIL verdicts offline (`npm test`, `node scripts/profile-run.js`)
+- [x] external anchors from at least three channels re-verify (`npm run check:anchors`)
+- [x] a verdict that cannot name its runner, or whose runner/case changed, is never reported verified or closed (`stale_verdict_escape_count = 0`)
+- [x] a promotion cannot outlive its evidence (`stale_lifecycle_escape_count = 0`)
+- [x] the operator loop needs exactly one human decision and no hand-written JSON (`tests/operator-loop.js`)
+- [x] the shipped surface claims nothing it does not do: no cross-vendor control plane, `serve` is an internal, and the non-goals are written down (`docs/non-goals.md`)
 
 ## Deferred
 

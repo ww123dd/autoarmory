@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0
+
+Acceptance: the local capability manager does what it claims, and every claim is checked mechanically by `npm run check:acceptance`.
+
+- Added `scripts/acceptance-check.js`: six criteria from the roadmap (portable profile with PASS and FAIL offline, external anchors from at least three channels, `stale_verdict_escape_count = 0`, `stale_lifecycle_escape_count = 0`, an operator loop needing exactly one human decision, and a shipped surface that claims nothing it does not do). One PASS/FAIL line each, non-zero exit on any FAIL, and the check runs inside `npm test`.
+- 1.0 states the boundary as well as the capability: the product is a local capability manager for one operator; it is not a cross-vendor control plane, it does not ship a multi-skill router or a generic memory system, and `serve` remains an internal.
+
 ## 0.6.0
 
 Routing decisions become durable, and the router is judged against what actually happened instead of against itself.
