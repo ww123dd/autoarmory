@@ -103,15 +103,39 @@ try {
   record('operator-loop', false, String(error.message).slice(0, 160));
 }
 
-// 6. the shipped surface claims nothing it does not do
+// 6. the shipped surface claims nothing it does not do. Vocabulary is not enough:
+// every command the README documents has to exist in the CLI, or be marked internal.
 try {
-  const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8').toLowerCase();
+  const readmeRaw = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const readme = readmeRaw.toLowerCase();
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const help = run(path.join(ROOT, 'bin', 'autoarmory.js'), ['--help']).out;
   const forbidden = /cross-vendor|capability control plane|vendor-neutral/;
   const clean = !forbidden.test(readme) && !forbidden.test(String(pkg.description || '').toLowerCase()) && !/\bserve\b/i.test(help);
   const nonGoals = fs.existsSync(path.join(ROOT, 'docs', 'non-goals.md'));
-  record('no-unimplemented-claims', clean && nonGoals, 'readme-clean=' + !forbidden.test(readme) + ' serve-hidden=' + !/\bserve\b/i.test(help) + ' non-goals=' + nonGoals);
+  const cliSource = fs.readFileSync(path.join(ROOT, 'src', 'cli.js'), 'utf8');
+  const table = cliSource.match(/const commands = \{([\s\S]*?)\};/);
+  const known = new Set();
+  if (table) {
+    for (const part of table[1].split(',')) {
+      const key = part.trim().split(':')[0].trim().replace(/^"|"$/g, '');
+      if (key) known.add(key);
+    }
+  }
+  known.add('version');
+  known.add('help');
+  const documented = new Map();
+  for (const line of readmeRaw.split(/\r?\n/)) {
+    const match = line.match(/autoarmory\s+([a-z][a-z-]*)/);
+    if (!match) continue;
+    const name = match[1];
+    const internal = /internal|legacy|optional/i.test(line);
+    documented.set(name, internal);
+  }
+  const missing = Array.from(documented.entries()).filter(function (entry) { return !known.has(entry[0]) && !entry[1]; }).map(function (entry) { return entry[0]; });
+  record('no-unimplemented-claims', clean && nonGoals && missing.length === 0,
+    'readme-clean=' + !forbidden.test(readme) + ' serve-hidden=' + !/\bserve\b/i.test(help) + ' non-goals=' + nonGoals
+    + ' documented_commands=' + documented.size + ' missing=' + (missing.length ? missing.join(',') : 'none'));
 } catch (error) {
   record('no-unimplemented-claims', false, String(error.message).slice(0, 160));
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2
+
+- The `no-unimplemented-claims` criterion no longer stops at vocabulary: every `autoarmory <command>` the README documents must exist in the CLI command table, or have that line marked internal/legacy/optional. Current result: `documented_commands=22 missing=none`.
+- Proved the check has teeth: appending a fake `autoarmory teleport` line flips the criterion to FAIL with `missing=teleport` (criteria 5/6, exit 1), and restoring the README returns 6/6.
+
 ## 1.3.1
 
 - The acceptance check now validates every metric the commit gate reports: `stale_candidate_escape_count` joins the freshness criteria (must be 0 when local state exists) and `uncovered_candidate_evidence` is surfaced as informational, so the acceptance can no longer be narrower than the gate it summarises.
