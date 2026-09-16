@@ -71,10 +71,13 @@ module.exports = function run(argv) {
     channel: approval.channel || null,
     outcome_ref: null
   } : null;
+  const actor = (approval && approval.approved_by) || args.actor || 'codex';
+
   const record = {
     schema_version: 'selfforge/transition/v1',
     id: 'tr-' + sha256(candidateId + ':' + from + ':' + args.to + ':' + Date.now()).slice(0, 12),
     candidate_id: candidateId,
+    actor: actor,
     from: from,
     to: args.to,
     reason: args.reason || null,

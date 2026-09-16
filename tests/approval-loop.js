@@ -67,6 +67,8 @@ fs.writeFileSync(path.join(state, 'candidates.jsonl'), JSON.stringify(candidate)
 
 let result = run(['transition', candidateFile, '--to', 'pending_approval', '--state', state, '--json']);
 must(result.code === 0 && JSON.parse(result.out).to === 'pending_approval', 'candidate must enter pending_approval');
+const pendingTransition = JSON.parse(result.out);
+must(pendingTransition.actor === 'codex', 'pending transition must default actor to codex');
 
 const before = fs.readFileSync(target, 'utf8');
 must(before === 'old\n', 'agent action must not execute before approval');
@@ -91,6 +93,7 @@ const approvedTransition = JSON.parse(result.out);
 const consumption = approvedTransition.consumption;
 must(consumption && consumption.consumer && consumption.consumer.type === 'operator' && consumption.consumer.id === 'user', 'approval must produce an operator consumption event');
 must(consumption.action === 'approved' && consumption.downstream_action === 'gated', 'consumption must record the approved downstream action');
+must(approvedTransition.actor === 'user', 'approval transition actor must be the approver');
 
 // The Agent executes only after approval. This is the mechanical work the user must not perform.
 fs.writeFileSync(target, 'new\n', 'utf8');
