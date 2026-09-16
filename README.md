@@ -1,15 +1,49 @@
 # AutoArmory
 
-A local capability manager for one operator. It turns "my agent said it fixed this" into "the database says it is fixed."
+**From its own history of failures, the AI decides the lifecycle of every mechanism and module: keep, degrade, replace, or retire. It decides what to do; only an externally recomputable fact is allowed to say whether it worked — and a promotion is rolled back when the fact behind it goes stale.**
 
-It helps one operator choose, verify, replace and retire the modules their agent actually uses. The operator is the consumer and approver; the Agent performs the work. No universal orchestration or platform authorization is required.
+Your agent says "fixed". This repository makes that claim checkable — on any machine, offline, with nothing but the checkout.
 
 ```bash
-npx autoarmory demo
-npx autoarmory bench
+git clone <this repo> && cd autoarmory
+node scripts/profile-run.js      # judges offline, in a sandbox
+npm run check:anchors            # re-fetches every anchor through its declared channel
 ```
 
-See [Why AutoArmory](docs/why.md).
+```text
+PASS  portable-upstream-ms-tarball      npm-published bytes, sha512 matches the registry publication
+PASS  portable-upstream-pypi-six-sdist  PyPI-published bytes, sha256 matches the PyPI publication
+PASS  portable-upstream-ms-git-blob     git blob equals the copy inside the npm tarball
+PASS  portable-verifier-core-sha256     the judging adapter hashes to its pinned digest
+FAIL  portable-negative-control-sha256  a checker that never fails is dead
+```
+
+One PASS proves nothing on its own. The FAIL is in the profile so you can watch the checker reject; the anchored PASS entries are facts this repository does not get to choose.
+
+## The problem
+
+Rules accumulate. Nobody can tell which ones were actually loaded this time; each model upgrade inherits constraints written for an older one; and after every edit you still cannot say whether the change landed. "Remember this" is not a mechanism — it evaporates with the next session.
+
+This changes the unit of work from *a rule someone must remember* into *a mechanism with a lifecycle*, and it puts the verdict outside the author:
+
+| instead of | this repository does |
+|---|---|
+| the agent reports it passed | a registered read-only verifier re-runs and re-derives the fact |
+| the expectation is whatever the author wrote | provenance records keep the publisher's own digest, and the vendored bytes are re-hashed against it — offline, or live through the same channel |
+| a promotion outlives its evidence | a promotion must name the run it rested on; a changed artifact, contract, case, runner or expiry date invalidates that run, and the promotion is rolled back with the record that forced it |
+| "you can trust my machine" | the profile ships with the repository and runs in a sandbox |
+
+## What it is not
+
+Not a memory system, not a router, not an agent framework. It does not make a model smarter and it does not grade itself. It only decides whether a claim about the outside world still holds — and refuses to say "done" when it cannot re-derive that.
+
+## Where to look
+
+- `examples/profiles/portable.profile.json` — the facts that travel with the repository
+- `examples/anchors/` — vendored third-party bytes with their provenance records
+- `scripts/mechanism-lifecycle.js --list` — what is promoted, what was rolled back, and why
+- `docs/verifier-expansion.md` · `docs/mechanism-core.md` — what a new fact source costs, and why old verdicts expire
+- `tests/operator-loop.js` · `tests/rollback.js` — the whole chain, with exactly one operator decision in it
 
 ## Capability Manager
 
