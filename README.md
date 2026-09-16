@@ -79,6 +79,25 @@ The taxonomy and action mapping are documented in [Failure Modes](docs/failure-m
 
 The primary interface is the local CLI. HTTP, SDK and Team CLI files remain available as optional internals for future consumers, but they are not the product surface and are not required for capability management. External adapters follow `docs/adapters.md`.
 
+## Verification
+
+The trust root is a pinned local profile: every verifier is a registered, read-only bridge over one external fact source, and every digest is re-derived instead of trusted. `npm run test:verifier-scorecard` prints fresh-capture status; `npm run test:verifier-bridges` enforces that a fact source stays a thin bridge, that a verdict names its runner, and that pinned files are byte-identical to what is committed. Real output from this machine:
+
+```text
+verifier bridge tests passed: 8 committed heterogeneous fact sources, local profile 9 verifiers pinned and anchored, 10 pinned files byte-identical to their committed blobs
+untracked local adapters skipped: local-transcript
+doris-readonly bridge_lines=139 empty_input=declined
+file-sha256 bridge_lines=14 empty_input=observed
+git-commit-exists bridge_lines=10 empty_input=observed
+local-http-health bridge_lines=28 empty_input=declined
+pid-file-live bridge_lines=16 empty_input=observed
+tls-peer-certificate bridge_lines=50 empty_input=observed
+windows-registry-value bridge_lines=26 empty_input=observed
+windows-service-state bridge_lines=23 empty_input=observed
+```
+
+See [Verifier Expansion](docs/verifier-expansion.md) and [Mechanism Core](docs/mechanism-core.md).
+
 ## Self-evaluation
 
 ```bash
