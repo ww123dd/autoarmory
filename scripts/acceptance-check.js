@@ -73,8 +73,19 @@ try {
   if (!/no mechanism state/.test(preflightText)) {
     const verdictMatch = preflightText.match(/stale_verdict_escape_count=(\d+)/);
     const lifeMatch = preflightText.match(/stale_lifecycle_escape_count=(\d+)/);
-    localOk = preflight.code === 0 && !!verdictMatch && verdictMatch[1] === '0' && !!lifeMatch && lifeMatch[1] === '0';
-    localNote = 'local state: exit=' + preflight.code + ' verdict=' + (verdictMatch ? verdictMatch[1] : '?') + ' lifecycle=' + (lifeMatch ? lifeMatch[1] : '?');
+    const candidateMatch = preflightText.match(/stale_candidate_escape_count=(\d+)/);
+    const uncoveredMatch = preflightText.match(/uncovered_candidate_evidence=(\d+)/);
+    // every metric the commit gate reports has to be checked here, or the acceptance
+    // would be narrower than the gate it claims to summarise
+    localOk = preflight.code === 0
+      && !!verdictMatch && verdictMatch[1] === '0'
+      && !!lifeMatch && lifeMatch[1] === '0'
+      && !!candidateMatch && candidateMatch[1] === '0';
+    localNote = 'local state: exit=' + preflight.code
+      + ' verdict=' + (verdictMatch ? verdictMatch[1] : '?')
+      + ' lifecycle=' + (lifeMatch ? lifeMatch[1] : '?')
+      + ' candidate=' + (candidateMatch ? candidateMatch[1] : '?')
+      + ' uncovered_candidate_evidence=' + (uncoveredMatch ? uncoveredMatch[1] : '?') + ' (informational)';
   }
   record('stale-verdict-escapes', verdictDemonstrated && localOk, 'fixture demonstrated=' + verdictDemonstrated + '; ' + localNote);
   record('stale-lifecycle-escapes', lifecycleDemonstrated && localOk, 'fixture demonstrated=' + lifecycleDemonstrated + '; ' + localNote);

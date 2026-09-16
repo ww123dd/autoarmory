@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- The acceptance check now validates every metric the commit gate reports: `stale_candidate_escape_count` joins the freshness criteria (must be 0 when local state exists) and `uncovered_candidate_evidence` is surfaced as informational, so the acceptance can no longer be narrower than the gate it summarises.
+
 ## 1.3.0
 
 Roadmap slot 0.9: the candidate state machine gets the rule mechanisms got in 0.5 - a promotion does not outlive the evidence it rested on.
