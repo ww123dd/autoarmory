@@ -131,6 +131,13 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.14.0
+
+- [x] session shadow v1: select sessions once, then extract rules and article decisions automatically.
+- [x] current-session projection: collaboration rules, automation requirements and hook requirements.
+- [x] article-session projection: URL-deduplicated decision ledger, case drafts, verifier bindings and unverifiable items.
+- [x] real run: 184 user turns / 182 completions, 301 article decisions, 359 case drafts, 0 manual case/verifier/article labels.
+- [x] closure boundary: no verifier match means no closure; the shadow report remains a candidate projection.
 ## 2.13.0
 
 - [x] deterministic triage: external red/safety/data error/live conflict are `must_fix_now`; missing consumer/stop condition/outsourcing target are `backlog`.

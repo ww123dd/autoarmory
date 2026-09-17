@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.14.0
+
+Session Shadow v1: selected sessions become deterministic rule, article, case-draft and verifier projections without manual labeling.
+
+- Added `src/lib/session-shadow.js` and `scripts/session-shadow.js`.
+- Added `--mode rules` for collaboration, automation and hook requirements.
+- Added `--mode articles` for deduplicated URL decisions, case drafts, verifier bindings and unverifiable items.
+- The real analysis session `01a079b4-0de0-7372-a83c-d4d33e1accd4` produced 184 user turns, 182 completions, 301 article decisions and 359 case drafts; the older `01a06a68` copy was excluded.
+- All manual counters are zero: no manual case creation, verifier configuration or article labeling. No verifier match means the draft stays unclosed.
+- Added sanitized `docs/evidence/session-shadow-20260917.json` and a guard for the acceptance metrics.
+
 ## 2.13.0
 
 Deterministic triage separates “must fix now” from backlog and theoretical completeness.

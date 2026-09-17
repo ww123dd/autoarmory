@@ -1,0 +1,43 @@
+{
+  "schema_version": "autoarmory/session-shadow-evidence/v1",
+  "captured_at": "2026-09-17T13:15:00.000Z",
+  "selected_sessions": {
+    "current_main": "01a0a7c6-11bb-7f41-8d58-c33fa0cf00d9",
+    "analysis_articles": "01a079b4-0de0-7372-a83c-d4d33e1accd4"
+  },
+  "excluded_session": "01a06a68-89ef-7762-bb42-4c3e63e9041a",
+  "manual_inputs": ["select source sessions"],
+  "acceptance": {
+    "source_session_count": 2,
+    "manual_case_creation_count": 0,
+    "manual_verifier_config_count": 0,
+    "manual_article_labeling_count": 0,
+    "auto_case_draft_count": 359,
+    "auto_article_decision_count": 301,
+    "reprocessed_article_count": 0,
+    "close_without_verifier_count": 0,
+    "false_close_count": 0
+  },
+  "current_main": {
+    "raw_user_messages": 103,
+    "raw_assistant_messages": 516,
+    "tool_calls": 2442,
+    "collaboration_rules": 135,
+    "automation_requirements": 53,
+    "hook_requirements": 42
+  },
+  "analysis_articles": {
+    "user_turns": 184,
+    "completions": 182,
+    "links": 301,
+    "article_occurrences": 981,
+    "duplicate_url_occurrence_count": 680,
+    "verified_candidate": 33,
+    "baseline_missing": 10,
+    "verifier_missing": 20,
+    "not_a_case": 296
+  },
+  "llm_judge_calls": 0,
+  "synthetic_record_count": 0,
+  "private_session_content_shipped": false
+}

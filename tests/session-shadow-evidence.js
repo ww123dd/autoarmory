@@ -1,0 +1,20 @@
+'use strict';
+const fs = require('fs');
+const path = require('path');
+function must(condition, message) { if (!condition) throw new Error(message); }
+const raw = fs.readFileSync(path.resolve(__dirname, '..', 'docs', 'evidence', 'session-shadow-20260917.json'), 'utf8');
+const report = JSON.parse(raw);
+must(report.schema_version === 'autoarmory/session-shadow-evidence/v1', 'session shadow evidence schema');
+must(report.selected_sessions.current_main === '01a0a7c6-11bb-7f41-8d58-c33fa0cf00d9', 'current main session id');
+must(report.selected_sessions.analysis_articles === '01a079b4-0de0-7372-a83c-d4d33e1accd4', 'latest analysis session id');
+must(report.excluded_session === '01a06a68-89ef-7762-bb42-4c3e63e9041a', 'older same-name session must remain excluded');
+const a = report.acceptance;
+must(a.source_session_count === 2 && a.manual_case_creation_count === 0 && a.manual_verifier_config_count === 0 && a.manual_article_labeling_count === 0, 'manual input boundary');
+must(a.auto_case_draft_count === 359 && a.auto_article_decision_count === 301 && a.reprocessed_article_count === 0, 'automatic draft and article decision counts');
+must(a.close_without_verifier_count === 0 && a.false_close_count === 0, 'no unverified closure');
+const article = report.analysis_articles;
+must(article.user_turns === 184 && article.completions === 182, 'article session real turn/completion counts');
+must(article.links === 301 && article.verified_candidate === 33 && article.baseline_missing === 10 && article.verifier_missing === 20 && article.not_a_case === 296, 'article buckets');
+must(report.llm_judge_calls === 0 && report.synthetic_record_count === 0 && report.private_session_content_shipped === false, 'shadow privacy and no-judge boundary');
+must(!/[A-Za-z]:[\\/]|\/Users\/|\/home\//.test(raw), 'session shadow evidence must not contain machine paths');
+console.log('session shadow evidence passed: 2 sources, 184/182 turns, 301 article decisions, 359 drafts, 0 manual labels/verifiers/closures');
