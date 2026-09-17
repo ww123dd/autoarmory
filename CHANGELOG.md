@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.11.0
+
+Real cost and token streams enter history replay.
+
+- Added `src/lib/runner-usage.js` and `scripts/ingest-runner-usage.js`: real `cli.json` + `grading.json` pairs become `usage-records.jsonl` with source hashes, cost, input/output/cache tokens, real outcome and Skill invocation.
+- The usage importer stores no prompt, output text or machine path; it only keeps the hashes and numeric facts.
+- History replay now reads `usage-records.jsonl` as a real stream and adds the `skill-required` candidate policy.
+- Real replay over 13 mechanism runs + 1 routing decision + 10 usage records: `replay_escape_count=0`, 10 tightening rejections, `cost_per_outcome=0.46244125`, `token_cost_per_closed_case=66448.75`.
+- `count-half` remains `insufficient_real_stream`; no cost or outcome was inferred where the stream was absent.
+- Added sanitized `docs/evidence/cost-aware-history-replay-20260917.json` and a guard for private paths, details and promotion.
+
 ## 2.10.0
 
 Boundary-aware history replay across real routing, outcome, mechanism and transition streams.

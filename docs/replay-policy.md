@@ -19,6 +19,9 @@ Replay answers one question: **if the policy had been stricter, which already-re
 
 The local `.selfforge/mechanism-runs.jsonl` had 13 real runs. The `mechanism-streak` candidate with `min_passes=3` found 3 tightening rejections and 0 unsafe escapes. The `count-half` candidate correctly reported `insufficient_real_stream` because those runs do not contain count boundaries. The sanitized evidence is in `docs/evidence/replay-20260917.json`.
 
+## Runner Usage Ingestion
+
+`scripts/ingest-runner-usage.js` turns real runner `cli.json` + `grading.json` pairs into `usage-records.jsonl`. It stores the two source hashes, cost, input/output/cache tokens, the real outcome and whether the Skill tool was invoked. It never stores prompt, output text or machine paths.
 ## Boundary-Aware History Replay
 
 `scripts/history-replay.js` combines the recorded routing decisions, routing actuals, outcomes, mechanism runs and transitions. A record enters replay only when it has a real outcome; transitions without an outcome are counted as excluded, not guessed.

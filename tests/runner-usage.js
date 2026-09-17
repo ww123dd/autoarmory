@@ -1,0 +1,21 @@
+'use strict';
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawnSync } = require('child_process');
+const { collectUsageRecords } = require('../src/lib/runner-usage');
+function must(condition, message) { if (!condition) throw new Error(message); }
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-usage-'));
+const runDir = path.join(root, 'case', 'with_skill', 'run-1');
+fs.mkdirSync(path.join(runDir, 'outputs'), { recursive: true });
+fs.writeFileSync(path.join(runDir, 'outputs', 'cli.json'), JSON.stringify({ session_id: 's1', total_cost_usd: 0.25, usage: { input_tokens: 100, output_tokens: 20, cache_read_input_tokens: 30 } }), 'utf8');
+fs.writeFileSync(path.join(runDir, 'grading.json'), JSON.stringify({ run_id: 'case/with_skill', summary: { passed: 4, failed: 0, total: 4, pass_rate: 1 }, execution_metrics: { total_tool_calls: 7, tool_calls: { Skill: 1 } } }), 'utf8');
+const records = collectUsageRecords(root);
+must(records.length === 1 && records[0].source_decision_id === 'case/with_skill', 'usage ingestion must bind a source decision id');
+must(records[0].cost_usd === 0.25 && records[0].tokens.total === 120 && records[0].skill_invoked === true && records[0].outcome.status === 'success', 'usage ingestion must preserve only numbers and the real outcome');
+must(/^[a-f0-9]{64}$/.test(records[0].usage_sha256) && /^[a-f0-9]{64}$/.test(records[0].outcome_sha256), 'usage ingestion must hash both source files');
+const output = path.join(root, 'usage-records.jsonl');
+const script = path.resolve(__dirname, '..', 'scripts', 'ingest-runner-usage.js');
+const result = spawnSync(process.execPath, [script, '--root', root, '--output', output, '--json'], { encoding: 'utf8' });
+must(result.status === 0 && fs.existsSync(output), 'usage ingestion CLI must write the records: ' + result.stdout + result.stderr);
+console.log('runner usage tests passed: source binding, cost/token extraction, outcome binding, hashes, CLI ingestion');

@@ -3,6 +3,7 @@
 const { sha256 } = require('./util');
 
 function asArray(value) { return Array.isArray(value) ? value : []; }
+function numberOrNull(value) { return Number.isFinite(Number(value)) ? Number(value) : null; }
 function recordsOf(value) { return asArray(value); }
 function indexBy(rows, key) {
   const out = {};
@@ -63,9 +64,10 @@ function buildReplayRecords(input, boundaryContext) {
   const outcomes = recordsOf(streams.outcomes);
   const actuals = recordsOf(streams.routing_actuals);
   const transitions = recordsOf(streams.transitions);
+  const usageRecords = recordsOf(streams.usage_records);
   const outcomeIndex = buildOutcomeIndex(outcomes, actuals);
   const records = [];
-  const counts = { mechanism_runs:0, routing_decisions:0, transitions:0 };
+  const counts = { mechanism_runs:0, routing_decisions:0, transitions:0, usage_records:0 };
   for (const run of mechanismRuns) {
     const real = mechanismOutcome(run);
     if (!real) continue;
@@ -106,6 +108,24 @@ function buildReplayRecords(input, boundaryContext) {
     };
     row.boundary = boundaryFor(row, boundaryContext);
     records.push(row); counts.routing_decisions += 1;
+  }
+  for (const usage of usageRecords) {
+    const real = usage && usage.outcome;
+    if (!real || !real.status) continue;
+    const row = {
+      source_type: 'usage_record',
+      source_decision_id: usage.source_decision_id || usage.run_id,
+      source_record: usage,
+      real_outcome: { source: 'runner-usage', status: real.status, reward: outcomeReward(real.status), cost: numberOrNull(usage.cost_usd), tokens: usage.tokens && numberOrNull(usage.tokens.total), observed_at: usage.observed_at || null },
+      reward: outcomeReward(real.status),
+      result: real.status,
+      skill_invoked: usage.skill_invoked === true,
+      action_tier: null,
+      trigger_conflict: false,
+      recorded_at: usage.observed_at || null
+    };
+    row.boundary = boundaryFor(row, boundaryContext);
+    records.push(row); counts.usage_records += 1;
   }
   for (const transition of transitions) {
     const real = transition.outcome || transition.evidence && transition.evidence.outcome || null;
@@ -166,6 +186,21 @@ function replayRoutingEvidence(records) {
   }
   return { policy: 'routing-evidence-required', baseline_pass_count: baselinePass, candidate_pass_count: candidatePass, replay_escape_count: escapes, tightening_rejection_count: tightening, replay_mismatch_count: details.length, details: details, insufficient_real_stream: list.length === 0 };
 }
+function replaySkillRequired(records) {
+  const list = records.filter(function (item) { return item.source_type === 'usage_record'; });
+  const details = [];
+  let baselinePass = 0, candidatePass = 0, escapes = 0, tightening = 0;
+  for (const item of list) {
+    const incumbent = true;
+    const candidate = item.skill_invoked === true && item.real_outcome.status === 'success';
+    baselinePass += 1;
+    if (candidate) candidatePass += 1;
+    if (!incumbent && candidate) escapes += 1;
+    if (incumbent && !candidate) tightening += 1;
+    if (incumbent !== candidate) details.push({ source_decision_id: item.source_decision_id, source_type: item.source_type, incumbent: incumbent, candidate: candidate, boundary: item.boundary, real_outcome: item.real_outcome, reward: item.reward, cost: item.real_outcome.cost, tokens: item.real_outcome.tokens });
+  }
+  return { policy: 'skill-required', baseline_pass_count: baselinePass, candidate_pass_count: candidatePass, replay_escape_count: escapes, tightening_rejection_count: tightening, replay_mismatch_count: details.length, details: details, insufficient_real_stream: list.length === 0 };
+}
 function replayCountHalf(records, options) {
   const ratio = Number(options && options.ratio || 0.5);
   const eligible = records.filter(function (item) { return Number.isInteger(item.count_before) && Number.isInteger(item.count_after); });
@@ -194,7 +229,7 @@ function replayHistory(input, options) {
     if (run.result === 'fail' && key) context.failure_signatures[key] = (context.failure_signatures[key] || 0) + 1;
   }
   const built = buildReplayRecords(input, context);
-  const policyReports = [replayMechanismStreak(built.records, opts), replayRoutingEvidence(built.records), replayCountHalf(built.records, opts)];
+  const policyReports = [replayMechanismStreak(built.records, opts), replayRoutingEvidence(built.records), replaySkillRequired(built.records), replayCountHalf(built.records, opts)];
   const allDetails = policyReports.reduce(function (sum, item) { return sum.concat(item.details || []); }, []);
   const mismatches = allDetails.filter(function (item) { return item.incumbent !== item.candidate; });
   const boundaryBySource = {};
@@ -208,9 +243,10 @@ function replayHistory(input, options) {
   }
   const boundaryHits = mismatches.filter(function (item) { return item.boundary && item.boundary.selected; }).length;
   const outcomeGain = allDetails.reduce(function (sum, item) { return sum + ((item.candidate ? item.reward : 0) - (item.incumbent ? item.reward : 0)); }, 0);
-  const costs = built.records.map(function (item) { return item.real_outcome && item.real_outcome.cost; }).filter(function (value) { return Number.isFinite(value); });
-  const tokens = built.records.map(function (item) { return item.real_outcome && item.real_outcome.tokens; }).filter(function (value) { return Number.isFinite(value); });
-  const candidateAccepted = policyReports.reduce(function (sum, item) { return sum + (item.candidate_pass_count || 0); }, 0);
+  const acceptedUsage = built.records.filter(function (item) { return item.source_type === 'usage_record' && item.skill_invoked === true && item.real_outcome.status === 'success'; });
+  const costs = acceptedUsage.map(function (item) { return item.real_outcome.cost; }).filter(function (value) { return Number.isFinite(value); });
+  const tokens = acceptedUsage.map(function (item) { return item.real_outcome.tokens; }).filter(function (value) { return Number.isFinite(value); });
+  const candidateAccepted = acceptedUsage.length;
   const closedCases = candidateAccepted;
   const enough = policyReports.some(function (item) { return !item.insufficient_real_stream; });
   const hardFailure = policyReports.reduce(function (sum, item) { return sum + (item.replay_escape_count || 0); }, 0) !== 0;

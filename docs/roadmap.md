@@ -131,6 +131,13 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.11.0
+
+- [x] runner usage ingestion: real `cli.json` + `grading.json` pairs become hash-bound usage records with cost, tokens, outcome and Skill invocation.
+- [x] history replay cost policy: `skill-required` is replayed over real usage records; costs are observed, not inferred.
+- [x] real cost metrics: 10 usage records, `cost_per_outcome=0.46244125`, `token_cost_per_closed_case=66448.75`.
+- [x] no prompt/output/path leakage: only hashes and numeric facts are shipped.
+- [x] aggregate hard gates remain `replay_escape_count=0`, `synthetic_record_count=0`, `llm_judge_calls=0`, `context_budget_escape_count=0`, `promotion=false`.
 ## 2.10.0
 
 - [x] multi-stream replay: routing decisions, routing actuals, outcomes, mechanism runs and transitions are read separately; only real-outcome records enter replay.

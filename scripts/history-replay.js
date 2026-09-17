@@ -15,7 +15,8 @@ const input = {
   routing_actuals: read(path.join(state, 'routing-actual.jsonl')),
   outcomes: read(path.join(state, 'outcomes.jsonl')),
   mechanism_runs: read(path.join(state, 'mechanism-runs.jsonl')),
-  transitions: read(path.join(state, 'transitions.jsonl'))
+  transitions: read(path.join(state, 'transitions.jsonl')),
+  usage_records: read(path.join(state, 'usage-records.jsonl'))
 };
 let context = null;
 if (args.skill) {
