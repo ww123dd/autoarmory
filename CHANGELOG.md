@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0
+
+Execution provenance: what actually ran, recorded as facts that can be re-checked - never as output text.
+
+- Added `scripts/exec-record.js -- <cmd> [args]`: records `input_sha256` (command line + arguments + selected environment keys), `output{stdout_sha256,stderr_sha256,stdout_bytes,stderr_bytes}`, `exit_code`, `duration_ms` and `outcome`, plus `--link-decision <request_id>` so the record can feed shadow evaluation.
+- The output text is never stored - only its hash and byte count - and the recorded process keeps its own exit code, so a failing command is recorded as `failure` rather than dropped. `tests/anchor-and-exec.js` asserts both, including that the `output` object may only carry hash/size fields.
+
 ## 1.6.0
 
 The trust root gets a lifetime, and its escape hatch gets a record.
