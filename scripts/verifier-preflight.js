@@ -51,6 +51,17 @@ for (const item of declaredVerifiers) {
   }
 }
 
+// TUF lesson: the trust root expires. There is deliberately no expiry override flag.
+const anchorFile = process.env.AUTOARMORY_LOCK_ANCHOR || path.join(os.homedir(), '.codex', 'hooks', 'verifier-lock.sha256');
+const anchorMeta = anchorFile + '.meta.json';
+if (fs.existsSync(anchorMeta)) {
+  try {
+    const meta = JSON.parse(fs.readFileSync(anchorMeta, 'utf8'));
+    if (meta.rotate_by && Date.parse(meta.rotate_by) < Date.now()) failures.push('verifier trust root expired on ' + meta.rotate_by + '; review the change and re-pin it (node scripts/verifier-pin.js)');
+  } catch (error) { failures.push('verifier trust root metadata unreadable: ' + error.message); }
+} else {
+  process.stdout.write('verifier preflight: no anchor lifetime stamped yet; run node scripts/verifier-pin.js\n');
+}
 const inventory = verify.listVerifiers(repo);
 if (!inventory.ok) failures.push('verifier inventory: ' + inventory.errors.join('; '));
 for (const item of inventory.verifiers) {

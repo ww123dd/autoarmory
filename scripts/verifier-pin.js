@@ -33,6 +33,9 @@ const anchorPath = path.resolve(arg('--anchor') || process.env.AUTOARMORY_LOCK_A
 const mergeFile = arg('--merge');
 const dryRun = flags.has('--dry-run');
 const allowDrift = flags.has('--allow-drift');
+const driftReason = arg('--reason');
+const previousAnchor = fs.existsSync(anchorPath) ? fs.readFileSync(anchorPath, 'utf8').trim() : null;
+if (allowDrift && (!driftReason || !String(driftReason).trim())) fail('--allow-drift requires --reason "<why the trust root is being re-pinned>"'); the escape hatch stays, but it has to be auditable afterwards');
 const allowUntracked = flags.has('--allow-untracked');
 
 function fail(message) {
@@ -157,4 +160,12 @@ if (dryRun) {
 fs.writeFileSync(lockPath, text, 'utf8');
 fs.mkdirSync(path.dirname(anchorPath), { recursive: true });
 fs.writeFileSync(anchorPath, nextDigest + '\n', 'utf8');
+  const pinnedAt = new Date();
+  const rotateBy = new Date(pinnedAt.getTime() + 180 * 86400000);
+  fs.writeFileSync(anchorPath + '.meta.json', JSON.stringify({ schema_version: 'autoarmory/verifier-lock-meta/v1', pinned_at: pinnedAt.toISOString(), rotate_by: rotateBy.toISOString(), rotate_after_days: 180 }, null, 2) + '\n', 'utf8');
+  if (allowDrift) {
+    const driftFile = anchorPath + '.drift.jsonl';
+    fs.appendFileSync(driftFile, JSON.stringify({ schema_version: 'autoarmory/trust-root-drift/v1', at: pinnedAt.toISOString(), lock: lockPath, previous_anchor: previousAnchor, next_anchor: nextDigest, reason: String(driftReason).trim() }) + '\n', 'utf8');
+  }
+  process.stdout.write('  rotate_by ' + rotateBy.toISOString().slice(0, 10) + ' (a trust root that never expires is a trust root nobody rotates)' + (allowDrift ? '\n  drift recorded: ' + String(driftReason).trim() : '') + '\n');
 process.stdout.write('verifier pin: ' + rows.length + ' verifiers pinned\n' + summary + '\n' + localOnlyNote + sharedText + '  lock   ' + lockPath + ' @ ' + nextDigest.slice(0, 12) + '\n  anchor ' + anchorPath + '\n');
