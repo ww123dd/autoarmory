@@ -106,7 +106,7 @@ drifted.verifiers[1].assertion.value = 999;
 write(fixture.lock, JSON.stringify(drifted, null, 2) + '\n');
 result = pin(fixture, ['--merge', descriptor]);
 must(result.status === 2 && /VERIFIER_PIN_BLOCK/.test(result.stderr) && /trust root drift/.test(result.stderr), 'a drifted lock must be refused without --allow-drift');
-result = pin(fixture, ['--merge', descriptor, '--allow-drift']);
+result = pin(fixture, ['--merge', descriptor, '--allow-drift', '--reason', 'fixture recovery after a deliberate profile replacement']);
 must(result.status === 0, 'deliberate recovery must succeed with --allow-drift: ' + String(result.stderr || result.stdout).slice(0, 300));
 must(readJson(fixture.lock).verifiers[1].assertion.value === 3, 'recovery must restore the declared assertion from the descriptor');
 assertFullyPinned(fixture, 'after recovery');

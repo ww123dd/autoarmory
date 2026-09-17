@@ -7,6 +7,10 @@ function must(c,m){if(!c)throw new Error(m);}
 function run(args,env){const r=spawnSync(process.execPath,args,{cwd:ROOT,encoding:'utf8',windowsHide:true,env:Object.assign({},process.env,env||{})});return{code:r.status,out:r.stdout||'',err:r.stderr||''};}
 // 1.6.0: expired anchor blocks; fresh anchor passes; there is no bypass flag
 const hooks=path.join(work,'hooks');fs.mkdirSync(hooks,{recursive:true});
+const localProfile = path.join(ROOT, 'verifiers.lock.json');
+const hasLocalProfile = fs.existsSync(localProfile);
+if (!hasLocalProfile) console.log('local profile absent (clone): expiry assertions skipped; exec-record assertions still run');
+if (hasLocalProfile) {
 const lock=path.join(work,'verifiers.lock.json');fs.copyFileSync(path.join(ROOT,'verifiers.lock.json'),lock);
 const anchor=path.join(hooks,'verifier-lock.sha256');fs.copyFileSync(path.join(ROOT,'verifiers.lock.json'),path.join(hooks,'x'));
 const crypto=require('crypto');fs.writeFileSync(anchor,crypto.createHash('sha256').update(fs.readFileSync(lock)).digest('hex')+'\n');
@@ -18,6 +22,7 @@ fs.writeFileSync(meta,JSON.stringify({rotate_by:new Date(Date.now()-86400000).to
 const expired=pre();
 must(expired.code===2&&/expired/.test(expired.err),'an expired anchor must block: '+expired.err);
 must(!/allow-expired|--allow-expired/.test(fs.readFileSync(path.join(ROOT,'scripts','verifier-preflight.js'),'utf8')),'there must be no expiry bypass flag');
+}
 // 1.7.0: executions become hashes; failures are recorded
 const state=path.join(work,'state');
 let r=run([path.join(ROOT,'scripts','exec-record.js'),'--state',state,'--json','--',process.execPath,'-e','process.stdout.write("secret-output-token")']);
@@ -31,4 +36,4 @@ must(records[1].decision_id==='route-x','a record must be linkable to a routing 
 must(!JSON.stringify(records.map(function (r) { return r.output; })).includes('secret-output-token'), 'the output text must never be stored - only its hash');
 must(Object.keys(records[0].output).every(function (k) { return /sha256|bytes/.test(k); }), 'the output object may only carry hashes and byte counts, never text fields');
 must(/^[a-f0-9]{64}$/.test(records[0].output.stdout_sha256)&&records[0].input_sha256.length===64,'input and output hashes must be present');
-console.log('1.6/1.7 tests passed: fresh anchor ok, expired anchor BLOCK (no bypass), executions recorded as hashes with failures preserved');
+console.log('1.6/1.7 tests passed: executions recorded as hashes with failures preserved' + (hasLocalProfile ? '; fresh anchor ok, expired anchor BLOCK (no bypass)' : '; expiry half skipped (no local profile)'));

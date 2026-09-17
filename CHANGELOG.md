@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1
+
+- Fixed a real defect the fresh-clone qualification caught: `tests/anchor-and-exec.js` copied the gitignored local profile, so `npm test` failed in any clone while passing on the machine that had one. The expiry half is now guarded by `fs.existsSync(localProfile)` and prints why it is skipped; the exec-record half always runs. The 1.6.0 and 1.7.0 release logs keep their `npm test=1` line, with an appended correction note - the error stays in the evidence instead of being overwritten.
+- Committed the `--reason` fix to `tests/verifier-pin.js` that the new drift rule requires.
+
 ## 1.7.0
 
 Execution provenance: what actually ran, recorded as facts that can be re-checked - never as output text.
