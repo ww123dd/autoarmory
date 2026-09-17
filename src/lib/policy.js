@@ -1,24 +1,6 @@
 'use strict';
 
-function makeRng(seed) {
-  let state = (Number(seed) || 1) >>> 0;
-  return function () { state += 0x6D2B79F5; let t = state; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-}
-function sampleGamma(shape, rng) {
-  const d = shape - 1 / 3;
-  const c = 1 / Math.sqrt(9 * d);
-  for (;;) {
-    let x;
-    let v;
-    do { x = boxMuller(rng); v = 1 + c * x; } while (v <= 0);
-    v = v * v * v;
-    const u = rng();
-    if (u < 1 - 0.0331 * x * x * x * x) return d * v;
-    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
-  }
-}
-function boxMuller(rng) { const u = Math.max(rng(), Number.EPSILON); const v = Math.max(rng(), Number.EPSILON); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
-function sampleBeta(alpha, beta, rng) { const x = sampleGamma(Math.max(0.0001, alpha), rng); const y = sampleGamma(Math.max(0.0001, beta), rng); return x / (x + y); }
+const { makeRng, sampleBeta } = require('./sampling');
 
 function recommend(decisions, options) {
   const opts = options || {};

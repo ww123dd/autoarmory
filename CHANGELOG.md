@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.2
+
+Numeric boundary fix for Thompson sampling.
+
+- Reproduced the reviewer's counterexample: `sampleBeta(0.01/0.1/0.3, ...)` returned `NaN`; the old Marsaglia-Tsang gamma sampler is only valid for `shape >= 1`, and clamping to `0.0001` did not fix it.
+- Moved sampling into `src/lib/sampling.js`; shapes below 1 now use the standard `Gamma(shape+1) * U^(1/shape)` boost, `alpha`/`beta` must be positive, and a zero/NaN denominator fails closed to `0.5` instead of poisoning routing scores.
+- Added `tests/sampling.js` (200 seeded draws for each of `0.01`, `0.1`, `0.3`, `0.34`, `1`, `2`; boundary pairs; invalid-parameter refusal; seed reproducibility). The test is wired into `npm test`.
 ## 2.0.1
 
 Public-surface correction: the repository no longer advertises an npm install before the package exists.

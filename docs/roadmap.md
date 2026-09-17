@@ -106,6 +106,10 @@
 
 - [x] public-surface correction: README is clone-first until the npm package exists, the canonical GitHub/Gitee links are on the first screen, package metadata points at the real repository, and the vendored SkillCanary README links back to the AutoArmory trust-root profile.
 
+## 2.0.2
+
+- [x] numeric boundary fix: `sampleBeta` now handles shapes below 1 with the standard gamma boost, refuses non-positive parameters, and is covered by `tests/sampling.js` across `0.01` through `2`.
+
 ## 1.0
 
 1.0 is not a feature; it is the statement that the local capability manager does what it claims. `scripts/acceptance-check.js` prints one PASS/FAIL per line, exits non-zero on any FAIL, and runs inside `npm test` (`npm run check:acceptance`):
