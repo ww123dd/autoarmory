@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.13.0
+
+Deterministic triage separates “must fix now” from backlog and theoretical completeness.
+
+- Added `src/lib/triage.js` and `scripts/triage.js`.
+- `must_fix_now`: external red, safety boundary, data error or live-fact conflict with evidence.
+- `backlog`: missing consumer, stop condition or outsourcing target.
+- `only_if_decision_impact`: naming, documentation, version, format or extra evidence unless a real decision impact is recorded.
+- `do_not_do`: theoretical completeness with no real consumer or external fact.
+- `needs_evidence`: no deterministic rule matched; this remains fail-closed instead of being silently downgraded.
+- `--enforce` blocks only `must_fix_now` and `needs_evidence`; backlog and do-not-do remain visible without fake urgency.
+- Added `tests/triage.js` and `examples/triage-findings.jsonl`.
+
 ## 2.12.0
 
 History replay evidence is now independently re-derivable from a sanitized shipped snapshot.

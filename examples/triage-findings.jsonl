@@ -1,0 +1,4 @@
+{"schema_version":"autoarmory/triage-input/v1","id":"red-1","kind":"safety_boundary","source_decision_id":"route-1","evidence_refs":[{"id":"ev-1"}]}
+{"schema_version":"autoarmory/triage-input/v1","id":"backlog-1","kind":"missing_stop_condition","source_decision_id":"case-1","evidence_refs":[{"id":"ev-2"}],"missing":["stop_condition"]}
+{"schema_version":"autoarmory/triage-input/v1","id":"docs-1","kind":"documentation","source_decision_id":"case-2","evidence_refs":[{"id":"ev-3"}],"decision_impact":false}
+{"schema_version":"autoarmory/triage-input/v1","id":"theory-1","kind":"theoretical_completeness","source_decision_id":"case-3","evidence_refs":[{"id":"ev-4"}]}

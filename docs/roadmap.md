@@ -131,6 +131,13 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.13.0
+
+- [x] deterministic triage: external red/safety/data error/live conflict are `must_fix_now`; missing consumer/stop condition/outsourcing target are `backlog`.
+- [x] low-impact gate: naming/docs/version/format/extra evidence is `only_if_decision_impact` unless a real decision impact is recorded.
+- [x] theory gate: theoretical completeness with no real consumer is `do_not_do`.
+- [x] fail-closed unknown: `needs_evidence` blocks instead of being silently downgraded.
+- [x] CLI semantics: `--enforce` blocks only on `must_fix_now` and `needs_evidence`.
 ## 2.12.0
 
 - [x] sanitized replay snapshot: source ids, real outcomes, cost/token facts and boundary fields only.
