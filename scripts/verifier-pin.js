@@ -35,7 +35,7 @@ const dryRun = flags.has('--dry-run');
 const allowDrift = flags.has('--allow-drift');
 const driftReason = arg('--reason');
 const previousAnchor = fs.existsSync(anchorPath) ? fs.readFileSync(anchorPath, 'utf8').trim() : null;
-if (allowDrift && (!driftReason || !String(driftReason).trim())) fail('--allow-drift requires --reason "<why the trust root is being re-pinned>"'); the escape hatch stays, but it has to be auditable afterwards');
+if (allowDrift && (!driftReason || !String(driftReason).trim())) fail('--allow-drift requires --reason "<why the trust root is being re-pinned>"; the escape hatch stays, but it has to be auditable afterwards');
 const allowUntracked = flags.has('--allow-untracked');
 
 function fail(message) {
