@@ -131,6 +131,11 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.7.0
+
+- [x] done contract: `case.verifier` and `case.done_criteria` are optional at admission and mandatory at `close`; old records are not rewritten by a schema change.
+- [x] one completion family: `closeCase` uses `src/lib/done-contract.js` to bind the case criteria, the registered verifier, and the same externally re-derived run.
+- [x] closure evidence: every new closure records the criteria hash, contract source, `verification_gap_count` and the supporting run pointer.
 ## 2.6.0
 
 - [x] trigger contract: the description must declare the nearest adjacent case it must not activate for; inventory and lint fail structurally when it is missing.

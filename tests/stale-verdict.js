@@ -72,7 +72,7 @@ function makeFixture(name) {
   must(mechanism.admitCase(state, {
     schema_version: 'autoarmory/case/v1', id: 'case-fixture', incident_id: 'inc-fixture', title: 'Fixture case',
     expected_transition: 'COUNT->0', failure_mode: 'masked_failure', severity: 'high', evidence: ['fixture'],
-    reproducible: true, owner: 'codex'
+    reproducible: true, owner: 'codex', verifier: 'fixture', done_criteria: 'the pinned fixture re-derives the same fact'
   }).ok, 'case admission');
   must(mechanism.registerMechanism(state, {
     schema_version: 'autoarmory/mechanism/v1', id: 'mech-fixture', name: 'Fixture guard', covered_failure_modes: ['masked_failure'],

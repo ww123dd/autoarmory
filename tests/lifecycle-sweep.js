@@ -12,7 +12,7 @@ function adapter(){return ["'use strict';","process.stdout.write(JSON.stringify(
 w(path.join(repo,'scripts','verify','fixture.js'),adapter());
 w(path.join(repo,'vlock.json'),JSON.stringify({schema_version:'autoarmory/verifiers-lock/v1',verifiers:[{id:'sweep-verifier',kind:'fixture',version:'1.0.0',invocation_contract_version:'autoarmory/invocation-contract/v1',readonly:true,adapter:'scripts/verify/fixture.js',adapter_sha256:shaFile(path.join(repo,'scripts','verify','fixture.js')),statement:'fixture',assertion:{path:'observed',op:'eq',value:0},timeout_ms:10000}]},null,2));
 w(path.join(repo,'verifiers.lock.json'),fs.readFileSync(path.join(repo,'vlock.json')));
-must(mechanism.admitCase(state,{schema_version:'autoarmory/case/v1',id:'case-sweep',incident_id:'i',title:'t',expected_transition:'COUNT->0',failure_mode:'masked_failure',severity:'low',evidence:['x'],reproducible:true,owner:'user'}).ok,'case');
+must(mechanism.admitCase(state,{schema_version:'autoarmory/case/v1',id:'case-sweep',incident_id:'i',title:'t',expected_transition:'COUNT->0',failure_mode:'masked_failure',severity:'low',evidence:['x'],reproducible:true,owner:'user',verifier:'sweep-verifier',done_criteria:'the fixture counterexample re-derives'}).ok,'case');
 must(mechanism.registerMechanism(state,{schema_version:'autoarmory/mechanism/v1',id:'mech-sweep',name:'m',covered_failure_modes:['masked_failure'],trigger:'t',action:'a',verification:'v',verifier_id:'sweep-verifier',closure_criteria:'c',owner:'user',version:'1.0.0'},{repo:repo}).ok,'mechanism');
 const capture=require('../src/lib/verify').captureRefs([{id:'r',verifier:'sweep-verifier',params:{}}],{repo:repo,case_id:'case-sweep',mechanism_id:'mech-sweep',run_id:'run-1',trials:1});
 must(capture.status==='captured','capture');

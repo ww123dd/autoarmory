@@ -1,6 +1,6 @@
 # Mechanism Core
 
-Status: v0.5 vertical slice
+Status: v2.7 Done Contract slice
 Scope: case admission, mechanism registration, independent replay, closure, and verdict
 
 ## Core objects
@@ -111,6 +111,16 @@ node scripts/mechanism-lifecycle.js --list
 
 `tests/rollback.js` drives all of it: promote (evidence-backed), healthy (no rollback), stale promoted (BLOCK with count 1), rollback (recorded + idempotent), post-rollback (0 + pass), recovery (re-promoted), stale promotion (refused).
 
+## Done Contract
+
+A case may be admitted without a completion contract so historical records keep their schema. `close` is where the contract becomes mandatory:
+
+- `case.verifier` must name the registered verifier that proves completion;
+- `case.done_criteria` must be a non-empty string or object;
+- the named verifier must equal the mechanism verifier and appear in the run evidence;
+- the same real execution must have re-derived a passing run, a non-zero counterexample and no regression.
+
+The resolved criteria and their SHA-256 are written into the closure as `done_contract`, together with `verification_gap_count`. Missing criteria, a mismatched verifier, a failed re-derivation or a missing counterexample all fail closed. `src/lib/done-contract.js` is the single completion family used by `closeCase`; it does not introduce a second judge.
 ## Verdicts
 
 ```text
@@ -124,6 +134,6 @@ unverified | verified | expired | bypassed | closed
 - has re-derived input/output SHA-256 hashes and `exit_code`;
 - passed according to the re-derived exit code;
 - did not introduce a regression;
-- records a non-empty counterexample.
+- records a non-empty counterexample;`n- declares and passes the case Done Contract bound to that same verifier and run.
 
 The first slice does not execute external tools as part of the verifier core. It re-runs only registered, read-only verifier adapters whose digest is pinned in the trust root.

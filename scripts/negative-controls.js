@@ -43,7 +43,7 @@ function makeRepo(name) {
 }
 
 function caseRecord() {
-  return { schema_version: 'autoarmory/case/v1', id: 'case-nc', incident_id: 'inc-nc', title: 'Negative control fixture', expected_transition: 'COUNT->0', failure_mode: 'masked_failure', severity: 'high', evidence: ['fixture'], reproducible: true, owner: 'codex' };
+  return { schema_version: 'autoarmory/case/v1', id: 'case-nc', incident_id: 'inc-nc', title: 'Negative control fixture', expected_transition: 'COUNT->0', failure_mode: 'masked_failure', severity: 'high', evidence: ['fixture'], reproducible: true, owner: 'codex', verifier: 'nc-pid-file-live', done_criteria: 'valid live pid passes and invalid pid fails' };
 }
 function mechanismRecord() {
   return { schema_version: 'autoarmory/mechanism/v1', id: 'mech-nc', name: 'Negative control fixture', covered_failure_modes: ['masked_failure'], trigger: 'fixture trigger', action: 'fixture action', verification: 'pinned fixture verifier', verifier_id: 'nc-pid-file-live', closure_criteria: 'valid live pid passes and invalid pid fails', owner: 'codex', version: '1.0.0' };

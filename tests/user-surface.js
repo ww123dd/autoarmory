@@ -56,7 +56,7 @@ const adapterSource = [
 ].join('\n');
 fs.writeFileSync(adapter, adapterSource, 'utf8');
 fs.writeFileSync(path.join(temp, lockName), JSON.stringify({ schema_version: 'autoarmory/verifiers-lock/v1', verifiers: [{ id: 'fixture-verifier', kind: 'fixture', readonly: true, adapter: 'scripts/verify/fixture.js', adapter_sha256: sha(adapter), statement: 'fixture', assertion: { path: 'observed', op: 'eq', value: 0 }, timeout_ms: 10000 }] }, null, 2) + '\n', 'utf8');
-const caseFile = write('case.json', { schema_version: 'autoarmory/case/v1', id: 'case-user-surface', incident_id: 'inc-user-surface', title: 'best skill artifact', expected_transition: 'EVAL->PASS', failure_mode: 'quality_drift', severity: 'low', evidence: ['artifact best_skill.md'], reproducible: true, owner: 'user' });
+const caseFile = write('case.json', { schema_version: 'autoarmory/case/v1', id: 'case-user-surface', incident_id: 'inc-user-surface', title: 'best skill artifact', expected_transition: 'EVAL->PASS', failure_mode: 'quality_drift', severity: 'low', evidence: ['artifact best_skill.md'], reproducible: true, owner: 'user', verifier: 'fixture-verifier', done_criteria: 'the fixture verifier re-derives observed == 0' });
 result = json(run(['bind', 'artifact', 'best_skill.md', '--case', 'case-user-surface', '--verifier', 'fixture-verifier', '--case-file', caseFile, '--state', state, '--repo', temp, '--json']));
 must(result.ok && result.card && result.card.lifetime.state === 'bound' && result.card.verifier.id === 'fixture-verifier', 'artifact must bind to an admitted case and an integrity-checked verifier');
 

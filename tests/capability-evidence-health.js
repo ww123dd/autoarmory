@@ -58,7 +58,7 @@ function capability(id, evidenceRefs) {
 }
 write(path.join(state, 'capabilities.jsonl'), [capability('cap.backed', ['mech-health']), capability('cap.unbacked', [])].map(function (item) { return JSON.stringify(item); }).join('\n') + '\n');
 
-must(mechanism.admitCase(state, { schema_version: 'autoarmory/case/v1', id: 'case-health', incident_id: 'inc-health', title: 'Health fixture', expected_transition: 'COUNT->0', failure_mode: 'masked_failure', severity: 'low', evidence: ['fixture'], reproducible: true, owner: 'user' }).ok, 'case admission');
+must(mechanism.admitCase(state, { schema_version: 'autoarmory/case/v1', id: 'case-health', incident_id: 'inc-health', title: 'Health fixture', expected_transition: 'COUNT->0', failure_mode: 'masked_failure', severity: 'low', evidence: ['fixture'], reproducible: true, owner: 'user', verifier: 'health-verifier', done_criteria: 'fixture verifier re-derives the pass' }).ok, 'case admission');
 must(mechanism.registerMechanism(state, { schema_version: 'autoarmory/mechanism/v1', id: 'mech-health', name: 'Health fixture', covered_failure_modes: ['masked_failure'], trigger: 't', action: 'a', verification: 'v', verifier_id: 'health-verifier', closure_criteria: 'c', owner: 'user', version: '1.0.0' }, { repo: repo }).ok, 'mechanism registration');
 
 function recordAndClose(runId) {

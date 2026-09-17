@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.7.0
+
+Done Contract: a case may be admitted without completion fields, but it cannot close without a verifier-bound, executable definition of done.
+
+- Added optional `case.verifier` and `case.done_criteria` fields. Existing case records remain admissible; the contract is resolved and checked at `close` time rather than retroactively invalidating history.
+- Added `src/lib/done-contract.js` as the single completion family used by `closeCase`, replacing the old standalone result/counterexample checks.
+- `close` now requires explicit case criteria, the same registered verifier as the mechanism, evidence from the same run, a re-derived pass, no regression and a counterexample.
+- Closures now carry `done_contract.done_criteria_sha256`, `contract_source`, `verification_gap_count` and an evidence pointer to the supporting run.
+- Updated the mechanism, operator-loop, rollback, stale-verdict, capability-health, lifecycle and user-surface tests to carry the contract explicitly.
+
 ## 2.6.0
 
 Trigger Contract and lint-backed context limits.
@@ -8,6 +18,7 @@ Trigger Contract and lint-backed context limits.
 - Skill inventory and lint now require an explicit negative trigger boundary (`when_not_to_use` / `【何时不用】` / `do not use for`) and report missing boundaries as a structural gap.
 - Added `scripts/trigger-regression.js`: it compares the same at least three real audit requests, reports `trigger_misfire_delta` and `trigger_regression_count`, and fails when a broken description does not increase misfires or a restored description does not return the count to zero.
 - Added `tests/trigger-contract.js` and `tests/inventory.js` coverage for the structural contract and the three-request regression rule.
+
 ## 2.5.0
 
 Context Budget + Audit Mechanism: the first deterministic ruler for skill context and real trace behavior.

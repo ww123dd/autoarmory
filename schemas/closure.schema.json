@@ -10,6 +10,7 @@
     "mechanism_id": { "type": "string", "minLength": 1 },
     "run_id": { "type": "string", "minLength": 1 },
     "status": { "const": "closed" },
+    "done_contract": { "type": "object", "additionalProperties": true },
     "closed_at": { "type": "string", "minLength": 1 }
   },
   "additionalProperties": true

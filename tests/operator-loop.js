@@ -107,7 +107,8 @@ const descriptor = path.join(work, 'descriptor.json');
 write(descriptor, {
   case: {
     schema_version: 'autoarmory/case/v1', id: 'case-operator-loop', incident_id: 'inc-operator-loop', title: 'Operator loop fixture',
-    expected_transition: 'COUNT->0', failure_mode: 'masked_failure', severity: 'low', evidence: ['fixture'], reproducible: true, owner: 'user'
+    expected_transition: 'COUNT->0', failure_mode: 'masked_failure', severity: 'low', evidence: ['fixture'], reproducible: true, owner: 'user',
+    verifier: 'operator-loop-verifier', done_criteria: 'the external verifier re-derives a passing run'
   },
   mechanism: {
     schema_version: 'autoarmory/mechanism/v1', id: 'mech-operator-loop', name: 'Operator loop fixture',

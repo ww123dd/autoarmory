@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { readJsonl, writeJsonl, sha256 } = require('./util');
 const verify = require('./verify');
+const doneContract = require('./done-contract');
 
 const STATUSES = ['unverified', 'verified', 'expired', 'bypassed', 'closed'];
 function files(stateDir) {
@@ -166,9 +167,8 @@ function closeCase(stateDir, caseId, runId, options) {
     require_record: true
   });
   if (verification.status !== 'verified') return { ok: false, errors: [verificationFailure(verification)] };
-  if (run.result !== 'pass') return { ok: false, errors: ['run did not pass'] };
-  if (run.regression === true) return { ok: false, errors: ['run introduced a regression'] };
-  if (!run.counterexample || typeof run.counterexample !== 'object' || Object.keys(run.counterexample).length === 0) return { ok: false, errors: ['run is missing a counterexample'] };
+  const completion = doneContract.evaluateDoneContract(item, mechanism, run, verification);
+  if (!completion.ok) return { ok: false, errors: completion.errors };
   if (closures.some(function (entry) { return entry.case_id === caseId && entry.run_id === runId; })) return { ok: false, errors: ['case already closed for this run'] };
   const closure = {
     schema_version: 'autoarmory/closure/v1',
@@ -181,6 +181,14 @@ function closeCase(stateDir, caseId, runId, options) {
     runner_sha256: run.runner_sha256 || null,
     invocation_contract_version: run.invocation_contract_version || null,
     verifier_version: run.verifier_version || null,
+    done_contract: {
+      verifier: completion.verifier,
+      done_criteria: completion.done_criteria,
+      done_criteria_sha256: completion.done_criteria_sha256,
+      contract_source: completion.source,
+      verification_gap_count: completion.verification_gap_count,
+      evidence_ref: completion.evidence_ref
+    },
     closed_at: new Date().toISOString()
   };
   append(state.closures, closure);

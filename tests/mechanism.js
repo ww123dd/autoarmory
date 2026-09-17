@@ -45,7 +45,7 @@ function makeRepo(name) {
   return { repo: repo, state: path.join(repo, '.selfforge') };
 }
 function caseRecord(id, incidentId) {
-  return { schema_version: 'autoarmory/case/v1', id: id, incident_id: incidentId, title: 'Replayable failure case', expected_transition: 'COUNT->0', failure_mode: 'drift', severity: 'critical', evidence: ['fixture evidence'], reproducible: true, owner: 'codex' };
+  return { schema_version: 'autoarmory/case/v1', id: id, incident_id: incidentId, title: 'Replayable failure case', expected_transition: 'COUNT->0', failure_mode: 'drift', severity: 'critical', evidence: ['fixture evidence'], reproducible: true, owner: 'codex', verifier: 'fixture', done_criteria: 'exit code 0 with a re-derived counterexample' };
 }
 function mechanismRecord(id, staleDays) {
   return { schema_version: 'autoarmory/mechanism/v1', id: id, name: 'Fixture guard', covered_failure_modes: ['drift'], trigger: 'fixture trigger', action: 'fixture action', verification: 'pinned fixture adapter', verifier_id: 'fixture', closure_criteria: 'exit code 0 with a counterexample', owner: 'codex', version: '1.0.0', verification_stale_days: staleDays || 30 };
@@ -106,6 +106,9 @@ must(result.run.verification_result && result.run.verification_result.status ===
 must(result.run.verification === undefined && result.run.verified_by === undefined, 'self-reported verification fields must not be stored');
 const cliClose = cliRun(['close', '--case', 'case-good', '--run', 'run-good', '--state', fixture.state, '--repo', fixture.repo, '--json'], fixture.repo);
 must(cliClose.code === 0 && JSON.parse(cliClose.out).status.status === 'closed', 'close CLI must pass repo root to the judge');
+const closedReport = JSON.parse(cliClose.out);
+must(closedReport.closure.done_contract && closedReport.closure.done_contract.contract_source === 'case' && closedReport.closure.done_contract.verification_gap_count === 0, 'closure must bind the case done contract to the external evidence');
+must(/^[a-f0-9]{64}$/.test(closedReport.closure.done_contract.done_criteria_sha256), 'closure must hash the resolved done criteria');
 must(mechanism.status(fixture.state, 'mech-good', { repo: fixture.repo }).status === 'closed', 'closed status must be derived from a fresh re-derivation');
 
 const recorder = path.resolve(__dirname, '..', 'scripts', 'mechanism-record.js');
@@ -172,5 +175,28 @@ must(mechanism.registerMechanism(fixture.state, mechanismRecord('mech-unbound'))
 const otherRef = capture(fixture.repo, 'unbound-ref', 'pass', 'other');
 result = mechanism.recordMechanismRun(fixture.state, runRecord('run-unbound', 'mech-unbound', 'case-unbound', otherRef, now), { repo: fixture.repo });
 must(!result.ok && /mechanism verifier/.test(result.errors.join(' ')), 'run using an unrelated registered verifier must be rejected');
+
+fixture = makeRepo('missing-done-contract');
+const legacyCase = caseRecord('case-no-contract', 'inc-no-contract');
+delete legacyCase.verifier;
+delete legacyCase.done_criteria;
+must(mechanism.admitCase(fixture.state, legacyCase).ok, 'legacy case must remain admissible without optional contract fields');
+must(mechanism.registerMechanism(fixture.state, mechanismRecord('mech-no-contract')).ok, 'missing-contract mechanism registration');
+const noContractRef = capture(fixture.repo, 'no-contract-ref', 'pass');
+result = mechanism.recordMechanismRun(fixture.state, runRecord('run-no-contract', 'mech-no-contract', 'case-no-contract', noContractRef, now), { repo: fixture.repo });
+must(result.ok, 'a pass run may be recorded before completion is declared');
+result = mechanism.closeCase(fixture.state, 'case-no-contract', 'run-no-contract', { repo: fixture.repo });
+must(!result.ok && /case.done_criteria is required to close/.test(result.errors.join(' ')) && /case.verifier is required to close/.test(result.errors.join(' ')), 'close must refuse a case without done_criteria and verifier');
+
+fixture = makeRepo('mismatched-done-verifier');
+const mismatchedCase = caseRecord('case-mismatched-contract', 'inc-mismatched-contract');
+mismatchedCase.verifier = 'other';
+must(mechanism.admitCase(fixture.state, mismatchedCase).ok, 'mismatched contract case admission');
+must(mechanism.registerMechanism(fixture.state, mechanismRecord('mech-mismatched-contract')).ok, 'mismatched contract mechanism registration');
+const mismatchRef = capture(fixture.repo, 'mismatch-ref', 'pass');
+result = mechanism.recordMechanismRun(fixture.state, runRecord('run-mismatch', 'mech-mismatched-contract', 'case-mismatched-contract', mismatchRef, now), { repo: fixture.repo });
+must(result.ok, 'the run must record before close rejects the contract mismatch');
+result = mechanism.closeCase(fixture.state, 'case-mismatched-contract', 'run-mismatch', { repo: fixture.repo });
+must(!result.ok && /case.verifier must equal mechanism.verifier_id/.test(result.errors.join(' ')), 'close must refuse a case verifier that differs from the mechanism verifier');
 
 console.log('mechanism tests passed: self-report=REJECT, missing-hash=REJECT, fake-pass=REJECT, derived-pass=close, derived-fail=bypassed, adapter-tamper=REJECT, missing-counterexample=REJECT, unbound-verifier=REJECT, unknown-verifier=REJECT, expiry=expired');

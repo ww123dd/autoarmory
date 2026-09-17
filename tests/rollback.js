@@ -64,7 +64,8 @@ function makeFixture(name) {
   fs.mkdirSync(state, { recursive: true });
   must(mechanism.admitCase(state, {
     schema_version: 'autoarmory/case/v1', id: 'case-rollback', incident_id: 'inc-rollback', title: 'Rollback fixture',
-    expected_transition: 'COUNT->0', failure_mode: 'masked_failure', severity: 'high', evidence: ['fixture'], reproducible: true, owner: 'user'
+    expected_transition: 'COUNT->0', failure_mode: 'masked_failure', severity: 'high', evidence: ['fixture'], reproducible: true, owner: 'user',
+    verifier: 'rollback-verifier', done_criteria: 'the pinned fixture re-derives a pass while the runner stays fixed'
   }).ok, 'case admission');
   must(mechanism.registerMechanism(state, {
     schema_version: 'autoarmory/mechanism/v1', id: 'mech-rollback', name: 'Rollback fixture', covered_failure_modes: ['masked_failure'],
