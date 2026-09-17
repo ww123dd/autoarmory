@@ -111,6 +111,19 @@ node scripts/mechanism-lifecycle.js --list
 
 `tests/rollback.js` drives all of it: promote (evidence-backed), healthy (no rollback), stale promoted (BLOCK with count 1), rollback (recorded + idempotent), post-rollback (0 + pass), recovery (re-promoted), stale promotion (refused).
 
+## Boundary Policy
+
+`examples/boundary-policy.json` is the task-level policy that sits beside the case, not inside it. Each task class declares its `stop_conditions` and the action tiers it permits. The transition command classifies every candidate action before writing state and refuses an unclassified action or an explicit tier that conflicts with the policy.
+
+`scripts/boundary-audit.js` reads candidates and transitions and reports only derived facts:
+
+- `authorized_action_without_approval_count`
+- `action_classification_conflict_count`
+- `unlabeled_rule_count`
+- `stop_conditions_missing_count`
+- `boundary_policy_escape_count`
+
+The four allowed rule categories are `project-knowledge`, `risk-boundary`, `context-routing` and `done-criteria`. The category declaration is machine-checkable; whether a rule belongs in that category remains a human or Agent judgment.
 ## Done Contract
 
 A case may be admitted without a completion contract so historical records keep their schema. `close` is where the contract becomes mandatory:

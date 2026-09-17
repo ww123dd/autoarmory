@@ -28,6 +28,9 @@
     "action": {
       "type": "string"
     },
+    "action_tier": {
+      "enum": ["read_only", "local_write", "irreversible_write", "external_side_effect"]
+    },
     "target": {
       "type": "object",
       "required": [

@@ -131,6 +131,12 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.8.0
+
+- [x] boundary policy: task classes own `stop_conditions`; case objects do not pretend a task-level stop rule is a case field.
+- [x] action tiers: transition records label actions from the policy, reject unclassified actions and reject explicit tier conflicts.
+- [x] rule taxonomy: every failure-mode rule carries one of `project-knowledge`, `risk-boundary`, `context-routing` or `done-criteria`; `unlabeled_rule_count=0`.
+- [x] boundary audit: approval coverage, classification conflicts, missing stop conditions and the total escape count are derived from records, not self-reported fields.
 ## 2.7.0
 
 - [x] done contract: `case.verifier` and `case.done_criteria` are optional at admission and mandatory at `close`; old records are not rewritten by a schema change.

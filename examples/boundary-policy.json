@@ -1,0 +1,42 @@
+{
+  "schema_version": "autoarmory/boundary-policy/v1",
+  "action_tiers": {
+    "read_only": { "requires_approval": false },
+    "local_write": { "requires_approval": true },
+    "irreversible_write": { "requires_approval": true },
+    "external_side_effect": { "requires_approval": true }
+  },
+  "approval_required_tiers": ["local_write", "irreversible_write", "external_side_effect"],
+  "approval_required_transitions": ["gated", "shadow", "canary", "promoted"],
+  "action_rules": [
+    { "match": "read", "tier": "read_only" },
+    { "match": "observe", "tier": "read_only" },
+    { "match": "report", "tier": "read_only" },
+    { "match": "collect_evidence", "tier": "read_only" },
+    { "match": "add_*", "tier": "local_write" },
+    { "match": "fix_reference", "tier": "local_write" },
+    { "match": "replace_file", "tier": "local_write" },
+    { "match": "update_boundary", "tier": "local_write" },
+    { "match": "delete_*", "tier": "irreversible_write" },
+    { "match": "drop_*", "tier": "irreversible_write" },
+    { "match": "retire", "tier": "irreversible_write" },
+    { "match": "deploy", "tier": "external_side_effect" },
+    { "match": "publish", "tier": "external_side_effect" },
+    { "match": "publish_*", "tier": "external_side_effect" },
+    { "match": "send_*", "tier": "external_side_effect" }
+  ],
+  "task_classes": {
+    "small_change": {
+      "stop_conditions": ["scope expands beyond one file", "existing behavior changes", "verification command is missing"],
+      "allowed_action_tiers": ["read_only", "local_write"]
+    },
+    "regular_feature": {
+      "stop_conditions": ["regression count is not zero", "new dependency appears without approval", "evidence path is missing"],
+      "allowed_action_tiers": ["read_only", "local_write"]
+    },
+    "sensitive_boundary": {
+      "stop_conditions": ["write, credential, or permission boundary is reached", "operator approval is missing", "external side effect is requested"],
+      "allowed_action_tiers": ["read_only"]
+    }
+  }
+}

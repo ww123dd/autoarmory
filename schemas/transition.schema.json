@@ -47,6 +47,9 @@
         "retired"
       ]
     },
+    "action": { "type": ["string", "null"] },
+    "action_tier": { "type": ["string", "null"] },
+    "action_classification_rule": { "type": ["string", "null"] },
     "reason": {
       "type": [
         "string",

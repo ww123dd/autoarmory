@@ -150,7 +150,7 @@ if (!baseClose.ok) throw new Error('base chain did not close: ' + JSON.stringify
   const candidateFile = path.join(work, 'candidate-nc.json');
   const gateFile = path.join(work, 'gate-nc.json');
   const approvalFile = path.join(work, 'approval-nc.json');
-  write(candidateFile, JSON.stringify({ schema_version: 'selfforge/candidate/v1', id: candidateId, status: 'candidate' }, null, 2));
+  write(candidateFile, JSON.stringify({ schema_version: 'selfforge/candidate/v1', id: candidateId, action: 'replace_file', status: 'candidate' }, null, 2));
   write(gateFile, JSON.stringify({ schema_version: 'selfforge/gate/v1', ok: true, candidate_id: candidateId, skillcanary: { schema_version: 'selfforge/skillcanary-gate/v1', ok: true, command: 'gate', exit_code: 0, change_sha256: 'd'.repeat(64) } }, null, 2));
   write(approvalFile, JSON.stringify({ schema_version: 'selfforge/approval/v1', id: 'appr-nc', candidate_id: candidateId, requested_by: 'agent', approved_by: 'user', approved_at: new Date().toISOString(), channel: 'fixture', scope: 'gated', status: 'approved' }, null, 2));
   let r = run(['transition', candidateFile, '--to', 'pending_approval', '--actor', 'codex', '--state', state, '--json']);

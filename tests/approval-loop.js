@@ -94,6 +94,7 @@ const consumption = approvedTransition.consumption;
 must(consumption && consumption.consumer && consumption.consumer.type === 'operator' && consumption.consumer.id === 'user', 'approval must produce an operator consumption event');
 must(consumption.action === 'approved' && consumption.downstream_action === 'gated', 'consumption must record the approved downstream action');
 must(approvedTransition.actor === 'user', 'approval transition actor must be the approver');
+must(approvedTransition.action === 'replace_file' && approvedTransition.action_tier === 'local_write', 'transition must carry the boundary policy action tier');
 
 // The Agent executes only after approval. This is the mechanical work the user must not perform.
 fs.writeFileSync(target, 'new\n', 'utf8');

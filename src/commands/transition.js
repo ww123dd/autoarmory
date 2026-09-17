@@ -6,6 +6,7 @@ const { parseArgs, readJson, readJsonl, writeJsonl, printJson, sha256 } = requir
 const { fingerprint } = require('../lib/environment');
 const { isGatePass, hasOutcomeEvidence } = require('../lib/gate');
 const state = require('../lib/state');
+const boundary = require('../lib/boundary-policy');
 
 function fail(message, json) {
   if (json) printJson({ schema_version: 'selfforge/transition/v1', ok: false, errors: [message] });
@@ -59,6 +60,15 @@ module.exports = function run(argv) {
   if (state.requiresReason(args.to) && (!args.reason || !String(args.reason).trim())) {
     return fail('rejected transition requires --reason', !!args.json);
   }
+  let boundaryPolicy;
+  try { boundaryPolicy = boundary.loadPolicy(args['boundary-policy']); }
+  catch (error) { return fail('boundary policy is unreadable: ' + error.message, !!args.json); }
+  const action = candidate && candidate.action ? candidate.action : null;
+  const classified = boundary.classifyAction(boundaryPolicy, action);
+  if (classified.conflict) return fail('action is not classified by the boundary policy: ' + (action || '(missing action)'), !!args.json);
+  if (candidate && candidate.action_tier && candidate.action_tier !== classified.tier) {
+    return fail('candidate.action_tier conflicts with the boundary policy: ' + candidate.action_tier + ' != ' + classified.tier, !!args.json);
+  }
 
   const consumption = approval && state.requiresApproval(args.to) ? {
     schema_version: 'selfforge/consumption/v1',
@@ -78,6 +88,9 @@ module.exports = function run(argv) {
     id: 'tr-' + sha256(candidateId + ':' + from + ':' + args.to + ':' + Date.now()).slice(0, 12),
     candidate_id: candidateId,
     actor: actor,
+    action: action,
+    action_tier: classified.tier,
+    action_classification_rule: classified.rule,
     from: from,
     to: args.to,
     reason: args.reason || null,

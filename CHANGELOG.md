@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.8.0
+
+Boundary Policy: stop conditions belong to the task class, actions carry a tier, and every rule carries one of four categories.
+
+- Added `examples/boundary-policy.json` and `src/lib/boundary-policy.js`: three task classes declare their stop conditions and allowed action tiers; unknown actions fail closed at transition time.
+- Transitions now persist `action`, `action_tier` and `action_classification_rule`; an explicit tier that contradicts the policy is refused.
+- Every failure-mode rule carries `project-knowledge`, `risk-boundary`, `context-routing` or `done-criteria`; `unlabeled_rule_count` must stay zero.
+- Added `scripts/boundary-audit.js` and `tests/boundary-policy.js`: they report `authorized_action_without_approval_count`, `action_classification_conflict_count`, missing stop conditions and `boundary_policy_escape_count` without using an LLM judge.
+- `stop_conditions` are task-level policy, not case fields; the case keeps only `expected_transition`, `verifier` and `done_criteria`.
+
 ## 2.7.0
 
 Done Contract: a case may be admitted without completion fields, but it cannot close without a verifier-bound, executable definition of done.
