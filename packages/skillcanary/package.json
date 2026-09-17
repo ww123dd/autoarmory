@@ -54,14 +54,19 @@
     "provenance",
     "policy",
     "evidence",
-    "drift"
+    "drift",
+    "change-gate",
+    "trust-root"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/skillcanary.git"
+    "url": "git+https://github.com/ww123dd/skillcanary.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/skillcanary/issues"
+    "url": "https://github.com/ww123dd/skillcanary/issues"
   },
-  "homepage": "https://github.com/your-org/skillcanary"
+  "homepage": "https://github.com/ww123dd/skillcanary#readme",
+  "publishConfig": {
+    "access": "public"
+  }
 }

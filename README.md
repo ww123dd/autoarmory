@@ -4,12 +4,20 @@ A local capability manager for one operator. It turns "my agent said it fixed th
 
 It helps one operator choose, verify, replace and retire the modules their agent actually uses. The operator is the consumer and approver; the Agent performs the work. No universal orchestration or platform authorization is required.
 
+**Public repos:** [GitHub](https://github.com/ww123dd/autoarmory) · [Gitee](https://gitee.com/review-for-qing-lazy/autoarmory)
+
+## See it work before installing
+
+The package is not on npm yet, so use the same clone-first path a stranger can reproduce:
+
 ```bash
-npx autoarmory demo
-npx autoarmory bench
+git clone https://github.com/ww123dd/autoarmory.git
+cd autoarmory
+node scripts/profile-run.js --profile examples/profiles/portable.profile.json
+node bin/autoarmory.js demo
 ```
 
-See [Why AutoArmory](docs/why.md).
+`profile-run` must show at least one PASS and one FAIL. The FAIL is a deliberate negative control: a checker that cannot reject is not a checker. `demo` shows red -> green -> red and fails if the transition stops reproducing. The clone-runnable profile and its four external anchor channels are public; the machine-local `verifiers.lock.json` is deliberately not shipped. See [Why AutoArmory](docs/why.md).
 
 ## Capability Manager
 

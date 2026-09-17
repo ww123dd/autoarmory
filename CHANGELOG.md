@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.1
+
+Public-surface correction: the repository no longer advertises an npm install before the package exists.
+
+- README now starts with the clone-first path (`git clone`, `profile-run`, `demo`) and explains that the run must show one PASS and one FAIL.
+- Added canonical GitHub and Gitee links, repository/homepage/bugs/publishConfig metadata, and verifier/trust-root/change-gate keywords to package metadata.
+- The vendored SkillCanary package README now links back to the AutoArmory trust-root profile, so the smaller public repo cannot hide the larger verification layer.
+- npm publication remains the one credential-gated step: `npm whoami` is not authenticated, and both package names are still unpublished.
+
 ## 2.0.0
 
 Lifecycle sweep over the whole inventory: each retain/degrade/replace/retire verdict cites the record that decides it.

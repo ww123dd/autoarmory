@@ -1,5 +1,7 @@
 # SkillCanary
 
+> Part of the AutoArmory ecosystem. The public, clone-runnable trust-root profile and lifecycle record live at https://github.com/ww123dd/autoarmory.
+
 **The control plane for reliable agent changes.**
 
 Agents do not fail because teams lack another prompt linter. They fail because a real failure is never turned into a case, a change cannot prove what it fixed, tools drift, permissions are too broad, and the next iteration starts from memory instead of evidence.

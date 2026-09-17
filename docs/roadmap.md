@@ -102,6 +102,10 @@
 - [x] fresh-clone release qualification: the `9376fb3` clone passed `npm test`, `check:acceptance`, `test:conformance`, `test:self-eval`, `check:anchors` and `check:attestations` from an ASCII path. A failed attempt from a non-ASCII path is recorded as a harness-location error, not a product verdict.
 - [x] untracked experiments are not admitted: the unreferenced `examples/adapters/assert-absent/` experiment was archived outside the release instead of being shipped without a consumer or acceptance test.
 
+## 2.0.1
+
+- [x] public-surface correction: README is clone-first until the npm package exists, the canonical GitHub/Gitee links are on the first screen, package metadata points at the real repository, and the vendored SkillCanary README links back to the AutoArmory trust-root profile.
+
 ## 1.0
 
 1.0 is not a feature; it is the statement that the local capability manager does what it claims. `scripts/acceptance-check.js` prints one PASS/FAIL per line, exits non-zero on any FAIL, and runs inside `npm test` (`npm run check:acceptance`):
