@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1
+
+- Security backport from upstream 0.19.1: fix the Beta/Gamma boundary bug where `sampleBeta(alpha<1/3, ...)` returned NaN. The vendored test suite now checks `0.01`, `0.1`, `0.3`, `0.34`, `1` and `2`.
+
 ## 0.9.0
 
 - Added six-dimensional trajectory metrics with independent tool, parameter, utilization, recovery, plan and completion checks.

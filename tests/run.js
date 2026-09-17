@@ -24,7 +24,7 @@ function firstJsonl(file) {
 }
 
 let result = run(['version']);
-must(result.code === 0 && result.out.trim() === '2.0.2', 'version');
+must(result.code === 0 && result.out.trim() === '2.0.3', 'version');
 must(pkg.name === 'autoarmory' && pkg.bin.autoarmory === 'bin/autoarmory.js' && pkg.bin.selfforge === 'bin/selfforge.js', 'AutoArmory package and legacy aliases');
 const legacyVersion = spawnSync(process.execPath, [legacyCli, 'version'], { cwd: root, encoding: 'utf8' });
 must(legacyVersion.status === 0 && legacyVersion.stdout.trim() === pkg.version, 'legacy selfforge CLI alias');
@@ -41,7 +41,7 @@ must(description.includes('local capability manager') && !description.includes('
 const vendoredSkillCanaryCli = path.join(root, 'packages', 'skillcanary', 'bin', 'skillcanary.js');
 must(fs.existsSync(vendoredSkillCanaryCli), 'vendored SkillCanary package');
 result = run(['canary', 'version']);
-must(result.code === 0 && result.out.trim() === '0.9.0', 'canary version command');
+must(result.code === 0 && result.out.trim() === '0.9.1', 'canary version command');
 result = run(['canary', 'adapter', 'doctor', '--json']);
 must(result.code === 0 && /"ok": true/.test(result.out), 'canary adapter doctor command');
 const stateDir = path.join(temp, 'project');

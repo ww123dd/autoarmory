@@ -22,6 +22,12 @@ function must(cond, message) {
   }
 }
 
+const stats = require('../src/lib/stats');
+for (const alpha of [0.01, 0.1, 0.3, 0.34, 1, 2]) {
+  const value = stats.sampleBeta(alpha, 1, stats.makeRng(7));
+  must(Number.isFinite(value) && value >= 0 && value <= 1, 'sampleBeta boundary must be finite and in range');
+}
+
 function copyExample() {
   const dst = path.join(temp, 'skill-' + Math.random().toString(16).slice(2));
   fs.cpSync(path.join(root, 'examples', 'basic-skill'), dst, { recursive: true });
@@ -253,7 +259,7 @@ r = run(['doctor', path.join(root, 'examples', 'basic-skill'), '--json']);
 must(r.code === 0 && /skillcanary\/doctor\/v1/.test(r.out), 'doctor should produce a structured report\n' + r.out + r.err);
 
 r = run(['version']);
-must(r.code === 0 && r.out.trim() === '0.9.0', 'version should work\n' + r.out + r.err);
+must(r.code === 0 && r.out.trim() === '0.9.1', 'version should work\n' + r.out + r.err);
 
 async function testMockComment() {
   const requests = [];

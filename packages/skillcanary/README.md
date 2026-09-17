@@ -228,7 +228,7 @@ npm run benchmark:real
 
 ## Status
 
-`skillcanary@0.9.0` - Alpha, dependency-free, cross-platform.
+`skillcanary@0.9.1` - Alpha, dependency-free, cross-platform.
 
 Agent execution is delegated to runners such as `skillgrade`, `agent-skills-eval`, `promptfoo` or your own harness.
 

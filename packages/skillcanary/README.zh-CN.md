@@ -217,7 +217,7 @@ npm run benchmark:real
 
 ## 状态
 
-`skillcanary@0.9.0` - Alpha，无外部运行时依赖，跨平台。
+`skillcanary@0.9.1` - Alpha，无外部运行时依赖，跨平台。
 
 Agent 执行交给 `skillgrade`、`agent-skills-eval`、`promptfoo` 或你自己的 harness。
 

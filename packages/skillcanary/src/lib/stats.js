@@ -47,27 +47,33 @@ function makeRng(seed) {
 }
 
 function sampleBeta(alpha, beta, rng) {
-  const a = Math.max(0.0001, Number(alpha) || 1);
-  const b = Math.max(0.0001, Number(beta) || 1);
+  const a = Number(alpha);
+  const b = Number(beta);
+  if (!(a > 0) || !(b > 0)) throw new Error('alpha and beta must be > 0');
   const x = sampleGamma(a, 1, rng);
   const y = sampleGamma(b, 1, rng);
-  return x / (x + y);
+  const sum = x + y;
+  return Number.isFinite(sum) && sum > 0 ? x / sum : 0.5;
 }
 
 function sampleGamma(shape, scale, rng) {
-  const d = shape - 1 / 3;
+  const sh = Number(shape);
+  const sc = Number(scale);
+  if (!(sh > 0) || !(sc > 0)) throw new Error('shape and scale must be > 0');
+  if (sh < 1) {
+    const u = Math.max(rng(), Number.EPSILON);
+    return sampleGamma(sh + 1, sc, rng) * Math.pow(u, 1 / sh);
+  }
+  const d = sh - 1 / 3;
   const c = 1 / Math.sqrt(9 * d);
   for (;;) {
     let x;
     let v;
-    do {
-      x = boxMuller(rng);
-      v = 1 + c * x;
-    } while (v <= 0);
+    do { x = boxMuller(rng); v = 1 + c * x; } while (v <= 0);
     v = v * v * v;
     const u = rng();
-    if (u < 1 - 0.0331 * x * x * x * x) return d * v * scale;
-    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * scale;
+    if (u < 1 - 0.0331 * x * x * x * x) return d * v * sc;
+    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * sc;
   }
 }
 

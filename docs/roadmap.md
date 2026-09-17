@@ -110,6 +110,10 @@
 
 - [x] numeric boundary fix: `sampleBeta` now handles shapes below 1 with the standard gamma boost, refuses non-positive parameters, and is covered by `tests/sampling.js` across `0.01` through `2`.
 
+## 2.0.3
+
+- [x] vendored backport: `packages/skillcanary` is now `0.9.1` with the same Beta/Gamma boundary fix, a recorded backport note in `UPSTREAM.md`, refreshed `VENDOR.sha256`, and a boundary check in its test suite.
+
 ## 1.0
 
 1.0 is not a feature; it is the statement that the local capability manager does what it claims. `scripts/acceptance-check.js` prints one PASS/FAIL per line, exits non-zero on any FAIL, and runs inside `npm test` (`npm run check:acceptance`):

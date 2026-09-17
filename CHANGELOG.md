@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.3
+
+Vendored SkillCanary backport: the frozen package now carries the same numeric boundary fix as the root runtime.
+
+- Backported the `sampleBeta(alpha<1/3)` fix into `packages/skillcanary` and bumped the vendored package from `0.9.0` to `0.9.1`.
+- `packages/skillcanary/UPSTREAM.md` records that this is a security backport from upstream `0.19.1`, not a pure upstream import.
+- Updated `VENDOR.sha256` for every changed vendored file, and wired the boundary check into the vendored test suite.
+
 ## 2.0.2
 
 Numeric boundary fix for Thompson sampling.
