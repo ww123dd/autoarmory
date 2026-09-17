@@ -1,0 +1,27 @@
+{
+  "schema_version": "autoarmory/replay-evidence/v1",
+  "captured_at": "2026-09-17T11:45:00.000Z",
+  "source": "local .selfforge/mechanism-runs.jsonl (not shipped)",
+  "source_sha256": "8dfcb7172b13a9cc9fa72c04862032dc8881790db5fbb893ec4e75f45fd8e815",
+  "record_count": 13,
+  "mechanism_streak": {
+    "policy": "mechanism-streak",
+    "min_passes": 3,
+    "baseline_pass_count": 11,
+    "candidate_pass_count": 8,
+    "replay_escape_count": 0,
+    "tightening_rejection_count": 3,
+    "replay_mismatch_count": 3,
+    "insufficient_real_stream": false
+  },
+  "count_half": {
+    "policy": "count-half",
+    "ratio": 0.5,
+    "eligible_record_count": 0,
+    "insufficient_real_stream": true,
+    "note": "The 13 mechanism runs do not contain count_before/count_after, so no count-based verdict was invented."
+  },
+  "synthetic_record_count": 0,
+  "llm_judge_calls": 0,
+  "private_records_shipped": false
+}

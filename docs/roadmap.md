@@ -131,6 +131,12 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.9.0
+
+- [x] replay primitive: apply a stricter policy to already-recorded facts, never to a generated stream.
+- [x] metric definitions: `replay_escape_count` is unsafe incumbent-reject/candidate-accept; `tightening_rejection_count` is the measured cost of stricter acceptance.
+- [x] real replay: 13 mechanism runs, `mechanism-streak(min_passes=3)` gives 3 tightening rejections and 0 unsafe escapes; `count-half` returns `insufficient_real_stream` for missing count boundaries.
+- [x] evidence boundary: sanitized metrics and source hash only; no private records, machine paths, synthetic records or LLM judge calls.
 ## 2.8.1
 
 - [x] real trigger evidence: three real requests, baseline `0`, broken description `3`, `trigger_misfire_delta=3`, `trigger_regression_count=3`, restored `0`.

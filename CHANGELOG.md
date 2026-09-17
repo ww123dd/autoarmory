@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.9.0
+
+Boundary-aware history replay: evaluate a stricter policy on recorded facts without inventing a stream or promoting the result.
+
+- Added `src/lib/replay-policy.js` and `scripts/replay-policy.js`: replay `mechanism-streak` and `count-half` policies over JSON/JSONL records.
+- Defined `replay_escape_count` as the unsafe case where the incumbent rejects but the candidate accepts; it must be zero. `tightening_rejection_count` separately records the incumbent-accepted/candidate-rejected cost of tightening.
+- Defined `context_budget_escape_count` as the count of normative lint-limit violations for the measured skill; it must be zero.
+- Real replay on the 13 local mechanism runs: `mechanism-streak(min_passes=3)` produced 3 tightening rejections and 0 unsafe escapes. `count-half` correctly returned `insufficient_real_stream` because those runs have no `count_before`/`count_after`.
+- Added sanitized `docs/evidence/replay-20260917.json`; no private records, machine paths, synthetic records or LLM judge calls are shipped.
+
 ## 2.8.1
 
 Real Trigger Contract evidence is now a shipped, mechanically checked artifact.
