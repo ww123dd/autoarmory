@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.8.1
+
+Real Trigger Contract evidence is now a shipped, mechanically checked artifact.
+
+- Ran the same three real requests in `baseline -> overbroad description -> restored` order with the real Claude runner and the `Skill` tool.
+- Result: baseline `unwanted_skill_loads=0`; broken description `unwanted_skill_loads=3`; `trigger_misfire_delta=3`; `trigger_regression_count=3`; restored description `trigger_regression_count=0`.
+- Added `docs/evidence/trigger-regression-20260917.json`: only metrics and transcript SHA-256 hashes are shipped; private transcripts, machine paths and response text stay outside the repository.
+- Added `tests/trigger-regression-evidence.js` to reject missing hashes, impossible deltas, private paths and transcript-content leaks.
+
 ## 2.8.0
 
 Boundary Policy: stop conditions belong to the task class, actions carry a tier, and every rule carries one of four categories.

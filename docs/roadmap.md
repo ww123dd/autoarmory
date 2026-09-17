@@ -131,6 +131,11 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.8.1
+
+- [x] real trigger evidence: three real requests, baseline `0`, broken description `3`, `trigger_misfire_delta=3`, `trigger_regression_count=3`, restored `0`.
+- [x] private-transcript boundary: only derived metrics and transcript SHA-256 hashes ship; local paths and response text do not.
+- [x] evidence guard: `tests/trigger-regression-evidence.js` rejects impossible deltas, missing hashes, private paths and transcript leaks.
 ## 2.8.0
 
 - [x] boundary policy: task classes own `stop_conditions`; case objects do not pretend a task-level stop rule is a case field.

@@ -1,0 +1,38 @@
+{
+  "schema_version": "autoarmory/trigger-regression-evidence/v1",
+  "captured_at": "2026-09-17T11:30:00.000Z",
+  "harness": "scripts/trigger-regression.js",
+  "real_requests": 3,
+  "baseline": {
+    "description": "original",
+    "unwanted_skill_loads": 0,
+    "transcript_sha256": [
+      "5debfad16205359de5728f5bc9a4e38a13d93a78b5b412f1d7e7f3f988398196",
+      "f757b05ebc0dac04cee10ce7a2ed8093fe76668273593056533f7c0faae6cf4f",
+      "e9b3d0f522904245f3f65d443a0a478ead1f9654f70f6e231444472431e425e2"
+    ]
+  },
+  "candidate": {
+    "description": "missing_negative_boundary_and_overbroad_trigger",
+    "unwanted_skill_loads": 3,
+    "transcript_sha256": [
+      "a5a14337afd73608bb533b7fea4830bf307a6c101511327b8a1de99cab075514",
+      "e48e83e12f3147272af85b8eb08a45915bb80c5cfff8d523e0ff769581f77912",
+      "c1957258995256605db48e1d141a1148ecd934fca45a420daa1223fe18ccf718"
+    ]
+  },
+  "restored": {
+    "description": "original",
+    "unwanted_skill_loads": 0,
+    "transcript_sha256": [
+      "5debfad16205359de5728f5bc9a4e38a13d93a78b5b412f1d7e7f3f988398196",
+      "f757b05ebc0dac04cee10ce7a2ed8093fe76668273593056533f7c0faae6cf4f",
+      "e9b3d0f522904245f3f65d443a0a478ead1f9654f70f6e231444472431e425e2"
+    ]
+  },
+  "trigger_misfire_delta": 3,
+  "trigger_regression_count": 3,
+  "restored_trigger_regression_count": 0,
+  "private_transcripts_shipped": false,
+  "note": "Only derived counts and transcript hashes are shipped. The source transcripts and local paths remain outside the public repository."
+}
