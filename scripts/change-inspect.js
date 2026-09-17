@@ -1,0 +1,58 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const { parseArgs, printJson, readJson, writeJson, writeJsonl } = require('../src/lib/util');
+const shadow = require('../src/lib/session-shadow');
+const inspector = require('../src/lib/change-inspector');
+
+function loadState(file) { return fs.existsSync(file) ? readJson(file) : { schema_version: 'autoarmory/change-inspector-state/v1', sessions: {} }; }
+function readIncrement(file, cursor) {
+  const size = fs.statSync(file).size;
+  const start = cursor && cursor.offset && cursor.offset <= size ? cursor.offset : 0;
+  const text = fs.readFileSync(file, 'utf8').slice(start);
+  const lines = text.split(/\r?\n/);
+  if (lines[lines.length - 1] === '') lines.pop();
+  const events = [];
+  for (const line of lines) { if (!line.trim()) continue; let row; try { row = JSON.parse(line); } catch (_) { continue; } const event = shadow.normalizeRow(row); if (event) events.push(event); }
+  return { events: events, offset: size };
+}
+function verifierIds(profile) { if (!profile || !fs.existsSync(profile)) return []; try { return (readJson(profile).verifiers || []).map(function (x) { return x.id; }); } catch (_) { return []; } }
+function scan(sessions, state, options) {
+  const all = [];
+  for (const session of sessions) {
+    const cursor = state.sessions[session] || { offset: 0 };
+    const inc = readIncrement(session, cursor);
+    if (!inc.events.length) { state.sessions[session] = inc; continue; }
+    const sessionState = { session_id: path.basename(session), seen_ids: state.seen_ids || {}, signatures: state.signatures || {}, line: 0 };
+    const report = inspector.inspect(inc.events, sessionState, { verifier_ids: options.verifier_ids || [], execRecords: options.exec_records || [] });
+    state.seen_ids = sessionState.seen_ids; state.signatures = sessionState.signatures; state.sessions[session] = inc;
+    all.push.apply(all, report.records);
+  }
+  return all;
+}
+const args = parseArgs(process.argv.slice(2));
+const sessionArgs = [];
+const argv = process.argv.slice(2);
+for (let i = 0; i < argv.length; i++) if (argv[i] === '--session' && argv[i + 1]) sessionArgs.push(path.resolve(argv[++i]));
+if (!sessionArgs.length) { const emptyMetrics = { change_record_count: 0, file_changed_count: 0, command_called_count: 0, check_seen_count: 0, check_gap_count: 0, command_result_passed_count: 0, command_result_failed_count: 0, result_text_unstructured_count: 0, repeat_signature_count: 0, risk_signal_count: 0, exec_record_gap_count: 0, candidate_case_draft_count: 0, suppressed_count: 0, high_signal_notification_count: 0, correctly_reported_unverifiable_count: 0, transcript_field_fabrication_count: 0, close_without_verifier_count: 0, false_close_count: null, false_close_status: 'lagging_indicator_requires_future_counterexample' }; if (args.json) printJson({ schema_version: 'autoarmory/change-inspector-run/v1', sessions: 0, records: 0, metrics: emptyMetrics }); else process.stdout.write('change inspector: no source sessions; empty inventory\n'); process.exit(0); }
+const stateDir = path.resolve(args.state || '.change-inspector');
+fs.mkdirSync(stateDir, { recursive: true });
+const stateFile = path.join(stateDir, 'state.json');
+const runOnce = function () {
+  const state = loadState(stateFile);
+  const records = scan(sessionArgs, state, { verifier_ids: verifierIds(args['verifier-profile'] ? path.resolve(args['verifier-profile']) : path.resolve('verifiers.lock.json')), exec_records: [] });
+  if (records.length) writeJsonl(path.join(stateDir, 'change-inventory.jsonl'), fs.existsSync(path.join(stateDir, 'change-inventory.jsonl')) ? require('../src/lib/util').readJsonl(path.join(stateDir, 'change-inventory.jsonl')).concat(records) : records);
+  const ids = verifierIds(args['verifier-profile'] ? path.resolve(args['verifier-profile']) : path.resolve('verifiers.lock.json'));
+  const drafts = records.length ? inspector.candidateCases(records, { verifier_ids: ids }) : [];
+  if (drafts.length) writeJsonl(path.join(stateDir, 'candidate-cases.jsonl'), fs.existsSync(path.join(stateDir, 'candidate-cases.jsonl')) ? require('../src/lib/util').readJsonl(path.join(stateDir, 'candidate-cases.jsonl')).concat(drafts) : drafts);
+  const notifications = drafts.filter(function (d) { return d.notify === true; });
+  if (notifications.length) writeJsonl(path.join(stateDir, 'notifications.jsonl'), fs.existsSync(path.join(stateDir, 'notifications.jsonl')) ? require('../src/lib/util').readJsonl(path.join(stateDir, 'notifications.jsonl')).concat(notifications) : notifications);
+  const metrics = inspector.summarize(records, drafts);
+  writeJson(path.join(stateDir, 'change-summary.json'), { schema_version: 'autoarmory/change-inspector-summary/v1', sessions: sessionArgs, records: records.length, metrics: metrics, generated_at: new Date().toISOString() });
+  writeJson(stateFile, state);
+  if (args.json) printJson({ schema_version: 'autoarmory/change-inspector-run/v1', sessions: sessionArgs.length, records: records.length, metrics: metrics }); else process.stdout.write('change inspector: records=' + records.length + '\n');
+};
+runOnce();
+if (args.watch) setInterval(runOnce, 2000);

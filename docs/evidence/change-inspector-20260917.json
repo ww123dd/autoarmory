@@ -1,0 +1,37 @@
+{
+  "schema_version": "autoarmory/change-inspector-evidence/v1",
+  "captured_at": "2026-09-17T13:30:00.000Z",
+  "sessions": [
+    "01a0a7c6-11bb-7f41-8d58-c33fa0cf00d9",
+    "01a079b4-0de0-7372-a83c-d4d33e1accd4"
+  ],
+  "manual_inputs": ["select source sessions"],
+  "metrics": {
+    "change_record_count": 7442,
+    "file_changed_count": 277,
+    "command_called_count": 2667,
+    "check_seen_count": 646,
+    "check_gap_count": 70,
+    "command_result_passed_count": 5,
+    "command_result_failed_count": 9,
+    "result_text_unstructured_count": 2652,
+    "repeat_signature_count": 5,
+    "risk_signal_count": 465,
+    "exec_record_gap_count": 646,
+    "candidate_case_draft_count": 549,
+    "high_signal_notification_count": 479,
+    "suppressed_count": 5154,
+    "correctly_reported_unverifiable_count": 5033,
+    "transcript_field_fabrication_count": 0,
+    "close_without_verifier_count": 0,
+    "false_close_count": null,
+    "false_close_status": "lagging_indicator_requires_future_counterexample"
+  },
+  "source_session_count": 2,
+  "manual_case_creation_count": 0,
+  "manual_verifier_config_count": 0,
+  "manual_article_labeling_count": 0,
+  "synthetic_record_count": 0,
+  "llm_judge_calls": 0,
+  "private_session_content_shipped": false
+}

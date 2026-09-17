@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.15.0
+
+Standing Change Inventory: session changes become incremental, deterministic, non-closing records.
+
+- Added `src/lib/change-inspector.js` and `scripts/change-inspect.js` with byte-offset state and idempotent increments.
+- Added signals for file changes, commands, observed checks, `check_gap`, structured pass/fail, unstructured result, repeated signatures, risk signals and `exec_record_gap`.
+- Added candidate drafting only for high-signal changes; low-signal Edit/Write events are recorded and suppressed, not blocked.
+- Run on the selected main and article sessions: 7442 change records, 277 file changes, 646 check observations, 70 `check_gap`, 646 `exec_record_gap`, 5 repeated signatures, 465 risk signals, 549 candidate drafts and 479 high-signal notifications.
+- `transcript_field_fabrication_count=0`; the inspector never invents exit code, stdout hash or stderr hash from transcript text.
+- `close_without_verifier_count=0`; `false_close_count` is explicitly `null` with status `lagging_indicator_requires_future_counterexample`.
+- Added sanitized `docs/evidence/change-inspector-20260917.json` and the standing inspector contract in `docs/change-inspector.md`.
+
 ## 2.14.0
 
 Session Shadow v1: selected sessions become deterministic rule, article, case-draft and verifier projections without manual labeling.

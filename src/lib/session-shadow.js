@@ -50,10 +50,10 @@ function normalizeRow(row) {
   if (payload.type === 'user_message') { return { type: 'user_turn', role: 'user', text: short(payload.message || '', 4000), links: urls(payload.message || ''), timestamp: row.timestamp || null, id: payload.client_id || null, turn_id: payload.turn_id || null }; }
   if (payload.type === 'task_complete') { return { type: 'completion', role: 'assistant', text: short(payload.last_agent_message || '', 4000), links: urls(payload.last_agent_message || ''), timestamp: row.timestamp || null, id: payload.turn_id || null, turn_id: payload.turn_id || null }; }
   if (payload.type === 'function_call') {
-    return { type: 'tool_call', role: 'assistant', tool: payload.name || null, args: short(payload.arguments || '', 2000), text: '', links: [], timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) };
+    return { type: 'tool_call', role: 'assistant', tool: payload.name || null, args: short(payload.arguments || '', 2000), call_id: payload.call_id || null, text: '', links: [], timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) };
   }
   if (payload.type === 'function_call_output') {
-    return { type: 'tool_output', role: 'tool', tool: null, args: '', text: short(payload.output || '', 2000), links: urls(payload.output || ''), timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) };
+    return { type: 'tool_output', role: 'tool', tool: null, args: '', call_id: payload.call_id || null, text: short(payload.output || '', 2000), links: urls(payload.output || ''), timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) };
   }
   return null;
 }

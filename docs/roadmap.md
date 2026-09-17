@@ -131,6 +131,14 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.15.0
+
+- [x] standing change inspector: byte-offset increments, stable schema, idempotent reruns and empty inventory on no source.
+- [x] honest result states: `check_seen`, `check_gap`, `command_result_passed`, `command_result_failed`, `result_text_unstructured`.
+- [x] transcript fabrication guard: no exit code, stdout hash or stderr hash is inferred from unstructured text.
+- [x] Edit/Write record-only policy: ordinary edits are inventoried and never blocked.
+- [x] high-signal only: candidate drafts and notifications are suppressed unless risk, repeated failure or check gaps require attention.
+- [x] `close_without_verifier_count=0`; `false_close_count=null` as a lagging indicator requiring future counterexamples.
 ## 2.14.0
 
 - [x] session shadow v1: select sessions once, then extract rules and article decisions automatically.

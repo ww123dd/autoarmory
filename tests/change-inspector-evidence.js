@@ -1,0 +1,20 @@
+'use strict';
+const fs = require('fs');
+const path = require('path');
+function must(condition, message) { if (!condition) throw new Error(message); }
+const raw = fs.readFileSync(path.resolve(__dirname, '..', 'docs', 'evidence', 'change-inspector-20260917.json'), 'utf8');
+const report = JSON.parse(raw);
+must(report.schema_version === 'autoarmory/change-inspector-evidence/v1', 'change inspector evidence schema');
+must(report.sessions.length === 2 && report.source_session_count === 2, 'two selected source sessions');
+must(report.manual_case_creation_count === 0 && report.manual_verifier_config_count === 0 && report.manual_article_labeling_count === 0, 'no manual case, verifier or article labels');
+must(report.metrics.change_record_count === 7442 && report.metrics.file_changed_count === 277 && report.metrics.command_called_count === 2667, 'change inventory counts');
+must(report.metrics.check_seen_count === 646 && report.metrics.check_gap_count === 70, 'check seen and check gap must be distinct');
+must(report.metrics.exec_record_gap_count === 646 && report.metrics.result_text_unstructured_count === 2652, 'exec-record gap and unstructured result counts');
+must(report.metrics.transcript_field_fabrication_count === 0, 'transcript must not fabricate structured fields');
+must(report.metrics.close_without_verifier_count === 0, 'inventory must not close anything');
+must(report.metrics.false_close_count === null && report.metrics.false_close_status === 'lagging_indicator_requires_future_counterexample', 'false close is a lagging indicator');
+must(report.metrics.candidate_case_draft_count === 549 && report.metrics.high_signal_notification_count === 479, 'candidate and notification counts');
+must(report.synthetic_record_count === 0 && report.llm_judge_calls === 0 && report.private_session_content_shipped === false, 'no synthetic, judge, or private content');
+must(!/[A-Za-z]:[\\/]|\/Users\/|\/home\//.test(raw), 'change inspector evidence must not contain machine paths');
+must(!/stdout_sha256|stderr_sha256|exit_code"\s*:\s*\d/.test(raw), 'evidence must not contain fabricated transcript execution fields');
+console.log('change inspector evidence passed: 7442 records, check_gap=70, exec_record_gap=646, fabrication=0, no closure');
