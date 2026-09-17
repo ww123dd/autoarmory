@@ -119,6 +119,10 @@
 - [x] user-layer projection: `inbox`, `result`, `approve` and `status` expose only `case / verifier / run / lifetime`.
 - [x] generic artifact intake: `intake artifact` hashes any upstream file, records revisions and leaves it unbound until an Agent binds a case and a verifier.
 - [x] transition persistence repair: a candidate passed by file is stored before its pending-approval card is projected.
+## 2.2.0
+
+- [x] generic artifact binding: `bind artifact` attaches an intake record to an admitted case and an integrity-checked registered verifier, append-only.
+- [x] user projection: bound artifacts appear as `ready_to_run` with `action=run` and `lifetime.state=bound`.
 ## 1.0
 
 1.0 is not a feature; it is the statement that the local capability manager does what it claims. `scripts/acceptance-check.js` prints one PASS/FAIL per line, exits non-zero on any FAIL, and runs inside `npm test` (`npm run check:acceptance`):

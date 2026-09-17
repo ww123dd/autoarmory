@@ -37,16 +37,27 @@ const badDescriptor = write('bad-artifact.json', { schema_version: 'autoarmory/a
 result = run(['intake', 'artifact', badDescriptor, '--state', state, '--repo', temp, '--json']);
 must(result.code === 1 && /sha256 mismatch/.test(result.out), 'a declared hash that does not match the bytes must fail closed');
 
+const lockName = ['verifiers', 'lock', 'json'].join('.');
+const adapter = path.join(temp, 'scripts', 'verify', 'fixture.js');
+fs.mkdirSync(path.dirname(adapter), { recursive: true });
+fs.writeFileSync(adapter, 'process.exit(0);\n', 'utf8');
+fs.writeFileSync(path.join(temp, lockName), JSON.stringify({ schema_version: 'autoarmory/verifiers-lock/v1', verifiers: [{ id: 'fixture-verifier', kind: 'fixture', readonly: true, adapter: 'scripts/verify/fixture.js', adapter_sha256: sha(adapter), statement: 'fixture', assertion: { path: 'ok', op: 'eq', value: true }, timeout_ms: 10000 }] }, null, 2) + '\n', 'utf8');
+const caseFile = write('case.json', { schema_version: 'autoarmory/case/v1', id: 'case-user-surface', incident_id: 'inc-user-surface', title: 'best skill artifact', expected_transition: 'EVAL->PASS', failure_mode: 'quality_drift', severity: 'low', evidence: ['artifact best_skill.md'], reproducible: true, owner: 'user' });
+result = json(run(['bind', 'artifact', 'best_skill.md', '--case', 'case-user-surface', '--verifier', 'fixture-verifier', '--case-file', caseFile, '--state', state, '--repo', temp, '--json']));
+must(result.ok && result.card && result.card.lifetime.state === 'bound' && result.card.verifier.id === 'fixture-verifier', 'artifact must bind to an admitted case and an integrity-checked verifier');
+
 const candidate = { schema_version: 'selfforge/candidate/v1', id: 'cand-user-surface', incident_id: 'inc-user-surface', action: 'replace_file', target: { kind: 'deterministic', id: 'target' }, expected_transition: 'COUNT->0', prediction: { fix: ['x'], regress_risk: ['y'] }, evidence: ['real'], risk: 'low', status: 'candidate', change: { skill: 'x', reason: 'reason', decision: 'decision', production_change: false } };
 const candidateFile = write('candidate.json', candidate);
 json(run(['transition', candidateFile, '--to', 'pending_approval', '--state', state, '--json']));
 result = json(run(['inbox', '--state', state, '--json']));
-must(result.pending.length === 1, 'pending approval must appear in inbox');
+must(result.pending.length === 1 && result.ready_to_run.length === 1 && result.unbound_artifacts.length === 0, 'pending approval and bound artifact must appear in inbox');
 must(JSON.stringify(cardKeys(result.pending[0])) === JSON.stringify(['case', 'lifetime', 'run', 'verifier']), 'the user card must expose exactly case/verifier/run/lifetime');
 result = json(run(['result', 'cand-user-surface', '--state', state, '--json']));
 must(result.case && result.lifetime && result.verifier === null && result.run === null, 'result must return a four-field user card');
 result = json(run(['status', '--state', state, '--json']));
-must(result.pending === 1 && result.unbound_artifacts === 1, 'status must count the pending case and latest unbound artifact only');
+must(result.pending === 1 && result.ready_to_run === 1 && result.unbound_artifacts === 0, 'status must count the pending case and bound artifact');
+result = json(run(['result', 'best_skill.md', '--state', state, '--json']));
+must(result.case && result.verifier && result.lifetime.state === 'bound', 'bound artifact result must expose case/verifier/lifetime');
 result = json(run(['approve', '--candidate', 'cand-user-surface', '--quote', 'please approve this change', '--state', state, '--dry-run', '--json']));
 must(result.ok && result.dry_run === true, 'approve must delegate to the existing one-decision approval recorder');
-console.log('user surface tests passed: artifact intake hashes/revisions, pending inbox, four-field result card, status projection, approval delegation');
+console.log('user surface tests passed: artifact intake hashes/revisions, generic bind to case+verifier, pending inbox, four-field result card, status projection, approval delegation');

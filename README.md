@@ -38,7 +38,10 @@ autoarmory result <case|run|artifact-id>
 autoarmory approve --candidate <id> --quote "<operator words>"
 autoarmory status
 autoarmory intake artifact artifact.json
+autoarmory bind artifact <artifact-id> --case <case-id> --verifier <verifier-id> [--case-file case.json]
 ```
+
+`bind` admits the case if needed, checks that the verifier is registered and intact, and records an append-only artifact binding. The bound artifact then appears as `ready_to_run` in `inbox`.
 
 Upstream tools do not need a product-specific adapter. They emit an artifact descriptor; intake hashes the bytes, records revisions and leaves it unbound until an Agent binds a case and a verifier:
 

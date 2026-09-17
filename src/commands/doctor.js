@@ -32,7 +32,8 @@ function inbox(argv) {
   const report = view.inbox(state, { repo: path.resolve(args.repo || process.cwd()) });
   if (args.json) printJson(report);
   else {
-    process.stdout.write('pending: ' + report.pending.length + '  results: ' + report.results.length + '  expired/revoked: ' + report.expired_or_revoked.length + '  unbound artifacts: ' + report.unbound_artifacts.length + '\n');
+    process.stdout.write('pending: ' + report.pending.length + '  ready: ' + report.ready_to_run.length + '  results: ' + report.results.length + '  expired/revoked: ' + report.expired_or_revoked.length + '  unbound artifacts: ' + report.unbound_artifacts.length + '\n');
+    for (const card of report.ready_to_run) process.stdout.write('  ready    ' + card.id + '  run with ' + ((card.verifier && card.verifier.id) || 'verifier') + '\n');
     for (const card of report.pending) process.stdout.write('  pending  ' + card.id + '  ' + ((card.case && card.case.title) || '') + '\n');
     for (const card of report.results) process.stdout.write('  result   ' + card.id + '  ' + card.lifetime.state + '\n');
     for (const card of report.expired_or_revoked) process.stdout.write('  expired  ' + card.id + '  ' + card.lifetime.state + '\n');
@@ -86,9 +87,30 @@ function intake(argv) {
   return 0;
 }
 
+function bind(argv) {
+  const args = parseArgs(argv);
+  if (args._[0] !== 'artifact' || !args._[1]) { process.stderr.write('Usage: autoarmory bind artifact <artifact-id> --case <case-id> --verifier <verifier-id> [--case-file case.json] [--state .selfforge] [--repo .] [--json]\n'); return 2; }
+  const artifactId = args._[1];
+  const repo = path.resolve(args.repo || '.');
+  const state = path.resolve(args.state || path.join(repo, '.selfforge'));
+  let caseDescriptor = null;
+  if (args['case-file']) {
+    try { const raw = readJson(path.resolve(args['case-file'])); caseDescriptor = raw.case || raw; } catch (error) { process.stderr.write('case file is unreadable: ' + error.message + '\n'); return 1; }
+  }
+  const caseId = args.case || (caseDescriptor && caseDescriptor.id) || null;
+  const verifierId = args.verifier || null;
+  const result = artifact.bindArtifact(state, artifactId, { repo: repo, caseId: caseId, verifierId: verifierId, caseDescriptor: caseDescriptor, actor: args.actor || 'codex' });
+  if (!result.ok) { if (args.json) printJson(result); else process.stderr.write(result.errors.join('\n') + '\n'); return 1; }
+  const card = view.result(state, artifactId, { repo: repo });
+  const out = { schema_version: 'autoarmory/artifact-bind/v1', ok: true, duplicate: result.duplicate, binding: result.binding, card: card.ok ? card.card : null };
+  if (args.json) printJson(out); else process.stdout.write((result.duplicate ? 'already bound ' : 'bound ') + artifactId + ' -> ' + result.binding.case_id + ' / ' + result.binding.verifier_id + '\n  next: run the verifier and record the result\n');
+  return 0;
+}
+
 module.exports = run;
 module.exports.inbox = inbox;
 module.exports.result = result;
 module.exports.status = status;
 module.exports.approve = approve;
 module.exports.intake = intake;
+module.exports.bind = bind;

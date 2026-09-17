@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.2.0
+
+Generic artifact binding: an upstream file can now be attached to a case and a registered verifier without a product-specific adapter.
+
+- Added `autoarmory bind artifact <artifact-id> --case <case-id> --verifier <verifier-id> [--case-file case.json]`.
+- Binding is append-only in `artifact-bindings.jsonl`; it does not rewrite the intake record.
+- The case must exist or be admitted from `--case-file`; the verifier must be registered and pass its integrity check.
+- The user layer now exposes `ready_to_run`: `case / verifier / run / lifetime`, with `action: run` and `lifetime.state: bound`.
+- `tests/user-surface.js` now covers intake -> case admission -> verifier binding -> ready_to_run projection.
 ## 2.1.0
 
 User-layer projection and generic artifact intake.

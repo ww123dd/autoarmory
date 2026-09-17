@@ -53,7 +53,18 @@ function mechanismCard(stateDir, item, options) {
     action: action
   };
 }
-function artifactCard(record) {
+function artifactCard(record, binding, caseRecord) {
+  if (binding) {
+    return {
+      schema_version: 'autoarmory/result-card/v1',
+      id: record.artifact_id,
+      case: { id: binding.case_id, title: caseRecord ? caseRecord.title : binding.case_id, expected_transition: caseRecord ? caseRecord.expected_transition : null },
+      verifier: { id: binding.verifier_id, status: 'bound', reason: null },
+      run: null,
+      lifetime: { state: 'bound', reason: 'waiting for a run', at: binding.bound_at || null },
+      action: 'run'
+    };
+  }
   return {
     schema_version: 'autoarmory/result-card/v1',
     id: record.artifact_id,
@@ -71,8 +82,15 @@ function allCards(stateDir, options) {
   const pending = candidates.filter(function (item) { return stateLib.currentState(transitions, item.id, item.status || 'candidate') === 'pending_approval'; }).map(caseCard);
   const mechanisms = read(state.mechanisms).map(function (item) { return mechanismCard(stateDir, item, options || {}); });
   const latestArtifacts = new Map();
-  for (const item of artifact.readArtifacts(stateDir)) if (!item.case_id) latestArtifacts.set(item.artifact_id, item);
-  const artifacts = Array.from(latestArtifacts.values());
+  for (const item of artifact.readArtifacts(stateDir)) latestArtifacts.set(item.artifact_id, item);
+  const latestBindings = new Map();
+  for (const item of artifact.readBindings(stateDir)) latestBindings.set(item.artifact_id, item);
+  const cases = read(state.cases);
+  const artifacts = Array.from(latestArtifacts.values()).map(function (record) {
+    const binding = latestBindings.get(record.artifact_id) || null;
+    const caseRecord = binding ? cases.find(function (item) { return item.id === binding.case_id; }) || null : null;
+    return { record: record, binding: binding, caseRecord: caseRecord };
+  });
   return { pending: pending, mechanisms: mechanisms, artifacts: artifacts };
 }
 function inbox(stateDir, options) {
@@ -80,24 +98,25 @@ function inbox(stateDir, options) {
   return {
     schema_version: 'autoarmory/inbox/v1',
     pending: all.pending,
+    ready_to_run: all.artifacts.filter(function (item) { return !!item.binding; }).map(function (item) { return artifactCard(item.record, item.binding, item.caseRecord); }),
     results: all.mechanisms.filter(function (card) { return card.lifetime.state === 'approved' || card.lifetime.state === 'attention'; }),
     expired_or_revoked: all.mechanisms.filter(function (card) { return card.lifetime.state === 'expired' || card.lifetime.state === 'revoked'; }),
-    unbound_artifacts: all.artifacts.map(artifactCard)
+    unbound_artifacts: all.artifacts.filter(function (item) { return !item.binding; }).map(function (item) { return artifactCard(item.record, null, null); })
   };
 }
 function status(stateDir, options) {
   const all = allCards(stateDir, options);
   const cards = all.mechanisms.concat(all.pending);
   const count = function (name) { return cards.filter(function (card) { return card.lifetime.state === name; }).length; };
-  return { schema_version: 'autoarmory/status/v1', pending: count('pending'), approved: count('approved'), attention: count('attention'), expired: count('expired'), revoked: count('revoked'), unbound_artifacts: all.artifacts.length };
+  return { schema_version: 'autoarmory/status/v1', pending: count('pending'), approved: count('approved'), attention: count('attention'), expired: count('expired'), revoked: count('revoked'), ready_to_run: all.artifacts.filter(function (item) { return !!item.binding; }).length, unbound_artifacts: all.artifacts.filter(function (item) { return !item.binding; }).length };
 }
 function result(stateDir, id, options) {
   const all = allCards(stateDir, options);
   const candidates = all.pending.concat(all.mechanisms);
   const hit = candidates.find(function (card) { return card.id === id || (card.run && card.run.id === id); });
   if (hit) return { ok: true, card: hit };
-  const record = artifact.readArtifacts(stateDir).filter(function (item) { return item.artifact_id === id; }).pop();
-  if (record) return { ok: true, card: artifactCard(record) };
+  const item = all.artifacts.find(function (entry) { return entry.record.artifact_id === id; });
+  if (item) return { ok: true, card: artifactCard(item.record, item.binding, item.caseRecord) };
   return { ok: false, errors: ['no case, run or artifact found for ' + id] };
 }
 
