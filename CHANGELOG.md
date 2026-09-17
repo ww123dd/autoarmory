@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3.0
+
+The first user-level run path is complete: an artifact can be hashed, bound and judged without hand-written mechanism JSON.
+
+- Added `autoarmory run artifact <artifact-id>`: it creates or reuses the mechanism implied by the binding, executes the registered verifier, records the run and closes the case when the external fact passes.
+- `run` reuses `scripts/mechanism-record.js`; it does not introduce a second execution path or a runner-specific adapter.
+- Bound artifacts that have not run appear as `ready_to_run` with `action=run`; after a passing run they project as `lifetime.state=approved`.
+- `tests/user-surface.js` now drives intake -> bind -> run -> closed result end to end.
 ## 2.2.0
 
 Generic artifact binding: an upstream file can now be attached to a case and a registered verifier without a product-specific adapter.

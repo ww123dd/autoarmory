@@ -5,6 +5,7 @@ const { spawnSync } = require('child_process');
 const { parseArgs, printJson, readJson, readJsonl } = require('../lib/util');
 const skillcanary = require('../lib/skillcanary');
 const artifact = require('../lib/artifact');
+const mechanism = require('../lib/mechanism');
 const view = require('../lib/user-view');
 
 function run(argv) {
@@ -107,6 +108,58 @@ function bind(argv) {
   return 0;
 }
 
+function ensureMechanism(state, binding, artifactRecord, caseRecord, repo) {
+  const existing = mechanism.listMechanisms(state).find(function (item) { return item.binding_id === binding.id; }) || null;
+  if (existing) return { ok: true, duplicate: true, mechanism: existing };
+  const result = mechanism.registerMechanism(state, {
+    schema_version: 'autoarmory/mechanism/v1',
+    id: 'mech-' + binding.id.replace(/^bind-/, ''),
+    name: caseRecord.title || artifactRecord.artifact_id,
+    covered_failure_modes: [caseRecord.failure_mode || 'artifact_quality'],
+    trigger: 'artifact ' + artifactRecord.artifact_id + ' bound to ' + binding.case_id,
+    action: 'run the bound verifier and record the result',
+    verification: 'bound verifier ' + binding.verifier_id,
+    verifier_id: binding.verifier_id,
+    closure_criteria: caseRecord.expected_transition || 'verifier pass',
+    owner: caseRecord.owner || 'user',
+    version: '1.0.0',
+    binding_id: binding.id,
+    artifact_id: artifactRecord.artifact_id,
+    artifact_sha256: artifactRecord.sha256
+  }, { repo: repo });
+  return result;
+}
+function runArtifact(argv) {
+  const args = parseArgs(argv);
+  if (args._[0] !== 'artifact' || !args._[1]) { process.stderr.write('Usage: autoarmory run artifact <artifact-id> [--trials 3] [--state .selfforge] [--repo .] [--json]\n'); return 2; }
+  const artifactId = args._[1];
+  const repo = path.resolve(args.repo || '.');
+  const state = path.resolve(args.state || path.join(repo, '.selfforge'));
+  const artifactRecord = artifact.readArtifacts(state).filter(function (item) { return item.artifact_id === artifactId; }).pop() || null;
+  if (!artifactRecord) { process.stderr.write('artifact not found: ' + artifactId + '\n'); return 1; }
+  const binding = artifact.readBindings(state).filter(function (item) { return item.artifact_id === artifactId; }).pop() || null;
+  if (!binding) { process.stderr.write('artifact is not bound: ' + artifactId + '\n'); return 1; }
+  const casesFile = path.join(state, 'cases.jsonl');
+  const cases = fs.existsSync(casesFile) ? readJsonl(casesFile) : [];
+  const caseRecord = cases.find(function (item) { return item.id === binding.case_id; }) || null;
+  if (!caseRecord) { process.stderr.write('bound case not found: ' + binding.case_id + '\n'); return 1; }
+  const ensured = ensureMechanism(state, binding, artifactRecord, caseRecord, repo);
+  if (!ensured.ok) { if (args.json) printJson(ensured); else process.stderr.write(ensured.errors.join('\n') + '\n'); return 1; }
+  const recordScript = path.join(__dirname, '..', '..', 'scripts', 'mechanism-record.js');
+  const runArgs = ['--mechanism', ensured.mechanism.id, '--case', binding.case_id, '--state', state, '--repo', repo, '--trials', String(args.trials || 3), '--close', '--json'];
+  const child = spawnSync(process.execPath, [recordScript].concat(runArgs), { encoding: 'utf8' });
+  if (child.status !== 0) {
+    const detail = (child.stdout || '') + (child.stderr || '');
+    if (args.json) printJson({ ok: false, errors: [detail.trim() || 'mechanism run failed'] }); else process.stderr.write(detail + '\n');
+    return child.status === null ? 2 : child.status;
+  }
+  const report = JSON.parse(child.stdout);
+  const card = view.result(state, artifactId, { repo: repo });
+  const out = { schema_version: 'autoarmory/artifact-run/v1', ok: true, run: report.run, status: report.status, card: card.ok ? card.card : null };
+  if (args.json) printJson(out); else process.stdout.write('ran ' + artifactId + ' -> result=' + report.run.result + ' verdict=' + report.status.status + '\n');
+  return report.status.status === 'verified' || report.status.status === 'closed' ? 0 : 1;
+}
+
 module.exports = run;
 module.exports.inbox = inbox;
 module.exports.result = result;
@@ -114,3 +167,4 @@ module.exports.status = status;
 module.exports.approve = approve;
 module.exports.intake = intake;
 module.exports.bind = bind;
+module.exports.run = runArtifact;

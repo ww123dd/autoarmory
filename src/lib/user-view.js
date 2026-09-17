@@ -53,7 +53,8 @@ function mechanismCard(stateDir, item, options) {
     action: action
   };
 }
-function artifactCard(record, binding, caseRecord) {
+function artifactCard(record, binding, caseRecord, runCard) {
+  if (runCard) return Object.assign({}, runCard, { id: record.artifact_id });
   if (binding) {
     return {
       schema_version: 'autoarmory/result-card/v1',
@@ -80,7 +81,10 @@ function allCards(stateDir, options) {
   const candidates = read(state.candidates);
   const transitions = read(state.transitions);
   const pending = candidates.filter(function (item) { return stateLib.currentState(transitions, item.id, item.status || 'candidate') === 'pending_approval'; }).map(caseCard);
-  const mechanisms = read(state.mechanisms).map(function (item) { return mechanismCard(stateDir, item, options || {}); });
+  const mechanismRows = read(state.mechanisms);
+  const mechanisms = mechanismRows.map(function (item) { return mechanismCard(stateDir, item, options || {}); });
+  const byBinding = new Map();
+  mechanismRows.forEach(function (item, index) { if (item.binding_id) byBinding.set(item.binding_id, mechanisms[index]); });
   const latestArtifacts = new Map();
   for (const item of artifact.readArtifacts(stateDir)) latestArtifacts.set(item.artifact_id, item);
   const latestBindings = new Map();
@@ -89,7 +93,7 @@ function allCards(stateDir, options) {
   const artifacts = Array.from(latestArtifacts.values()).map(function (record) {
     const binding = latestBindings.get(record.artifact_id) || null;
     const caseRecord = binding ? cases.find(function (item) { return item.id === binding.case_id; }) || null : null;
-    return { record: record, binding: binding, caseRecord: caseRecord };
+    return { record: record, binding: binding, caseRecord: caseRecord, runCard: binding ? byBinding.get(binding.id) || null : null };
   });
   return { pending: pending, mechanisms: mechanisms, artifacts: artifacts };
 }
@@ -98,17 +102,17 @@ function inbox(stateDir, options) {
   return {
     schema_version: 'autoarmory/inbox/v1',
     pending: all.pending,
-    ready_to_run: all.artifacts.filter(function (item) { return !!item.binding; }).map(function (item) { return artifactCard(item.record, item.binding, item.caseRecord); }),
+    ready_to_run: all.artifacts.filter(function (item) { return !!item.binding && !item.runCard; }).map(function (item) { return artifactCard(item.record, item.binding, item.caseRecord, item.runCard); }),
     results: all.mechanisms.filter(function (card) { return card.lifetime.state === 'approved' || card.lifetime.state === 'attention'; }),
     expired_or_revoked: all.mechanisms.filter(function (card) { return card.lifetime.state === 'expired' || card.lifetime.state === 'revoked'; }),
-    unbound_artifacts: all.artifacts.filter(function (item) { return !item.binding; }).map(function (item) { return artifactCard(item.record, null, null); })
+    unbound_artifacts: all.artifacts.filter(function (item) { return !item.binding; }).map(function (item) { return artifactCard(item.record, null, null, null); })
   };
 }
 function status(stateDir, options) {
   const all = allCards(stateDir, options);
   const cards = all.mechanisms.concat(all.pending);
   const count = function (name) { return cards.filter(function (card) { return card.lifetime.state === name; }).length; };
-  return { schema_version: 'autoarmory/status/v1', pending: count('pending'), approved: count('approved'), attention: count('attention'), expired: count('expired'), revoked: count('revoked'), ready_to_run: all.artifacts.filter(function (item) { return !!item.binding; }).length, unbound_artifacts: all.artifacts.filter(function (item) { return !item.binding; }).length };
+  return { schema_version: 'autoarmory/status/v1', pending: count('pending'), approved: count('approved'), attention: count('attention'), expired: count('expired'), revoked: count('revoked'), ready_to_run: all.artifacts.filter(function (item) { return !!item.binding && !item.runCard; }).length, unbound_artifacts: all.artifacts.filter(function (item) { return !item.binding; }).length };
 }
 function result(stateDir, id, options) {
   const all = allCards(stateDir, options);
@@ -116,7 +120,7 @@ function result(stateDir, id, options) {
   const hit = candidates.find(function (card) { return card.id === id || (card.run && card.run.id === id); });
   if (hit) return { ok: true, card: hit };
   const item = all.artifacts.find(function (entry) { return entry.record.artifact_id === id; });
-  if (item) return { ok: true, card: artifactCard(item.record, item.binding, item.caseRecord) };
+  if (item) return { ok: true, card: artifactCard(item.record, item.binding, item.caseRecord, item.runCard) };
   return { ok: false, errors: ['no case, run or artifact found for ' + id] };
 }
 

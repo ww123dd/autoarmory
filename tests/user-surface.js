@@ -40,8 +40,22 @@ must(result.code === 1 && /sha256 mismatch/.test(result.out), 'a declared hash t
 const lockName = ['verifiers', 'lock', 'json'].join('.');
 const adapter = path.join(temp, 'scripts', 'verify', 'fixture.js');
 fs.mkdirSync(path.dirname(adapter), { recursive: true });
-fs.writeFileSync(adapter, 'process.exit(0);\n', 'utf8');
-fs.writeFileSync(path.join(temp, lockName), JSON.stringify({ schema_version: 'autoarmory/verifiers-lock/v1', verifiers: [{ id: 'fixture-verifier', kind: 'fixture', readonly: true, adapter: 'scripts/verify/fixture.js', adapter_sha256: sha(adapter), statement: 'fixture', assertion: { path: 'ok', op: 'eq', value: true }, timeout_ms: 10000 }] }, null, 2) + '\n', 'utf8');
+const adapterSource = [
+  "'use strict';",
+  "const fs = require('fs');",
+  "const crypto = require('crypto');",
+  "function canonicalize(value) { if (Array.isArray(value)) return '[' + value.map(canonicalize).join(',') + ']'; if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(function (key) { return JSON.stringify(key) + ':' + canonicalize(value[key]); }).join(',') + '}'; return JSON.stringify(value); }",
+  "function sha256(value) { return crypto.createHash('sha256').update(canonicalize(value)).digest('hex'); }",
+  "const payload = JSON.parse(fs.readFileSync(0, 'utf8'));",
+  "const observed = 0;",
+  "const exitCode = 0;",
+  "const input = { verifier: payload.ref.verifier, observed: observed };",
+  "const output = { observed: observed, exit_code: exitCode };",
+  "process.stdout.write(JSON.stringify({ ok: true, input_sha256: sha256(input), output_sha256: sha256(output), exit_code: exitCode, observed: observed }));",
+  "process.exit(0);"
+].join('\n');
+fs.writeFileSync(adapter, adapterSource, 'utf8');
+fs.writeFileSync(path.join(temp, lockName), JSON.stringify({ schema_version: 'autoarmory/verifiers-lock/v1', verifiers: [{ id: 'fixture-verifier', kind: 'fixture', readonly: true, adapter: 'scripts/verify/fixture.js', adapter_sha256: sha(adapter), statement: 'fixture', assertion: { path: 'observed', op: 'eq', value: 0 }, timeout_ms: 10000 }] }, null, 2) + '\n', 'utf8');
 const caseFile = write('case.json', { schema_version: 'autoarmory/case/v1', id: 'case-user-surface', incident_id: 'inc-user-surface', title: 'best skill artifact', expected_transition: 'EVAL->PASS', failure_mode: 'quality_drift', severity: 'low', evidence: ['artifact best_skill.md'], reproducible: true, owner: 'user' });
 result = json(run(['bind', 'artifact', 'best_skill.md', '--case', 'case-user-surface', '--verifier', 'fixture-verifier', '--case-file', caseFile, '--state', state, '--repo', temp, '--json']));
 must(result.ok && result.card && result.card.lifetime.state === 'bound' && result.card.verifier.id === 'fixture-verifier', 'artifact must bind to an admitted case and an integrity-checked verifier');
@@ -56,8 +70,12 @@ result = json(run(['result', 'cand-user-surface', '--state', state, '--json']));
 must(result.case && result.lifetime && result.verifier === null && result.run === null, 'result must return a four-field user card');
 result = json(run(['status', '--state', state, '--json']));
 must(result.pending === 1 && result.ready_to_run === 1 && result.unbound_artifacts === 0, 'status must count the pending case and bound artifact');
-result = json(run(['result', 'best_skill.md', '--state', state, '--json']));
-must(result.case && result.verifier && result.lifetime.state === 'bound', 'bound artifact result must expose case/verifier/lifetime');
+result = json(run(['run', 'artifact', 'best_skill.md', '--state', state, '--repo', temp, '--json']));
+must(result.ok && (result.status.status === 'closed' || result.status.status === 'verified'), 'bound verifier must run and close');
+result = json(run(['result', 'best_skill.md', '--state', state, '--repo', temp, '--json']));
+must(result.lifetime.state === 'approved', 'after the run, the artifact result must show an approved lifetime');
+result = json(run(['result', 'best_skill.md', '--state', state, '--repo', temp, '--json']));
+must(result.case && result.verifier && result.lifetime.state === 'approved', 'run artifact result must expose case/verifier/lifetime');
 result = json(run(['approve', '--candidate', 'cand-user-surface', '--quote', 'please approve this change', '--state', state, '--dry-run', '--json']));
 must(result.ok && result.dry_run === true, 'approve must delegate to the existing one-decision approval recorder');
-console.log('user surface tests passed: artifact intake hashes/revisions, generic bind to case+verifier, pending inbox, four-field result card, status projection, approval delegation');
+console.log('user surface tests passed: artifact intake hashes/revisions, generic bind to case+verifier, run and close, pending inbox, four-field result card, status projection, approval delegation');
