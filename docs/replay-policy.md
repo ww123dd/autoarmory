@@ -35,3 +35,6 @@ Boundary classes are `near_pass_fail`, `repeated_failure`, `near_expiry`, `high_
 - `token_cost_per_closed_case`: known token cost divided by candidate-accepted cases; `null` when no token cost was recorded.
 
 If no real history is sufficient, `insufficient_real_stream=true`, `metrics=null`, and no strategy ranking is emitted. A report never promotes a candidate.
+## Snapshot Verification
+
+`docs/evidence/history-replay-snapshot-20260917.json` is a sanitized replay input: source ids, real outcomes, cost/token numbers and the fields needed for boundary selection. It contains no paths, prompts or runner output text. `scripts/replay-snapshot.js --verify` re-derives the replay report from that snapshot and fails if the source shape, escape count or policy results are inconsistent.

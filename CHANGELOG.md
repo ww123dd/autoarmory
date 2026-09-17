@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.12.0
+
+History replay evidence is now independently re-derivable from a sanitized shipped snapshot.
+
+- Added `src/lib/history-replay-snapshot.js` and `scripts/replay-snapshot.js`: create a snapshot from real streams and verify it by re-running the replay from the snapshot.
+- Added `docs/evidence/history-replay-snapshot-20260917.json`: source ids, real outcomes, cost/token numbers and boundary fields only; no paths, prompts or runner text.
+- The shipped snapshot re-derives the same real metrics: `replay_escape_count=0`, `tightening_rejection_count=10`, `cost_per_outcome=0.46244125`, `token_cost_per_closed_case=66448.75`.
+- Added `tests/history-replay-snapshot.js`; an inconsistent snapshot, machine path or runner-text field fails the test.
+
 ## 2.11.0
 
 Real cost and token streams enter history replay.

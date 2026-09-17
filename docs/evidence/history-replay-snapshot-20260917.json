@@ -1,0 +1,391 @@
+{
+  "schema_version": "autoarmory/history-replay-snapshot/v1",
+  "captured_at": "2026-09-17T14:29:38.020Z",
+  "source_sha256": "a3a714dbfb6343c02d363ab6fffb7a789b946170c0913e2475d84b952bc19e39",
+  "stream_counts": {
+    "mechanism_runs": 13,
+    "routing_decisions": 1,
+    "routing_actuals": 1,
+    "outcomes": 0,
+    "transitions": 1,
+    "usage_records": 10
+  },
+  "streams": {
+    "mechanism_runs": [
+      {
+        "id": "run-esc-3-pid-file-20260916043410",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "fail",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T04:34:11.274Z"
+      },
+      {
+        "id": "run-esc-3-pid-file-20260916053404",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T05:34:04.501Z"
+      },
+      {
+        "id": "run-esc-3-pid-file-20260916053710",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T05:37:11.369Z"
+      },
+      {
+        "id": "run-esc-3-pid-file-20260916054023",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T05:40:23.953Z"
+      },
+      {
+        "id": "run-esc-3-pid-file-20260916054611",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T05:46:11.411Z"
+      },
+      {
+        "id": "run-esc-3-pid-file-20260916054757",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T05:47:57.432Z"
+      },
+      {
+        "id": "run-esc-3-pid-file-20260916055059",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T05:50:59.791Z"
+      },
+      {
+        "id": "run-esc-3-pid-file-20260916074205",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T07:42:05.960Z"
+      },
+      {
+        "id": "mech-esc-3-pid-file-20260916074409",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T07:44:10.418Z"
+      },
+      {
+        "id": "mech-esc-3-pid-file-20260916075427",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T07:54:28.299Z"
+      },
+      {
+        "id": "mech-esc-3-pid-file-20260916080225",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_invalid_or_process_dead"
+        },
+        "finished_at": "2026-09-16T08:02:25.738Z"
+      },
+      {
+        "id": "run-esc3-incident-replay-20260916081348",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "fail",
+        "counterexample": {
+          "kind": "pid_file_truncated_to_zero_bytes"
+        },
+        "finished_at": "2026-09-16T08:13:48.941Z"
+      },
+      {
+        "id": "run-esc3-recovery-20260916081348",
+        "mechanism_id": "mech-esc-3-pid-file",
+        "case_id": "case-esc-3",
+        "result": "pass",
+        "counterexample": {
+          "kind": "pid_file_truncated_to_zero_bytes"
+        },
+        "finished_at": "2026-09-16T08:13:51.411Z"
+      }
+    ],
+    "routing_decisions": [
+      {
+        "request_id": "route-47c74ffa67fa",
+        "selected": [
+          {
+            "id": "verifier.offline-sandbox"
+          }
+        ],
+        "rejected": [
+          {
+            "id": "verifier.live-refresh"
+          }
+        ],
+        "evidence_refs": []
+      }
+    ],
+    "routing_actuals": [
+      {
+        "decision_id": "route-47c74ffa67fa",
+        "outcome": "success",
+        "source": "agent",
+        "at": "2026-09-16T13:53:33.539Z"
+      }
+    ],
+    "outcomes": [],
+    "transitions": [
+      {
+        "id": "tr-3947bcb234fa",
+        "action_tier": null,
+        "to": "pending_approval"
+      }
+    ],
+    "usage_records": [
+      {
+        "source_decision_id": "iteration-1/eval-0-ppr-caliber/with_skill",
+        "run_id": "iteration-1/eval-0-ppr-caliber/with_skill",
+        "cost_usd": 0.7348372,
+        "tokens": {
+          "input": 68797,
+          "output": 12713,
+          "cache_read": 1122944,
+          "total": 81510
+        },
+        "outcome": {
+          "status": "success",
+          "pass_rate": 1,
+          "passed": 5,
+          "failed": 0,
+          "total": 5
+        },
+        "skill_invoked": true,
+        "tool_calls": 22,
+        "observed_at": "2026-09-14T11:35:55.671Z"
+      },
+      {
+        "source_decision_id": "iteration-1/eval-0-ppr-caliber/without_skill",
+        "run_id": "iteration-1/eval-0-ppr-caliber/without_skill",
+        "cost_usd": 1.6430427999999997,
+        "tokens": {
+          "input": 129124,
+          "output": 29019,
+          "cache_read": 2731776,
+          "total": 158143
+        },
+        "outcome": {
+          "status": "failure",
+          "pass_rate": 0.8,
+          "passed": 4,
+          "failed": 1,
+          "total": 5
+        },
+        "skill_invoked": false,
+        "tool_calls": 61,
+        "observed_at": "2026-09-14T11:35:55.683Z"
+      },
+      {
+        "source_decision_id": "iteration-1/eval-1-readonly-boundary/with_skill",
+        "run_id": "iteration-1/eval-1-readonly-boundary/with_skill",
+        "cost_usd": 0.27191600000000005,
+        "tokens": {
+          "input": 46907,
+          "output": 3302,
+          "cache_read": 269440,
+          "total": 50209
+        },
+        "outcome": {
+          "status": "success",
+          "pass_rate": 1,
+          "passed": 4,
+          "failed": 0,
+          "total": 4
+        },
+        "skill_invoked": true,
+        "tool_calls": 7,
+        "observed_at": "2026-09-14T11:35:55.689Z"
+      },
+      {
+        "source_decision_id": "iteration-1/eval-1-readonly-boundary/without_skill",
+        "run_id": "iteration-1/eval-1-readonly-boundary/without_skill",
+        "cost_usd": 0.38237580000000004,
+        "tokens": {
+          "input": 60100,
+          "output": 3516,
+          "cache_read": 494976,
+          "total": 63616
+        },
+        "outcome": {
+          "status": "failure",
+          "pass_rate": 0.75,
+          "passed": 3,
+          "failed": 1,
+          "total": 4
+        },
+        "skill_invoked": false,
+        "tool_calls": 10,
+        "observed_at": "2026-09-14T11:35:55.696Z"
+      },
+      {
+        "source_decision_id": "iteration-1/eval-2-dolphin-delivery/with_skill",
+        "run_id": "iteration-1/eval-2-dolphin-delivery/with_skill",
+        "cost_usd": 0.2491798,
+        "tokens": {
+          "input": 48629,
+          "output": 3279,
+          "cache_read": 177536,
+          "total": 51908
+        },
+        "outcome": {
+          "status": "success",
+          "pass_rate": 1,
+          "passed": 4,
+          "failed": 0,
+          "total": 4
+        },
+        "skill_invoked": true,
+        "tool_calls": 4,
+        "observed_at": "2026-09-14T11:35:55.702Z"
+      },
+      {
+        "source_decision_id": "iteration-1/eval-2-dolphin-delivery/without_skill",
+        "run_id": "iteration-1/eval-2-dolphin-delivery/without_skill",
+        "cost_usd": 0.17577879999999999,
+        "tokens": {
+          "input": 41079,
+          "output": 2622,
+          "cache_read": 41216,
+          "total": 43701
+        },
+        "outcome": {
+          "status": "failure",
+          "pass_rate": 0.5,
+          "passed": 2,
+          "failed": 2,
+          "total": 4
+        },
+        "skill_invoked": false,
+        "tool_calls": 2,
+        "observed_at": "2026-09-14T11:35:55.707Z"
+      },
+      {
+        "source_decision_id": "iteration-1/eval-3-delivery-essentials/with_skill",
+        "run_id": "iteration-1/eval-3-delivery-essentials/with_skill",
+        "cost_usd": 0.5938319999999999,
+        "tokens": {
+          "input": 72571,
+          "output": 9597,
+          "cache_read": 771200,
+          "total": 82168
+        },
+        "outcome": {
+          "status": "success",
+          "pass_rate": 1,
+          "passed": 4,
+          "failed": 0,
+          "total": 4
+        },
+        "skill_invoked": true,
+        "tool_calls": 24,
+        "observed_at": "2026-09-14T11:35:55.714Z"
+      },
+      {
+        "source_decision_id": "iteration-1/eval-3-delivery-essentials/without_skill",
+        "run_id": "iteration-1/eval-3-delivery-essentials/without_skill",
+        "cost_usd": 1.5449328,
+        "tokens": {
+          "input": 147383,
+          "output": 30272,
+          "cache_read": 2159616,
+          "total": 177655
+        },
+        "outcome": {
+          "status": "failure",
+          "pass_rate": 0.75,
+          "passed": 3,
+          "failed": 1,
+          "total": 4
+        },
+        "skill_invoked": false,
+        "tool_calls": 52,
+        "observed_at": "2026-09-14T11:35:55.725Z"
+      },
+      {
+        "source_decision_id": "iteration-1/eval-4-world-verify-count/with_skill",
+        "run_id": "iteration-1/eval-4-world-verify-count/with_skill",
+        "cost_usd": 0.23585,
+        "tokens": {
+          "input": 52702,
+          "output": 1603,
+          "cache_read": 176000,
+          "total": 54305
+        },
+        "outcome": {
+          "status": "success",
+          "pass_rate": 1,
+          "passed": 2,
+          "failed": 0,
+          "total": 2
+        },
+        "skill_invoked": false,
+        "tool_calls": 7,
+        "observed_at": "2026-09-14T11:35:55.953Z"
+      },
+      {
+        "source_decision_id": "iteration-1/eval-4-world-verify-count/without_skill",
+        "run_id": "iteration-1/eval-4-world-verify-count/without_skill",
+        "cost_usd": 0.2323766,
+        "tokens": {
+          "input": 49371,
+          "output": 1221,
+          "cache_read": 216832,
+          "total": 50592
+        },
+        "outcome": {
+          "status": "success",
+          "pass_rate": 1,
+          "passed": 2,
+          "failed": 0,
+          "total": 2
+        },
+        "skill_invoked": false,
+        "tool_calls": 5,
+        "observed_at": "2026-09-14T11:35:56.176Z"
+      }
+    ]
+  }
+}

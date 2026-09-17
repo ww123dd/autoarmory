@@ -131,6 +131,12 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.12.0
+
+- [x] sanitized replay snapshot: source ids, real outcomes, cost/token facts and boundary fields only.
+- [x] snapshot verifier: re-run `history.replayHistory` from the shipped snapshot and compare the derived report.
+- [x] privacy boundary: no machine paths, prompts, stdout/stderr or response text.
+- [x] re-derived evidence: same `replay_escape_count=0`, `tightening_rejection_count=10`, `cost_per_outcome=0.46244125`, `token_cost_per_closed_case=66448.75`.
 ## 2.11.0
 
 - [x] runner usage ingestion: real `cli.json` + `grading.json` pairs become hash-bound usage records with cost, tokens, outcome and Skill invocation.
