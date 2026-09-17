@@ -4,7 +4,7 @@ The verifier core is intentionally thin. Each new source should add a small brid
 
 Every profile entry declares a human-readable `version` and an `invocation_contract_version` next to its pinned digests. The digests and the contract version form `runner_sha256`; the human-readable `version` is compatibility metadata and is deliberately excluded from it, so bumping it never invalidates a verdict on its own.
 
-Current local profile contains eight heterogeneous fact sources:
+Current local profile contains nine heterogeneous fact sources:
 
 | verifier | fact source | bridge lines |
 |---|---|---:|
@@ -13,11 +13,12 @@ Current local profile contains eight heterogeneous fact sources:
 | `file-sha256-license` | file existence and SHA-256 | 14 |
 | `git-commit-exists` | git object existence | 10 |
 | `local-http-health` | local HTTP service fingerprint | 28 |
+| `local-transcript` | local transcript observation registry | 93 |
 | `windows-registry-value` | Windows registry value (OS configuration store) | 26 |
 | `windows-service-state` | Windows Service Control Manager state | 23 |
 | `tls-peer-certificate` | X.509 certificate fingerprint presented by a TLS peer | 50 |
 
-Seven of the eight are thin bridges over the same `state-query` adapter. Only the MCP transport bridge is heavy, because it speaks the MCP stdio protocol on behalf of a registered server. That ratio is the engine test:
+Seven of the nine are thin bridges over the same `state-query` adapter. Two are heavy: the MCP transport bridge speaks the MCP stdio protocol on behalf of a registered server, and `local-transcript` is a multi-kind local observability registry rather than a one-off instrument. That ratio is the engine test:
 
 - if each source needs a small bridge, the core is reusable;
 - if each source needs a new 100+ line adapter, the implementation is still a one-off instrument.
@@ -86,7 +87,7 @@ A pinned artifact that is not committed is a **local instrument**: the pin works
 - `scripts/verifier-preflight.js` appends `local-only pins (not reproducible from a clone): <id> -> <path>` to its pass line;
 - `verifier-scorecard` carries `tracked: false` on the row.
 
-Today exactly one entry is in that class: `meta-skill-load-count` pins `examples/adapters/local-transcript/bridge.js`, which is a working-tree file. Committing that bridge, or dropping the entry, is what removes the note. The portable profile never contains a local instrument, so nothing in `examples/profiles/portable.profile.json` depends on an uncommitted file.
+Today there are no local-only pins: every pinned artifact is tracked and byte-identical to its committed blob. The profile still contains machine-local targets (absolute paths and live services), so it is not portable; `examples/profiles/portable.profile.json` remains the profile that can run from a clone.
 
 ## One writer per trust root
 

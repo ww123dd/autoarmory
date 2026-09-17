@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0
+
+Lifecycle sweep over the whole inventory: each retain/degrade/replace/retire verdict cites the record that decides it.
+
+- Added `scripts/lifecycle-sweep.js`: it reads mechanisms, promoted candidates and capabilities, decides `retain` / `degrade` / `replace` / `retire` from `mechanism-status`, `candidate-evidence` and `capability-health`, and carries the deciding record and reason on every row. It is a read-only projection and emits no self-reported fields.
+- Acceptance `tests/lifecycle-sweep.js`: a stale promoted candidate is retired by its artifact mismatch, a current candidate is retained, a healthy mechanism is retained, and every verdict cites its deciding record.
+- Fresh-clone qualification passed all six gates at `9376fb3` when the clone path was ASCII. An earlier clone under a path containing non-ASCII characters crashed inside Node 24.14 `fs.cpSync` with `0xC0000409`; that is recorded as a harness-location error, not a product verdict, and the clean re-run is the release evidence.
+- The untracked `examples/adapters/assert-absent/` experiment was not admitted: it is archived outside the release and is not part of this version's trust surface.
+
 ## 1.8.0
 
 Selection baselines: the router is measured against alternatives on the same real decisions, and never deployed by this tool.

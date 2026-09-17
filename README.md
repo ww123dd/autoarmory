@@ -136,7 +136,7 @@ Enable the repository-local pre-commit enforcement point:
 npm run hooks:install
 ```
 
-The hook runs `node scripts/change-gate.js --staged`. It blocks new abstraction surfaces unless the change includes a passing claim record, a verification improvement, or removal/downgrade of an existing layer. See [Change Gate](docs/change-gate.md).
+The hook runs `node scripts/verifier-preflight.js`, `node scripts/mechanism-preflight.js`, `node scripts/change-gate.js --staged`, and `npm test --silent`. It blocks trust-root drift, mechanisms without a valid verdict, new abstraction surfaces without a passing claim/verification improvement/removal, and any red test suite. See [Change Gate](docs/change-gate.md).
 
 ## Mechanism core
 

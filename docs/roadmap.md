@@ -80,37 +80,27 @@
 
 - [x] gap-first inventory: `scripts/inventory-scan.js` scans skills, MCP servers and the verifier profile read-only. It reports **facts only** (path, sha256, existence, registered ids) and lists `judgment_required` (trigger_curation, evidence_refs, task_types) instead of filling what it cannot judge, so a scan can never produce a registerable candidate. Falsifier (external): two scans agree, the scan covers exactly the SKILL.md files present, every recorded hash equals the file on disk, and changing one byte changes the hash. This machine: 50 candidates, 0 registerable, 50 needing judgment
 
-## 1.7.0
+## 1.5.0
 
-- [x] execution provenance: `scripts/exec-record.js` captures exit code, duration, input hash and stdout/stderr hashes (never the text), records failures as `failure`, and links a record to a routing decision
+- [x] in-toto-shaped attestations for vendored anchors (`subject` + `predicateType` + `predicate`), so third-party tooling can verify our evidence without reading our prose. The shell is the standard in-toto Statement shape; the predicate type is custom because the required SLSA `buildDefinition` / `runDetails` fields would not describe what we record.
 
 ## 1.6.0
 
-- [x] trust-root lifetime and change governance: `pinned_at` / `rotate_by` with fail-closed expiry (no override flag), and `--allow-drift` now requires `--reason` and writes a drift journal entry
+- [x] trust-root lifetime and change governance: `pinned_at` / `rotate_by` with fail-closed expiry (no override flag), and `--allow-drift` now requires `--reason` and writes a drift journal entry.
 
-## 1.5.0 (planned)
+## 1.7.0
 
-- [ ] descriptor completion without invented numbers: reliability from recorded outcomes, cost/latency from measured runs, task types from real usage (fills `no_task_types` and the descriptor fields the scan cannot know)
-
-## 1.6.0 (planned)
-
-- [ ] in-toto-shaped attestations for vendored anchors (`subject` + `predicateType` + `predicate`), so third-party tooling can verify our evidence without reading our prose (steal from in-toto/SLSA)
-
-## 1.7.0 (planned)
-
-- [ ] trust-root rotation and expiry (steal from TUF): `pinned_at` / `rotate_by` on the anchor, a warning before expiry and a fail-closed state after it, plus a written rotation procedure
+- [x] execution provenance: `scripts/exec-record.js` captures exit code, duration, input hash and stdout/stderr hashes (never the text), records failures as `failure`, and links a record to a routing decision.
 
 ## 1.8.0
 
-- [x] selection baselines over real decisions: `scripts/selection-baseline.js` replays the same stored request through router / first-eligible / keyword, refuses to print metrics without recorded actual usage, and never deploys the router
+- [x] selection baselines over real decisions: `scripts/selection-baseline.js` replays the same stored request through router / first-eligible / keyword, refuses to print metrics without recorded actual usage, and never deploys the router.
 
-## 1.8.0 (planned)
+## 2.0.0
 
-- [ ] execution provenance: `scripts/exec-record.js -- <cmd>` captures exit code, duration, input/output hashes and environment fingerprint, and feeds the shadow actual stream so real usage accumulates without hand-written records
-
-## 2.0.0 (planned)
-
-- [ ] selection baselines over real decisions (router vs first-eligible vs keyword) and lifecycle sweeps across the whole inventory, with a projection-only report (steal the matrix idea from promptfoo, not its scale)
+- [x] lifecycle sweep over the whole inventory: `scripts/lifecycle-sweep.js` decides `retain` / `degrade` / `replace` / `retire` for mechanisms, promoted candidates and capabilities from records only, cites the deciding record on every row, and emits a projection with no self-reported fields.
+- [x] fresh-clone release qualification: the `9376fb3` clone passed `npm test`, `check:acceptance`, `test:conformance`, `test:self-eval`, `check:anchors` and `check:attestations` from an ASCII path. A failed attempt from a non-ASCII path is recorded as a harness-location error, not a product verdict.
+- [x] untracked experiments are not admitted: the unreferenced `examples/adapters/assert-absent/` experiment was archived outside the release instead of being shipped without a consumer or acceptance test.
 
 ## 1.0
 
