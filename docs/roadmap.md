@@ -100,6 +100,10 @@
 
 - [ ] trust-root rotation and expiry (steal from TUF): `pinned_at` / `rotate_by` on the anchor, a warning before expiry and a fail-closed state after it, plus a written rotation procedure
 
+## 1.8.0
+
+- [x] selection baselines over real decisions: `scripts/selection-baseline.js` replays the same stored request through router / first-eligible / keyword, refuses to print metrics without recorded actual usage, and never deploys the router
+
 ## 1.8.0 (planned)
 
 - [ ] execution provenance: `scripts/exec-record.js -- <cmd>` captures exit code, duration, input/output hashes and environment fingerprint, and feeds the shadow actual stream so real usage accumulates without hand-written records

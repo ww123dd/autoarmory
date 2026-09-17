@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.0
+
+Selection baselines: the router is measured against alternatives on the same real decisions, and never deployed by this tool.
+
+- Added `scripts/selection-baseline.js`: replays each stored `routing-decision` request through three strategies - the router, `first-eligible` and `keyword` - and compares each pick with the recorded actual usage and outcome. With no recorded actual usage it reports `insufficient_real_stream` and prints **no metrics**; the state files are never modified.
+- First real result (n=1, replay only): router agreement 1.0, first-eligible 1.0, keyword 0.0 - the keyword strategy did not pick the capability that was actually used. One data point, not a benchmark.
+- Acceptance `tests/selection-baseline.js`: three strategies on two replayed decisions with router agreement 0.5, the divergence named, state hashes unchanged, and an empty stream producing `insufficient_real_stream`.
+
 ## 1.7.1
 
 - Fixed a real defect the fresh-clone qualification caught: `tests/anchor-and-exec.js` copied the gitignored local profile, so `npm test` failed in any clone while passing on the machine that had one. The expiry half is now guarded by `fs.existsSync(localProfile)` and prints why it is skipped; the exec-record half always runs. The 1.6.0 and 1.7.0 release logs keep their `npm test=1` line, with an appended correction note - the error stays in the evidence instead of being overwritten.

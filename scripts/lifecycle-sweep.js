@@ -26,12 +26,19 @@ if(fs.existsSync(path.join(state,'mechanisms.jsonl'))){
   }
 }
 if(fs.existsSync(path.join(state,'transitions.jsonl'))){
-  const esc=candidateLifecycle.staleEscapes(readJsonl(path.join(state,'transitions.jsonl')),{repo:repo});
-  for(const d of esc.details){
-    const stale=d.freshness&&d.freshness.covered&&!d.freshness.ok;
-    rows.push({subject:'candidate:'+d.candidate_id,verdict:stale?'retire':(d.uncovered_reason?'degrade':'retain'),because:{record:'candidate-evidence',covered:d.freshness?d.freshness.covered:0,uncovered:d.freshness?d.freshness.uncovered:0,mismatches:d.freshness?d.freshness.mismatches:[],uncovered_reason:d.uncovered_reason||null},action:stale?'run node scripts/candidate-lifecycle.js --rollback-if-stale':(d.uncovered_reason?'evidence has no hashed artifact: replace the observation with a hashable product':'keep')});
+  const records=readJsonl(path.join(state,'transitions.jsonl'));
+  const stateLib=require('../src/lib/state');
+  const ids=Array.from(new Set(records.map(function(r){return r.candidate_id;})));
+  for(const id of ids){
+    const promoting=records.filter(function(r){return r.candidate_id===id;}).filter(function(r){return r.to==='promoted';}).pop();
+    if(!promoting)continue;
+    if(stateLib.currentState(records,id,'candidate')!=='promoted')continue;
+    const fresh=candidateLifecycle.artifactFreshness(promoting.evidence,{repo:repo});
+    const verdict=!fresh.covered?'degrade':(fresh.ok?'retain':'retire');
+    rows.push({subject:'candidate:'+id,verdict:verdict,because:{record:'candidate-evidence',covered:fresh.covered,uncovered:fresh.uncovered,mismatches:fresh.mismatches,uncovered_reason:fresh.covered?null:'no hashed artifact to recompute'},action:verdict==='retain'?'keep':(verdict==='retire'?'run node scripts/candidate-lifecycle.js --rollback-if-stale':'replace the observation with a hashable product')});
   }
 }
+
 if(fs.existsSync(path.join(state,'capabilities.jsonl'))){
   const mechanisms={};
   if(fs.existsSync(path.join(state,'mechanisms.jsonl')))for(const m of mechanism.listMechanisms(state)){const st=mechanism.status(state,m.id,{repo:repo});mechanisms[m.id]={status:st.status,reason:st.reason,lifecycle:mechanism.lifecycle(state,m.id).to};}
