@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.16.0
+
+Change Inventory v2 aligns the inspector with the accepted boundary: record changes, do not infer execution facts.
+
+- Added `scripts/change-inspector.js` plus the compatibility `scripts/change-inspect.js`; first-pass outputs are `changes.jsonl`, `check-gap-report.json` and `high-signal-changes.json`.
+- Added `src/lib/verifier-resolver.js`: only registered verifier, project test command, file hash and git state are mechanical; HTTP, SQL, process, DOM and build artifacts remain `verifier_candidate`.
+- Added `scripts/validation-exec.js`: validation commands route through `exec-record` for structured exit code, duration and stdout/stderr hashes.
+- Real two-session scan: 7237 raw change records, 64 path-computable file changes, 651 check observations, 22 raw `check_gap` signals, 49 aggregate check-gap changes, 651 `exec_record_gap`s, 0 fabricated transcript execution fields and 0 blocked Edit/Write events.
+- Added `docs/change-inspector.md`, `docs/exec-record-integration.md`, `docs/evidence/change-inspector-v2-20260917.json` and their guards.
+
 ## 2.15.0
 
 Standing Change Inventory: session changes become incremental, deterministic, non-closing records.

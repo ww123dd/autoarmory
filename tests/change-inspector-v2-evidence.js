@@ -1,0 +1,20 @@
+'use strict';
+const fs = require('fs');
+const path = require('path');
+function must(condition, message) { if (!condition) throw new Error(message); }
+const raw = fs.readFileSync(path.resolve(__dirname, '..', 'docs', 'evidence', 'change-inspector-v2-20260917.json'), 'utf8');
+const report = JSON.parse(raw);
+must(report.schema_version === 'autoarmory/change-inspector-evidence/v2', 'change inspector v2 evidence schema');
+must(report.source_session_count === 2 && report.sessions.length === 2, 'two source sessions');
+must(report.manual_scan_trigger_count === 0 && report.manual_case_creation_count === 0 && report.manual_verifier_config_count === 0, 'zero manual scan/case/verifier inputs');
+must(report.transcript_field_fabrication_count === 0, 'no transcript field fabrication');
+must(report.check_gap_path_computable === true && report.change_inventory_idempotent === true && report.edit_write_blocked_count === 0, 'change inventory acceptance');
+const m = report.metrics;
+must(m.change_record_count === 7237 && m.file_changed_count === 64 && m.command_called_count === 2688, 'change inventory counts');
+must(m.check_seen_count === 651 && m.check_gap_signal_count === 22 && m.check_gap_change_count === 49, 'check seen and check gap counts');
+must(m.exec_record_gap_count === 651 && m.transcript_field_fabrication_count === undefined, 'exec-record gaps are explicit');
+must(m.close_without_verifier_count === 0 && m.false_close_count === null && m.false_close_status === 'lagging_indicator_requires_future_counterexample', 'no closure and lagging false-close status');
+must(report.private_session_content_shipped === false, 'private session content is not shipped');
+must(!/[A-Za-z]:[\\/]|\/Users\/|\/home\//.test(raw), 'evidence must not contain machine paths');
+must(!/stdout_sha256|stderr_sha256/.test(raw), 'evidence must not contain fabricated execution hashes');
+console.log('change inspector v2 evidence passed: changes=7237, check_gap=49, path_computable=true, idempotent=true, blocked_edit=0');

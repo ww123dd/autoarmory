@@ -1,0 +1,38 @@
+{
+  "schema_version": "autoarmory/change-inspector-evidence/v2",
+  "captured_at": "2026-09-17T13:45:00.000Z",
+  "sessions": [
+    "01a0a7c6-11bb-7f41-8d58-c33fa0cf00d9",
+    "01a079b4-0de0-7372-a83c-d4d33e1accd4"
+  ],
+  "source_session_count": 2,
+  "manual_scan_trigger_count": 0,
+  "manual_case_creation_count": 0,
+  "manual_verifier_config_count": 0,
+  "transcript_field_fabrication_count": 0,
+  "check_gap_path_computable": true,
+  "change_inventory_idempotent": true,
+  "edit_write_blocked_count": 0,
+  "metrics": {
+    "change_record_count": 7237,
+    "file_changed_count": 64,
+    "command_called_count": 2688,
+    "check_seen_count": 651,
+    "check_gap_signal_count": 22,
+    "check_gap_change_count": 49,
+    "command_result_passed_count": 5,
+    "command_result_failed_count": 9,
+    "result_text_unstructured_count": 2673,
+    "repeat_signature_count": 6,
+    "risk_signal_count": 468,
+    "exec_record_gap_count": 651,
+    "candidate_case_draft_count": 505,
+    "high_signal_notification_count": 483,
+    "suppressed_count": 5195,
+    "correctly_reported_unverifiable_count": 4975,
+    "close_without_verifier_count": 0,
+    "false_close_count": null,
+    "false_close_status": "lagging_indicator_requires_future_counterexample"
+  },
+  "private_session_content_shipped": false
+}

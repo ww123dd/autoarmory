@@ -47,6 +47,8 @@ function normalizeRow(row) {
     const text = short(textOf(payload.content), 4000);
     return { type: 'message', role: payload.role, text: text, links: urls(text), timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) };
   }
+  if (payload.type === 'session_meta') { return { type: 'session_meta', role: 'meta', session_id: payload.session_id || payload.id || null, cwd: payload.cwd || null, text: '', links: [], timestamp: row.timestamp || null, id: payload.session_id || payload.id || null, turn_id: null }; }
+  if (payload.type === 'turn_context') { return { type: 'turn_context', role: 'meta', session_id: null, cwd: payload.cwd || null, text: '', links: [], timestamp: row.timestamp || null, id: payload.turn_id || null, turn_id: payload.turn_id || null }; }
   if (payload.type === 'user_message') { return { type: 'user_turn', role: 'user', text: short(payload.message || '', 4000), links: urls(payload.message || ''), timestamp: row.timestamp || null, id: payload.client_id || null, turn_id: payload.turn_id || null }; }
   if (payload.type === 'task_complete') { return { type: 'completion', role: 'assistant', text: short(payload.last_agent_message || '', 4000), links: urls(payload.last_agent_message || ''), timestamp: row.timestamp || null, id: payload.turn_id || null, turn_id: payload.turn_id || null }; }
   if (payload.type === 'function_call') {

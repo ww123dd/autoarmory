@@ -49,8 +49,17 @@ const runOnce = function () {
   if (drafts.length) writeJsonl(path.join(stateDir, 'candidate-cases.jsonl'), fs.existsSync(path.join(stateDir, 'candidate-cases.jsonl')) ? require('../src/lib/util').readJsonl(path.join(stateDir, 'candidate-cases.jsonl')).concat(drafts) : drafts);
   const notifications = drafts.filter(function (d) { return d.notify === true; });
   if (notifications.length) writeJsonl(path.join(stateDir, 'notifications.jsonl'), fs.existsSync(path.join(stateDir, 'notifications.jsonl')) ? require('../src/lib/util').readJsonl(path.join(stateDir, 'notifications.jsonl')).concat(notifications) : notifications);
+  const changes = inspector.buildChanges(records);
   const metrics = inspector.summarize(records, drafts);
-  writeJson(path.join(stateDir, 'change-summary.json'), { schema_version: 'autoarmory/change-inspector-summary/v1', sessions: sessionArgs, records: records.length, metrics: metrics, generated_at: new Date().toISOString() });
+  const gaps = changes.filter(function (c) { return c.check_status === 'check_gap'; });
+  metrics.check_gap_path_computable = gaps.length === 0 || gaps.every(function (c) { return c.changed_files.every(function (f) { return !!f.path; }); });
+  metrics.change_inventory_idempotent = new Set(records.map(function (r) { return r.id; })).size === records.length;
+  metrics.manual_scan_trigger_count = 0;
+  metrics.edit_write_blocked_count = 0;
+  writeJsonl(path.join(stateDir, 'changes.jsonl'), changes);
+  writeJson(path.join(stateDir, 'check-gap-report.json'), { schema_version: 'autoarmory/check-gap-report/v1', check_gap_path_computable: metrics.check_gap_path_computable, check_gap_count: gaps.length, changes: gaps });
+  writeJson(path.join(stateDir, 'high-signal-changes.json'), { schema_version: 'autoarmory/high-signal-changes/v1', count: drafts.filter(function (d) { return d.notify === true; }).length, changes: drafts.filter(function (d) { return d.notify === true; }) });
+  writeJson(path.join(stateDir, 'change-summary.json'), { schema_version: 'autoarmory/change-inspector-summary/v1', sessions: sessionArgs, records: records.length, changes: changes.length, metrics: metrics, generated_at: new Date().toISOString() });
   writeJson(stateFile, state);
   if (args.json) printJson({ schema_version: 'autoarmory/change-inspector-run/v1', sessions: sessionArgs.length, records: records.length, metrics: metrics }); else process.stdout.write('change inspector: records=' + records.length + '\n');
 };

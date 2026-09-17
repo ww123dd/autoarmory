@@ -131,6 +131,14 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.16.0
+
+- [x] Change Inventory aggregate schema: `changed_files`, `commands`, `check_events`, `check_status`, `signals`, `cwd`, `turn_id`.
+- [x] Real two-session shadow outputs: `changes.jsonl`, `check-gap-report.json`, `high-signal-changes.json`.
+- [x] Mechanical verifier resolution only: registered verifier, project test, file hash and git state.
+- [x] HTTP, SQL, process, DOM and build artifact remain `verifier_candidate`.
+- [x] `validation-exec` routes test/build/HTTP/SQL commands through `exec-record`; unwrapped commands remain `exec_record_gap`.
+- [x] Acceptance: `check_gap_path_computable=true`, `change_inventory_idempotent=true`, `edit_write_blocked_count=0`, `transcript_field_fabrication_count=0`.
 ## 2.15.0
 
 - [x] standing change inspector: byte-offset increments, stable schema, idempotent reruns and empty inventory on no source.

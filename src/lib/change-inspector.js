@@ -1,11 +1,12 @@
 'use strict';
 
 const { sha256 } = require('./util');
+const resolver = require('./verifier-resolver');
 
 const CHECK_RE = /(pytest|npm test|npm run build|tsc|node tests|verify_all|curl|invoke-webrequest|https?:\/\/|select\s|explain\s|show\s|desc\s|describe\s|sql|doris|数据|同步|海豚|compaction|profile)/i;
 const RISK_RE = /(production|prod|deploy|publish|permission|授权|权限|删除|drop\s|truncate|write\s|写入|外部|webhook|oauth|token|secret|凭据)/i;
 const CHANGE_TOOLS = new Set(['apply_patch','write','write_file','edit','multiedit','notebookedit']);
-const CHANGE_COMMAND_RE = /(git\s+commit|set-content|add-content|out-file|sed\s+-i|tee\s|truncate|rm\s|del\s|move-item|copy-item|git\s+apply)/i;
+const CHANGE_COMMAND_RE = /(set-content|add-content|out-file|sed\s+-i|tee\s|truncate|rm\s|del\s|move-item|copy-item)/i;
 const STRUCTURED_EXIT_RE = /"exit_code"\s*:\s*(-?\d+)/;
 const ERROR_RE = /(error|exception|failed|failure|not found|traceback|fatal|exit code [1-9])/i;
 
@@ -32,6 +33,25 @@ function signature(text) {
   const normalized = String(text || '').toLowerCase().replace(/[0-9a-f]{8,}/g, '<id>').replace(/\d+/g, '<n>').replace(/\s+/g, ' ').trim().slice(0, 300);
   return ERROR_RE.test(normalized) ? sha256(normalized).slice(0, 16) : null;
 }
+function extractFiles(event, command) {
+  const parsed = parseArgsValue(event && event.args);
+  const direct = parsed.file_path || parsed.path || parsed.file;
+  const out = [];
+  if (direct) out.push(String(direct));
+  const patch = String(parsed.raw || event.args || '').match(/(?:Add|Update|Delete) File:\s*([^\n]+)/ig) || [];
+  for (const hit of patch) out.push(hit.replace(/^.*File:\s*/i, '').trim());
+  const cmd = String(command || '');
+  const patterns = [
+    /(?:Set-Content|Add-Content|Out-File)\s+(?:-Path\s+|-FilePath\s+)?[\"']([^\"']+)[\"']/ig,
+    /\[IO\.File\]::WriteAllText\(\s*[\"']([^\"']+)[\"']/ig,
+    /(?:New-Item|Move-Item|Copy-Item|Remove-Item)\s+(?:-LiteralPath|-Path)?\s*[\"']([^\"']+)[\"']/ig,
+    /sed\s+-i[^\s]*\s+(?:'[^']*'\s+)?([^\s;|&]+)/ig,
+    /(?:^|[;|&]\s*)(?:echo|printf|type)[^>]*>\s*([^\s;|&]+)/ig
+  ];
+  for (const pattern of patterns) { let m; while ((m = pattern.exec(cmd))) out.push(String(m[1]).replace(/[\"']+$/g, '')); }
+  return Array.from(new Set(out.filter(function (x) { return x && !/^\$env:TEMP|^\$env:/i.test(x); })));
+}
+function extractFile(event, command) { return extractFiles(event, command)[0] || null; }
 function eventId(event, kind) { return sha256([event && event.call_id, event && event.id, event && event.timestamp, kind].join(':')).slice(0, 20); }
 function record(kind, event, detail, state) {
   const id = eventId(event, kind);
@@ -43,6 +63,8 @@ function record(kind, event, detail, state) {
     session_id: state.session_id,
     signal: kind,
     observed_at: event.timestamp || null,
+    turn_id: event.turn_id || state.turn_id || null,
+    cwd: event.cwd || state.cwd || null,
     source: { line: state.line, event_id: event.id || null, call_id: event.call_id || null, tool: event.tool || null },
     detail: detail || {}
   };
@@ -56,11 +78,14 @@ function inspectEvents(events, state, options) {
   const pendingChanges = [];
   for (let index = 0; index < events.length; index++) {
     const event = events[index];
+    if (event.type === 'session_meta') { state.cwd = event.cwd || state.cwd; continue; }
+    if (event.type === 'turn_context') { state.turn_id = event.turn_id || state.turn_id; state.cwd = event.cwd || state.cwd; continue; }
     if (event.type === 'tool_call') {
       const command = commandOf(event);
       const tool = toolOf(event);
-      const detail = { command: command || null, tool: event.tool || null };
-      if (isChangeTool(tool) || CHANGE_COMMAND_RE.test(command)) { const r = record('file_changed', event, detail, state); if (r) { records.push(r); pendingChanges.push({ event: event, record: r, index: index }); } }
+      const files = extractFiles(event, command);
+      const detail = { command: command || null, tool: event.tool || null, file_path: files[0] || null, file_paths: files, tool_call_id: event.call_id || null, turn_id: event.turn_id || state.turn_id || null, cwd: event.cwd || state.cwd || null };
+      if (isChangeTool(tool) || (CHANGE_COMMAND_RE.test(command) && files.length)) { const r = record('file_changed', event, detail, state); if (r) { records.push(r); pendingChanges.push({ event: event, record: r, index: index }); } }
       if (command) { const r = record('command_called', event, detail, state); if (r) records.push(r); }
       if (isCheckCommand(command)) {
         const r = record('check_seen', event, detail, state); if (r) records.push(r); for (let p = pendingChanges.length - 1; p >= 0; p--) { if (index - pendingChanges[p].index <= 20) pendingChanges.splice(p, 1); }
@@ -99,16 +124,51 @@ function inspectEvents(events, state, options) {
   }
   return records;
 }
+function buildChanges(records) {
+  const groups = new Map();
+  for (const item of records) {
+    const key = item.session_id + ':' + (item.turn_id || item.source.event_id || item.id);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  const changes = [];
+  for (const [key, list] of groups) {
+    const fileRecords = list.filter(function (r) { return r.signal === 'file_changed'; });
+    if (!fileRecords.length) continue;
+    const changedFiles = [];
+    for (const r of fileRecords) {
+      const paths = (r.detail && r.detail.file_paths && r.detail.file_paths.length) ? r.detail.file_paths : [(r.detail && r.detail.file_path) || null];
+      for (const path of paths) if (path && !changedFiles.some(function (f) { return f.path === path; })) changedFiles.push({ path: path, action: (r.detail && r.detail.tool || 'patch').replace(/^apply_patch$/, 'patch') });
+    }
+    const commandRecords = list.filter(function (r) { return r.signal === 'command_called' || r.signal === 'check_seen'; });
+    const resultRecords = list.filter(function (r) { return ['command_result_passed','command_result_failed','result_text_unstructured'].indexOf(r.signal) !== -1; });
+    const commands = [];
+    for (const r of commandRecords) {
+      const id = r.source.call_id || r.id;
+      if (commands.some(function (c) { return c.tool_call_id === id; })) continue;
+      const result = resultRecords.find(function (x) { return x.source.call_id === r.source.call_id; }) || null;
+      commands.push({ command: r.detail && r.detail.command || null, tool_call_id: id, result_seen: !!result, exit_code: result && result.detail && Number.isInteger(result.detail.exit_code) ? result.detail.exit_code : null, exit_code_status: result && result.detail && result.detail.structured ? 'structured' : 'not_structured' });
+    }
+    const checkEvents = commandRecords.filter(function (r) { return r.signal === 'check_seen'; }).map(function (r) { return { command: r.detail && r.detail.command || null, tool_call_id: r.source.call_id || r.id, observed_at: r.observed_at }; });
+    const gapRecords = list.filter(function (r) { return r.signal === 'check_gap'; });
+    const structured = commands.some(function (c) { return c.exit_code_status === 'structured'; });
+    const status = changedFiles.length && !checkEvents.length ? 'check_gap' : (checkEvents.length && !structured ? 'unstructured' : (checkEvents.length ? 'check_seen' : null));
+    const signals = [];
+    if (status === 'check_gap' || gapRecords.length) signals.push('changed_without_check');
+    if (changedFiles.some(function (f) { return f.path && changedFiles.filter(function (x) { return x.path === f.path; }).length > 1; })) signals.push('same_file_repeated');
+    if (list.some(function (r) { return r.signal === 'command_result_failed'; })) signals.push('command_failed_text_seen');
+    if (list.some(function (r) { return r.signal === 'repeat_signature'; })) signals.push('repeat_signature');
+    if (list.some(function (r) { return r.signal === 'risk_signal'; })) signals.push('risk_signal');
+    changes.push({ change_id: 'change-' + sha256(key).slice(0, 16), session_id: list[0].session_id, turn_id: list[0].turn_id || null, cwd: list[0].cwd || null, changed_files: changedFiles, commands: commands, check_events: checkEvents, check_status: status, signals: signals, baseline_status: structured ? 'structured_result_present' : 'baseline_missing' });
+  }
+  return changes;
+}
 function resolveVerifier(recordSet, verifierIds) {
-  const text = recordSet.map(function (r) { return JSON.stringify(r.detail || {}); }).join(' ');
-  const command = (recordSet.find(function (r) { return r.signal === 'check_seen' || r.signal === 'command_called'; }) || {}).detail || {};
-  const cmd = command.command || '';
-  for (const id of verifierIds || []) if (text.indexOf(id) !== -1) return { kind: 'registered', ref: id };
-  if (/(pytest|npm test|node tests|verify_all|tsc|npm run build)/i.test(cmd)) return { kind: 'project_test', ref: cmd };
-  if (/(git status|git diff|git commit)/i.test(cmd)) return { kind: 'git_status', ref: cmd };
-  if (/(sha256|hash)/i.test(cmd)) return { kind: 'file_hash', ref: cmd };
-  if (/(curl|invoke-webrequest|https?:\/\/|select\s|explain\s|show\s|desc\s|describe\s|sql|doris|process|dom|build)/i.test(cmd)) return { kind: 'verifier_candidate', ref: cmd };
-  return { kind: 'verifier_missing', ref: null };
+  const commandRecord = recordSet.find(function (r) { return r.signal === 'check_seen' || r.signal === 'command_called'; }) || {};
+  const command = commandRecord.detail && commandRecord.detail.command || '';
+  const files = [];
+  for (const r of recordSet) if (r.detail && r.detail.file_path) files.push({ path: r.detail.file_path });
+  return resolver.resolveVerifier({ command: command, files: files, source_text: JSON.stringify(recordSet.map(function (r) { return r.detail || {}; })) }, { verifier_ids: verifierIds });
 }
 function candidateCases(records, options) {
   const opts = options || {};
@@ -158,11 +218,19 @@ function summarize(records, drafts) {
 function inspect(events, state, options) {
   const records = inspectEvents(events, state, options);
   const drafts = candidateCases(records, options);
+  const changes = buildChanges(records);
+  const metrics = summarize(records, drafts);
+  const gaps = changes.filter(function (c) { return c.check_status === 'check_gap'; });
+  metrics.check_gap_path_computable = gaps.length === 0 || gaps.every(function (c) { return c.changed_files.every(function (f) { return !!f.path; }); });
+  metrics.change_inventory_idempotent = new Set(records.map(function (r) { return r.id; })).size === records.length;
+  metrics.manual_scan_trigger_count = 0;
+  metrics.edit_write_blocked_count = 0;
   return {
     schema_version: 'autoarmory/change-inspector/v1',
     records: records,
+    changes: changes,
     candidate_cases: drafts,
-    metrics: summarize(records, drafts)
+    metrics: metrics
   };
 }
-module.exports = { inspectEvents, inspect, summarize, candidateCases, resolveVerifier, resultStatus, commandOf, isCheckCommand };
+module.exports = { inspectEvents, inspect, summarize, buildChanges, candidateCases, resolveVerifier, resultStatus, commandOf, isCheckCommand };
