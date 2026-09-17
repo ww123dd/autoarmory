@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.0
+
+Context Budget + Audit Mechanism: the first deterministic ruler for skill context and real trace behavior.
+
+- Added `scripts/context-budget.js` and `examples/context-budget.json`: measures `always_loaded_bytes`, `referenced_bytes`, `orphan_bytes`, `appendix_bytes`, `referenced_file_count`, `orphan_file_count`, `max_link_depth` and `total_bytes`. A budget file can expose `context_budget_escape_count`.
+- Added `scripts/audit-trace.js`: reads real Claude/Codex transcript JSONL and counts `unwanted_skill_loads`, `premature_stop_count`, `unauthorized_action_count` and `audit_trace_missing_count`; it does not use an LLM judge.
+- Added `tests/context-budget.js` and `tests/audit-trace.js`; both are wired into `npm test`.
+- This version is deliberately before Trigger Contract and DoD: hash changes and required fields are not treated as trigger or completion quality.
 ## 2.4.0
 
 Generic JSON assertion verifier, so an external evaluator's machine-readable report can be judged without a product-specific adapter.
