@@ -34,6 +34,11 @@ function usage() {
     '  autoarmory gate <candidate.json> [--skillcanary <repo>] [--cases <cases.json>] [--require-provenance]',
     '  autoarmory record [decision.json] [--candidate id] [--action name] [--reward n] [--verified true|false] [--gate gate.json] [--evidence evidence.json] [--dir project]',
     '  autoarmory close --case <case-id> --run <run-id> [--state .selfforge] [--json]',
+    '  autoarmory inbox [--state .selfforge] [--json]',
+    '  autoarmory result <case|run|artifact-id> [--state .selfforge] [--json]',
+    '  autoarmory approve --candidate <id> --quote "<operator words>" [--state .selfforge] [--json]',
+    '  autoarmory status [--state .selfforge] [--json]',
+    '  autoarmory intake artifact <descriptor.json> [--state .selfforge] [--repo .] [--json]',
     '  autoarmory canary <command> [args]',
     '  autoarmory capability <register|list|health|outcome|drift|conformance> [--state .selfforge] [--json]',
     '  autoarmory transition <candidate.json> --to <pending_approval|gated|shadow|canary|promoted|rejected|retired> [--gate gate.json] [--approval approval.json] [--actor actor] [--evidence evidence.json] [--reason text] [--state .selfforge] [--dir project]',
@@ -63,7 +68,7 @@ function main(argv) {
   const rest = argv.slice(1);
   if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') { usage(); process.exit(0); }
   if (cmd === 'version' || cmd === '--version' || cmd === '-v') { process.stdout.write(require('../package.json').version + '\n'); process.exit(0); }
-  const commands = { init, observe, propose, gate, learn, doctor, report, environment, experiment, policy, acquire, evolve, record, transition, capability, canary, "self-eval": selfEval, demo, bench, integrate, admit, scenario, close };
+  const commands = { init, observe, propose, gate, learn, doctor, report, environment, experiment, policy, acquire, evolve, record, transition, capability, canary, "self-eval": selfEval, demo, bench, integrate, admit, scenario, close, inbox: doctor.inbox, result: doctor.result, approve: doctor.approve, status: doctor.status, intake: doctor.intake };
   const fn = commands[cmd];
   if (!fn) { process.stderr.write('Unknown command: ' + cmd + '\n\n'); usage(); process.exit(2); }
   Promise.resolve().then(function () { return fn(rest); }).then(function (code) { process.exit(typeof code === 'number' ? code : 0); }).catch(function (err) { process.stderr.write((err && err.stack) ? err.stack : String(err)); process.stderr.write('\n'); process.exit(2); });

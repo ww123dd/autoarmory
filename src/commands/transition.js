@@ -93,14 +93,17 @@ module.exports = function run(argv) {
   writeJsonl(transitionFile, records);
 
   const candidatesFile = path.join(stateDir, 'candidates.jsonl');
-  if (fs.existsSync(candidatesFile)) {
-    const candidates = readJsonl(candidatesFile);
-    const hit = candidates.find(function (item) { return item.id === candidateId; });
-    if (hit) {
-      hit.status = args.to;
-      if (gate) hit.gate = gate;
-      writeJsonl(candidatesFile, candidates);
-    }
+  const candidates = fs.existsSync(candidatesFile) ? readJsonl(candidatesFile) : [];
+  const hit = candidates.find(function (item) { return item.id === candidateId; });
+  if (hit) {
+    hit.status = args.to;
+    if (gate) hit.gate = gate;
+    writeJsonl(candidatesFile, candidates);
+  } else if (candidate) {
+    const stored = Object.assign({}, candidate, { status: args.to });
+    if (gate) stored.gate = gate;
+    candidates.push(stored);
+    writeJsonl(candidatesFile, candidates);
   }
 
   if (args.json) printJson(record);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0
+
+User-layer projection and generic artifact intake.
+
+- Added `autoarmory inbox`, `autoarmory result`, `autoarmory approve` and `autoarmory status`: the operator sees `case / verifier / run / lifetime`, not the internal mechanism/transition/evidence objects.
+- Added `autoarmory intake artifact <descriptor.json>`: any upstream file can be hashed, revisioned and recorded without a product-specific adapter. The record stays unbound until an Agent binds a case and a verifier.
+- Fixed `transition <candidate.json>` to persist the candidate when `candidates.jsonl` does not exist yet, so a pending approval cannot disappear from the user layer.
+- Acceptance `tests/user-surface.js`: artifact hash and revision behavior, tampered declaration refused, four-field result card, inbox/status projections, and approval delegation.
 ## 2.0.3
 
 Vendored SkillCanary backport: the frozen package now carries the same numeric boundary fix as the root runtime.

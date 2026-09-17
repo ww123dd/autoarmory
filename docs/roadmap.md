@@ -114,6 +114,11 @@
 
 - [x] vendored backport: `packages/skillcanary` is now `0.9.1` with the same Beta/Gamma boundary fix, a recorded backport note in `UPSTREAM.md`, refreshed `VENDOR.sha256`, and a boundary check in its test suite.
 
+## 2.1.0
+
+- [x] user-layer projection: `inbox`, `result`, `approve` and `status` expose only `case / verifier / run / lifetime`.
+- [x] generic artifact intake: `intake artifact` hashes any upstream file, records revisions and leaves it unbound until an Agent binds a case and a verifier.
+- [x] transition persistence repair: a candidate passed by file is stored before its pending-approval card is projected.
 ## 1.0
 
 1.0 is not a feature; it is the statement that the local capability manager does what it claims. `scripts/acceptance-check.js` prints one PASS/FAIL per line, exits non-zero on any FAIL, and runs inside `npm test` (`npm run check:acceptance`):

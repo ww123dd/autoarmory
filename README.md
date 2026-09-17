@@ -19,6 +19,38 @@ node bin/autoarmory.js demo
 
 `profile-run` must show at least one PASS and one FAIL. The FAIL is a deliberate negative control: a checker that cannot reject is not a checker. `demo` shows red -> green -> red and fails if the transition stops reproducing. The clone-runnable profile and its four external anchor channels are public; the machine-local `verifiers.lock.json` is deliberately not shipped. See [Why AutoArmory](docs/why.md).
 
+## User layer
+
+The first-use surface has four nouns:
+
+```text
+case       what change or failure is being judged
+verifier   which external fact re-derives the result
+run        what actually ran and what it returned
+lifetime   when the result is valid, expires or is revoked
+```
+
+The operator sees results and one approval, not schemas or runner plumbing:
+
+```bash
+autoarmory inbox
+autoarmory result <case|run|artifact-id>
+autoarmory approve --candidate <id> --quote "<operator words>"
+autoarmory status
+autoarmory intake artifact artifact.json
+```
+
+Upstream tools do not need a product-specific adapter. They emit an artifact descriptor; intake hashes the bytes, records revisions and leaves it unbound until an Agent binds a case and a verifier:
+
+```json
+{
+  "schema_version": "autoarmory/artifact-intake/v1",
+  "artifact_id": "best_skill.md",
+  "source": "skillopt",
+  "path": "best_skill.md",
+  "verifier_hint": "external-eval"
+}
+```
 ## Capability Manager
 
 **Capability Manager** is AutoArmory's local decision layer. It records the runner, evaluator, scanner, MCP gateway, registry, memory layer, provenance adapter or policy module used by one operator.
