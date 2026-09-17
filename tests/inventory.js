@@ -29,12 +29,14 @@ function sha(file) { return crypto.createHash('sha256').update(fs.readFileSync(f
 
 write(path.join(home, '.codex', 'skills', 'alpha', 'SKILL.md'), ['---', 'name: alpha-skill', 'description: Use when the task needs alpha handling; do not use for beta work.', '---', '', '# Alpha', ''].join('\n'));
 write(path.join(home, '.codex', 'skills', 'beta', 'SKILL.md'), ['---', 'name: beta-skill', '---', '', '# Beta without a description', ''].join('\n'));
+write(path.join(home, '.codex', 'skills', 'gamma', 'SKILL.md'), ['---', 'name: gamma-skill', 'description: Use when the task needs gamma handling only.', '---', '', '# Gamma without a negative boundary', ''].join('\n'));
 write(path.join(home, '.codex', 'mcp.json'), { mcpServers: { doris: { command: 'node', args: ['/opt/mcp/index.js'], env: { MYSQL_PASSWORD: SECRET } } } });
 write(path.join(repo, 'verifiers.lock.json'), { schema_version: 'autoarmory/verifiers-lock/v1', verifiers: [{ id: 'file-sha256-license', kind: 'file-sha256', readonly: true, statement: 'the file must match its digest', adapter: 'scripts/verify/state-query.js', bridge: { adapter: 'examples/adapters/file-sha256/bridge.js' } }] });
 
 const watched = [
   path.join(home, '.codex', 'skills', 'alpha', 'SKILL.md'),
   path.join(home, '.codex', 'skills', 'beta', 'SKILL.md'),
+  path.join(home, '.codex', 'skills', 'gamma', 'SKILL.md'),
   path.join(home, '.codex', 'mcp.json'),
   path.join(repo, 'verifiers.lock.json')
 ];
@@ -56,7 +58,8 @@ const alpha = report.candidates.filter(function (item) { return item.id === 'ski
 must(alpha, 'the alpha skill must be discovered');
 must(/alpha handling/.test(alpha.trigger.when_to_use) && alpha.trigger.source === 'frontmatter.description', 'the trigger text must come from the skill own description');
 must(alpha.source.sha256 === sha(watched[0]) && alpha.source.path === watched[0], 'the candidate must carry the source path and hash');
-must(alpha.trigger_surface.status === 'raw_metadata' && alpha.trigger_surface.curated === false, 'raw metadata must be labelled as uncurated, not presented as a routing surface');
+must(alpha.trigger_surface.status === 'contracted' && alpha.trigger_surface.curated === false, 'a complete description must be a contracted but still uncurated routing surface');
+must(alpha.trigger.contract_ok === true && alpha.trigger.when_not_to_use === 'beta work', 'the description negative boundary must be parsed structurally');
 must(alpha.evidence_status === 'unassigned' && alpha.judgment_required.indexOf('evidence_refs') !== -1, 'the scan must not invent the verifier that should prove a skill');
 must(alpha.readiness.registerable === false && alpha.readiness.facts_consistent === true, 'a scanned candidate is fact-consistent but never registerable');
 must(report.summary.registerable === 0, 'a scan alone must never produce a registerable candidate');
@@ -64,6 +67,8 @@ must(report.summary.registerable === 0, 'a scan alone must never produce a regis
 // 2
 const beta = report.candidates.filter(function (item) { return item.id === 'skill:beta-skill'; })[0];
 must(beta && beta.readiness.gaps.indexOf('no_trigger') !== -1, 'a skill without a description must be reported as no_trigger');
+const gamma = report.candidates.filter(function (item) { return item.id === 'skill:gamma-skill'; })[0];
+must(gamma && gamma.readiness.gaps.indexOf('missing_when_not_to_use') !== -1, 'a description without a negative boundary must be red');
 
 // 2b: the falsifier - the scan must agree with the filesystem it read
 const second = JSON.parse(run(['--home', home, '--repo', repo, '--state', state, '--json']).out);
@@ -79,7 +84,7 @@ for (const candidate of scannedSkills) must(candidate.source.sha256 === sha(cand
 // 3
 must(result.out.indexOf(SECRET) === -1 && result.err.indexOf(SECRET) === -1, 'an env value must never appear in the scan output');
 const mcp = report.candidates.filter(function (item) { return item.id === 'mcp:doris'; })[0];
-must(mcp && mcp.kind === 'mcp-gateway' && mcp.source.sha256 === sha(watched[2]), 'the MCP candidate must carry the config hash');
+must(mcp && mcp.kind === 'mcp-gateway' && mcp.source.sha256 === sha(watched[3]), 'the MCP candidate must carry the config hash');
 must(JSON.stringify(mcp).indexOf(SECRET) === -1, 'the MCP candidate must not embed the secret');
 
 // 4

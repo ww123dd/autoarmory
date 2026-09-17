@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.6.0
+
+Trigger Contract and lint-backed context limits.
+
+- Context Budget now derives `always_loaded_bytes`, `always_loaded_lines` and `description_chars` limits from the SkillCanary lint constants (`12 KiB`, `500` lines, `1024` characters) instead of project-invented thresholds.
+- Skill inventory and lint now require an explicit negative trigger boundary (`when_not_to_use` / `【何时不用】` / `do not use for`) and report missing boundaries as a structural gap.
+- Added `scripts/trigger-regression.js`: it compares the same at least three real audit requests, reports `trigger_misfire_delta` and `trigger_regression_count`, and fails when a broken description does not increase misfires or a restored description does not return the count to zero.
+- Added `tests/trigger-contract.js` and `tests/inventory.js` coverage for the structural contract and the three-request regression rule.
 ## 2.5.0
 
 Context Budget + Audit Mechanism: the first deterministic ruler for skill context and real trace behavior.

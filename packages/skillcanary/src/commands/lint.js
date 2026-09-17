@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const { parseArgs, printJson } = require('../lib/util');
+const { DESCRIPTION_MAX_CHARS, SKILL_MAX_LINES, SKILL_MAX_BYTES } = require('../lib/context-limits');
+const { validateTriggerContract } = require('../lib/trigger-contract');
 
 const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ABSOLUTE_PATH_RE = /(?:^|[^A-Za-z])[A-Za-z]:[\\/]|\/Users\/|\/home\//;
@@ -92,8 +94,12 @@ function lint(skillDir) {
       if (fm.name !== folder && !ignored(ignores, 'name-match', 'SKILL.md')) warnings.push('name "' + fm.name + '" must match folder name "' + folder + '"');
     }
     if (!fm.description) errors.push('frontmatter is missing description');
-    else if (fm.description.length > 1024) errors.push('description is longer than 1024 characters');
-    else if (fm.description.length < 40) warnings.push('description is very short; trigger quality may suffer');
+    else {
+      if (fm.description.length > DESCRIPTION_MAX_CHARS) errors.push('description is longer than ' + DESCRIPTION_MAX_CHARS + ' characters');
+      else if (fm.description.length < 40) warnings.push('description is very short; trigger quality may suffer');
+      const contract = validateTriggerContract(fm.description);
+      for (const issue of contract.errors) errors.push('trigger contract: ' + issue);
+    }
   }
 
   if (raw.length >= 3 && raw[0] === 0xEF && raw[1] === 0xBB && raw[2] === 0xBF) {
@@ -103,8 +109,8 @@ function lint(skillDir) {
 
   const lines = text.split(/\r?\n/).length;
   const bytes = Buffer.byteLength(text, 'utf8');
-  if (lines > 500) warnings.push('SKILL.md has ' + lines + ' lines; keep the entrypoint lean');
-  if (bytes > 12 * 1024) warnings.push('SKILL.md is ' + bytes + ' bytes; move conditional detail to references');
+  if (lines > SKILL_MAX_LINES) warnings.push('SKILL.md has ' + lines + ' lines; keep the entrypoint lean');
+  if (bytes > SKILL_MAX_BYTES) warnings.push('SKILL.md is ' + bytes + ' bytes; move conditional detail to references');
   info.push('SKILL.md: ' + lines + ' lines, ' + bytes + ' bytes');
 
   if (ABSOLUTE_PATH_RE.test(text) && !ignored(ignores, 'absolute-path', 'SKILL.md')) warnings.push('SKILL.md contains an absolute local path');

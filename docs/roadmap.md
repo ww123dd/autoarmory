@@ -131,6 +131,11 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.6.0
+
+- [x] trigger contract: the description must declare the nearest adjacent case it must not activate for; inventory and lint fail structurally when it is missing.
+- [x] behavioral regression ruler: `scripts/trigger-regression.js` compares at least three replayed real requests and reports `trigger_misfire_delta` plus `trigger_regression_count`, without an LLM judge.
+- [x] context limits now reuse the SkillCanary lint constants instead of new project thresholds.
 ## 2.5.0
 
 - [x] context budget ruler: deterministic byte/ref/orphan/appendix/link-depth metrics with a budget file and `context_budget_escape_count`.

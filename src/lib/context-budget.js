@@ -2,6 +2,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const { DESCRIPTION_MAX_CHARS, SKILL_MAX_LINES, SKILL_MAX_BYTES } = require('./context-limits');
+
+const DEFAULT_LIMITS = {
+  max_always_loaded_bytes: SKILL_MAX_BYTES,
+  max_always_loaded_lines: SKILL_MAX_LINES,
+  max_description_chars: DESCRIPTION_MAX_CHARS
+};
 
 function isText(file) {
   return /\.(md|markdown|txt|json|ya?ml|toml|ini|js|cjs|mjs|ts|sh|ps1|sql|py)$/i.test(file);
@@ -37,6 +44,12 @@ function resolveLink(root, base, value) {
   if (relative.startsWith('..') || path.isAbsolute(relative)) return null;
   return full;
 }
+function descriptionChars(text) {
+  const match = String(text || '').match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) return 0;
+  const line = (match[1].match(/^description:\s*(.+)$/m) || [])[1] || '';
+  return line.trim().replace(/^["']|["']$/g, '').length;
+}
 function contextBudget(skillDir) {
   const root = path.resolve(skillDir);
   const entry = path.join(root, 'SKILL.md');
@@ -47,7 +60,7 @@ function contextBudget(skillDir) {
   for (const file of all) {
     if (file === entry) continue;
     const rel = path.relative(root, file).split(path.sep).join('/');
-    const keys = [rel, rel.replace(/\\.[^.]+$/, ''), path.basename(file).replace(/\\.[^.]+$/, '')];
+    const keys = [rel, rel.replace(/\.[^.]+$/, ''), path.basename(file).replace(/\.[^.]+$/, '')];
     for (const key of keys) if (key.length >= 4) index.set(key, file);
   }
   const referenced = new Set();
@@ -80,12 +93,15 @@ function contextBudget(skillDir) {
     const rel = path.relative(root, file).split(path.sep).join('/');
     return rel === 'appendix' || rel.indexOf('appendix/') === 0;
   });
+  const entryText = fs.readFileSync(entry, 'utf8');
   return {
     ok: true,
     schema_version: 'autoarmory/context-budget/v1',
     skill_dir: root,
     metrics: {
       always_loaded_bytes: size(entry),
+      always_loaded_lines: entryText.split(/\r?\n/).length,
+      description_chars: descriptionChars(entryText),
       referenced_bytes: referencedFiles.reduce(function (sum, file) { return sum + size(file); }, 0),
       orphan_bytes: orphanFiles.reduce(function (sum, file) { return sum + size(file); }, 0),
       appendix_bytes: appendixFiles.reduce(function (sum, file) { return sum + size(file); }, 0),
@@ -100,14 +116,11 @@ function contextBudget(skillDir) {
   };
 }
 function budgetEscapes(metrics, budget) {
-  const limits = budget || {};
+  const limits = Object.assign({}, DEFAULT_LIMITS, budget || {});
   const checks = [
     ['always_loaded_bytes', 'max_always_loaded_bytes'],
-    ['referenced_bytes', 'max_referenced_bytes'],
-    ['orphan_bytes', 'max_orphan_bytes'],
-    ['appendix_bytes', 'max_appendix_bytes'],
-    ['referenced_file_count', 'max_referenced_file_count'],
-    ['max_link_depth', 'max_link_depth']
+    ['always_loaded_lines', 'max_always_loaded_lines'],
+    ['description_chars', 'max_description_chars']
   ];
   const violations = [];
   for (const pair of checks) {
@@ -115,6 +128,6 @@ function budgetEscapes(metrics, budget) {
     const limit = Number(limits[pair[1]]);
     if (Number.isFinite(limit) && value > limit) violations.push({ metric: pair[0], value: value, limit: limit });
   }
-  return { count: violations.length, violations: violations };
+  return { count: violations.length, violations: violations, limits: limits };
 }
-module.exports = { contextBudget, budgetEscapes };
+module.exports = { contextBudget, budgetEscapes, DEFAULT_LIMITS };

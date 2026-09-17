@@ -2,11 +2,12 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { contextBudget, budgetEscapes } = require('../src/lib/context-budget');
+const { contextBudget, budgetEscapes, DEFAULT_LIMITS } = require('../src/lib/context-budget');
+const { DESCRIPTION_MAX_CHARS, SKILL_MAX_LINES, SKILL_MAX_BYTES } = require('../src/lib/context-limits');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-context-budget-'));
 function write(rel, value) { const file = path.join(root, rel); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value, 'utf8'); return file; }
 function must(condition, message) { if (!condition) throw new Error(message); }
-const skill = write('SKILL.md', '# Skill\n\nSee [a](references/a.md).\n');
+const skill = write('SKILL.md', ['---', 'name: fixture', 'description: Use for alpha when the task is alpha; do not use for beta.', '---', '', '# Skill', '', 'See [a](references/a.md).', ''].join('\n'));
 const a = write('references/a.md', 'See [b](b.md).\n');
 const b = write('references/b.md', 'leaf\n');
 const orphan = write('orphan.md', 'orphan\n');
@@ -14,13 +15,18 @@ const appendix = write('appendix/large.txt', 'x'.repeat(300));
 const report = contextBudget(root);
 must(report.ok, 'context budget must run');
 must(report.metrics.always_loaded_bytes === fs.statSync(skill).size, 'always loaded bytes');
+must(report.metrics.always_loaded_lines === 9, 'always loaded line count must reuse the lint line limit');
+must(report.metrics.description_chars === 'Use for alpha when the task is alpha; do not use for beta.'.length, 'description character metric');
 must(report.metrics.referenced_bytes === fs.statSync(a).size + fs.statSync(b).size, 'referenced bytes');
 must(report.metrics.orphan_bytes === fs.statSync(orphan).size + fs.statSync(appendix).size, 'orphan bytes');
 must(report.metrics.appendix_bytes === fs.statSync(appendix).size, 'appendix bytes');
 must(report.metrics.referenced_file_count === 2, 'referenced file count');
 must(report.metrics.max_link_depth === 2, 'link depth');
-const escapes = budgetEscapes(report.metrics, { max_always_loaded_bytes: 1, max_appendix_bytes: 10 });
-must(escapes.count === 2, 'budget escapes must be counted');
+must(DEFAULT_LIMITS.max_always_loaded_bytes === SKILL_MAX_BYTES && DEFAULT_LIMITS.max_always_loaded_lines === SKILL_MAX_LINES && DEFAULT_LIMITS.max_description_chars === DESCRIPTION_MAX_CHARS, 'default budget must be the lint constants');
+const escapes = budgetEscapes(report.metrics, { max_always_loaded_bytes: 1, max_always_loaded_lines: 1, max_description_chars: 1 });
+must(escapes.count === 3, 'budget escapes must count all three normative limits');
+const noEscapes = budgetEscapes({ always_loaded_bytes: SKILL_MAX_BYTES, always_loaded_lines: SKILL_MAX_LINES, description_chars: DESCRIPTION_MAX_CHARS }, {});
+must(noEscapes.count === 0, 'exactly at the lint limits must pass');
 const missing = contextBudget(path.join(root, 'missing'));
 must(missing.ok === false, 'missing SKILL.md must fail closed');
-console.log('context budget tests passed: always/referenced/orphan/appendix bytes, link depth, budget escapes, missing skill');
+console.log('context budget tests passed: lint-backed bytes/lines/description limits, referenced/orphan/appendix bytes, link depth, fail closed');

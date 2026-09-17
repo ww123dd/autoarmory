@@ -37,6 +37,12 @@ function copyExample() {
 let r = run(['lint', path.join(root, 'examples', 'basic-skill')]);
 must(r.code === 0, 'lint example should pass\n' + r.out + r.err);
 
+const noBoundary = copyExample();
+const noBoundaryFile = path.join(noBoundary, 'SKILL.md');
+fs.writeFileSync(noBoundaryFile, fs.readFileSync(noBoundaryFile, 'utf8').replace(/ Do not use it for production skills or domain workflows\./, ''));
+r = run(['lint', noBoundary]);
+must(r.code === 1 && /trigger contract:.*when_not_to_use/.test(r.out + r.err), 'lint must reject a description without when_not_to_use\n' + r.out + r.err);
+
 const invalid = copyExample();
 const skillFile = path.join(invalid, 'SKILL.md');
 fs.writeFileSync(skillFile, fs.readFileSync(skillFile, 'utf8').replace('name: basic-skill', 'name: Basic_Skill'));

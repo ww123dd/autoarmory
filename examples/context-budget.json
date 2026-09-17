@@ -1,9 +1,3 @@
 {
-  "schema_version": "autoarmory/context-budget/v1",
-  "max_always_loaded_bytes": 20000,
-  "max_referenced_bytes": 2000000,
-  "max_orphan_bytes": 3000000,
-  "max_appendix_bytes": 2000000,
-  "max_referenced_file_count": 80,
-  "max_link_depth": 5
+  "schema_version": "autoarmory/context-budget/v1"
 }

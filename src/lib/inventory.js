@@ -17,6 +17,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { readJsonl } = require('./util');
+const { validateTriggerContract } = require('./trigger-contract');
 
 const SKIP_DIRS = new Set(['.archive', '.git', 'node_modules']);
 function sha256File(file) { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'); }
@@ -60,14 +61,27 @@ function skillCandidate(file) {
   const fallbackName = path.basename(path.dirname(file));
   const name = meta.name || fallbackName;
   const description = meta.description || null;
+  const contract = validateTriggerContract(description);
   return {
     schema_version: 'autoarmory/inventory-candidate/v1',
     id: 'skill:' + name,
     kind: 'skill',
     name: name,
     source: { type: 'skill-file', path: file, sha256: sha256File(file) },
-    trigger: { when_to_use: description, when_not_to_use: null, source: description ? 'frontmatter.description' : null },
-    trigger_surface: { status: description ? 'raw_metadata' : 'missing', raw: description, curated: false, needs_curation: true },
+    trigger: {
+      when_to_use: contract.when_to_use || description,
+      when_not_to_use: contract.when_not_to_use,
+      source: description ? 'frontmatter.description' : null,
+      contract_ok: contract.ok,
+      contract_errors: contract.errors
+    },
+    trigger_surface: {
+      status: description ? (contract.ok ? 'contracted' : 'raw_metadata') : 'missing',
+      raw: description,
+      curated: false,
+      needs_curation: true,
+      contract: { ok: contract.ok, errors: contract.errors }
+    },
     capabilities: [],
     evidence_refs: [],
     lifecycle: 'candidate'
@@ -136,6 +150,7 @@ function scan(options) {
     if (!candidate.evidence_status) candidate.evidence_status = 'unassigned';
     const gaps = [];
     if (!candidate.trigger.when_to_use) gaps.push('no_trigger');
+    if (candidate.kind === 'skill' && candidate.trigger.contract_ok !== true) gaps.push('missing_when_not_to_use');
     if (!candidate.evidence_refs.length) gaps.push('no_evidence');
     if (!candidate.capabilities.length) gaps.push('no_task_types');
     candidate.judgment_required = ['trigger_curation']; 
@@ -152,7 +167,7 @@ function scan(options) {
   }
 
   const byKind = {};
-  const gapCount = { no_trigger: 0, no_evidence: 0, no_task_types: 0 };
+  const gapCount = { no_trigger: 0, missing_when_not_to_use: 0, no_evidence: 0, no_task_types: 0 };
   for (const candidate of candidates) {
     byKind[candidate.kind] = (byKind[candidate.kind] || 0) + 1;
     for (const gap of candidate.readiness.gaps) gapCount[gap] += 1;

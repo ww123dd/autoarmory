@@ -1,6 +1,6 @@
 ---
 name: basic-skill
-description: A tiny example skill used by SkillCanary tests. Use when validating SkillCanary against a minimal, portable Agent Skill.
+description: A tiny example skill used by SkillCanary tests. Use when validating SkillCanary against a minimal, portable Agent Skill. Do not use it for production skills or domain workflows.
 ---
 
 # Basic skill

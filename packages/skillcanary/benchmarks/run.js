@@ -32,7 +32,7 @@ function skillText() {
   return [
     '---',
     'name: basic-skill',
-    'description: A tiny example skill used by SkillCanary benchmark fixtures and tests.',
+    'description: A tiny example skill used by SkillCanary benchmark fixtures and tests. Use when validating the benchmark fixture; do not use it for production skills or domain workflows.',
     '---',
     '',
     '# Basic skill',
