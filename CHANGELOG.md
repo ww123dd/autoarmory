@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.0
+
+Generic JSON assertion verifier, so an external evaluator's machine-readable report can be judged without a product-specific adapter.
+
+- Added `examples/adapters/json-assert/bridge.js`: reads a JSON report and asserts a dot/array path against `eq`, `ne`, `gt`, `gte`, `lt`, `lte` or `exists`. Missing files and missing paths fail closed.
+- Added `tests/json-assert.js`: positive, negative, array-path, missing-file and empty-config cases; wired into `npm test`.
+- The real `skill-up` run of `c1-ppr-caliber` produced `result.json`; the new bridge can now evaluate `case_results[0].grading.summary.failed == 0` as an external fact instead of trusting the runner's prose.
 ## 2.3.0
 
 The first user-level run path is complete: an artifact can be hashed, bound and judged without hand-written mechanism JSON.

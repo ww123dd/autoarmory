@@ -4,14 +4,14 @@ The verifier core is intentionally thin. Each new source should add a small brid
 
 Every profile entry declares a human-readable `version` and an `invocation_contract_version` next to its pinned digests. The digests and the contract version form `runner_sha256`; the human-readable `version` is compatibility metadata and is deliberately excluded from it, so bumping it never invalidates a verdict on its own.
 
-Current local profile contains nine heterogeneous fact sources:
+Current local profile contains ten heterogeneous fact sources:
 
 | verifier | fact source | bridge lines |
 |---|---|---:|
 | `doris-readonly-count` | database row count through a pinned readonly MCP bridge | 139 |
 | `esc3-pid-file-live` | PID file parsing and process liveness | 16 |
 | `file-sha256-license` | file existence and SHA-256 | 14 |
-| `git-commit-exists` | git object existence | 10 |
+| `git-commit-exists` | git object existence | 10 |`n| `json-assert` | JSON report assertion over an external evaluator output | 39 |
 | `local-http-health` | local HTTP service fingerprint | 28 |
 | `local-transcript` | local transcript observation registry | 93 |
 | `windows-registry-value` | Windows registry value (OS configuration store) | 26 |

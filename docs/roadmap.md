@@ -127,6 +127,10 @@
 
 - [x] artifact run: `run artifact` creates/reuses the binding mechanism, executes the registered verifier through `mechanism-record`, records the run and closes the case on a passing external fact.
 - [x] user projection: pre-run artifacts are `ready_to_run`; post-run artifacts project as `lifetime.state=approved`.
+## 2.4.0
+
+- [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
+- [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 ## 1.0
 
 1.0 is not a feature; it is the statement that the local capability manager does what it claims. `scripts/acceptance-check.js` prints one PASS/FAIL per line, exits non-zero on any FAIL, and runs inside `npm test` (`npm run check:acceptance`):

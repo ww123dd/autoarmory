@@ -47,7 +47,7 @@ function runSelfEval(options) {
   const checks = [];
   for (const item of COMMANDS) checks.push(checkCommand(item, repo, runs));
   const pkg = JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8'));
-  checks.push({ id: 'package', ok: pkg.name === 'autoarmory' && pkg.version === '2.3.0' && !!pkg.bin.autoarmory, detail: pkg.name + '@' + pkg.version });
+  checks.push({ id: 'package', ok: pkg.name === 'autoarmory' && pkg.version === '2.4.0' && !!pkg.bin.autoarmory, detail: pkg.name + '@' + pkg.version });
   checks.push({ id: 'monorepo', ok: fs.existsSync(path.join(repo, 'packages', 'skillcanary', 'bin', 'skillcanary.js')), detail: 'vendored SkillCanary package' });
   const fixtureCount = fs.existsSync(path.join(repo, 'examples', 'capabilities.jsonl')) ? fs.readFileSync(path.join(repo, 'examples', 'capabilities.jsonl'), 'utf8').trim().split(/\r?\n/).filter(Boolean).length : 0;
   checks.push({ id: 'capability_fixtures', ok: fixtureCount === 4, detail: 'capability fixtures=' + fixtureCount });
