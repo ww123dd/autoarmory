@@ -1,0 +1,62 @@
+{
+  "schema_version": "autoarmory/history-replay-evidence/v1",
+  "captured_at": "2026-09-17T12:00:00.000Z",
+  "source": "local .selfforge streams (not shipped)",
+  "source_sha256": "da5e64a7458dcaffdc1ebecec5e5f3187779983c8862c787d25a19edb4b44999",
+  "stream_counts": {
+    "mechanism_runs": 13,
+    "routing_decisions": 1,
+    "transitions": 0
+  },
+  "excluded": {
+    "transitions_without_real_outcome": 1
+  },
+  "policy_reports": {
+    "mechanism_streak": {
+      "min_passes": 3,
+      "baseline_pass_count": 11,
+      "candidate_pass_count": 8,
+      "replay_escape_count": 0,
+      "tightening_rejection_count": 3,
+      "replay_mismatch_count": 3,
+      "insufficient_real_stream": false
+    },
+    "routing_evidence_required": {
+      "baseline_pass_count": 1,
+      "candidate_pass_count": 0,
+      "replay_escape_count": 0,
+      "tightening_rejection_count": 1,
+      "replay_mismatch_count": 1,
+      "insufficient_real_stream": false
+    },
+    "count_half": {
+      "eligible_record_count": 0,
+      "replay_escape_count": null,
+      "tightening_rejection_count": null,
+      "replay_mismatch_count": null,
+      "insufficient_real_stream": true
+    }
+  },
+  "metrics": {
+    "replay_escape_count": 0,
+    "tightening_rejection_count": 4,
+    "outcome_gain": -4,
+    "cost_per_outcome": null,
+    "boundary_hit_rate": 1,
+    "unwanted_agent_wakeups": 4,
+    "token_cost_per_closed_case": null
+  },
+  "cost_status": "insufficient_cost_stream",
+  "context_budget": {
+    "always_loaded_bytes": 12231,
+    "referenced_bytes": 890802,
+    "orphan_bytes": 123470,
+    "appendix_bytes": 400659,
+    "context_budget_escape_count": 0
+  },
+  "synthetic_record_count": 0,
+  "llm_judge_calls": 0,
+  "private_records_shipped": false,
+  "strategy_verdict": "candidate_observed",
+  "promotion": false
+}

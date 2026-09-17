@@ -131,6 +131,14 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.10.0
+
+- [x] multi-stream replay: routing decisions, routing actuals, outcomes, mechanism runs and transitions are read separately; only real-outcome records enter replay.
+- [x] source binding: every replay row carries `source_decision_id` plus the actual outcome record it used; transitions without a real outcome are excluded.
+- [x] boundary selection: near pass/fail, repeated failure, near expiry, high-impact action and trigger conflict.
+- [x] cost-aware metrics: `outcome_gain`, `cost_per_outcome`, `boundary_hit_rate`, `unwanted_agent_wakeups`, `token_cost_per_closed_case`; absent cost/token history is explicit.
+- [x] real replay evidence: 13 mechanism runs + 1 routing decision, `replay_escape_count=0`, 4 tightening rejections, boundary hit rate 1, no promotion.
+- [x] Context Budget is attached as a read-only audit component; `context_budget_escape_count=0` on the measured skill.
 ## 2.9.0
 
 - [x] replay primitive: apply a stricter policy to already-recorded facts, never to a generated stream.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.10.0
+
+Boundary-aware history replay across real routing, outcome, mechanism and transition streams.
+
+- Added `src/lib/history-replay.js` and `scripts/history-replay.js`: every replay record carries `source_decision_id` and a real outcome; transitions without an outcome are excluded rather than inferred.
+- Added boundary selection for near-pass/fail, repeated failures, near-expiry, high-impact actions and trigger conflicts.
+- Added cost-aware metrics: `outcome_gain`, `cost_per_outcome`, `boundary_hit_rate`, `unwanted_agent_wakeups` and `token_cost_per_closed_case`. Missing cost/token streams stay `null` with `insufficient_cost_stream`.
+- Context Budget is now an audit component of the replay report; it measures only and never deletes.
+- Real local replay: 13 mechanism runs + 1 linked routing decision, 4 tightening rejections, 0 unsafe escapes, boundary hit rate 1; `count-half` remains insufficient because no count boundaries exist.
+- Added sanitized `docs/evidence/history-replay-20260917.json` and guards for no synthetic records, no LLM judge calls, no private records and no promotion.
+
 ## 2.9.0
 
 Boundary-aware history replay: evaluate a stricter policy on recorded facts without inventing a stream or promoting the result.
