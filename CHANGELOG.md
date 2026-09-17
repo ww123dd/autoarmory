@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.17.0
+
+Hook Gate: only two blocking points, no blanket Edit/Write interception.
+
+- Added `src/lib/hook-gate.js` and `scripts/hook-gate.js`.
+- Ordinary `Edit` / `Write` / `apply_patch` events are recorded and allowed.
+- Production, irreversible or external-side-effect actions require explicit approval.
+- Completion/stop claims without a verifier reference are blocked.
+- Added persistent `hook-decisions.jsonl`, sanitized `docs/evidence/hook-gate-20260917.json`, `tests/hook-gate.js` and `tests/hook-gate-evidence.js`.
+- Runtime host hook registration remains the integration step; this release defines the executable gate contract and its tests.
+
 ## 2.16.0
 
 Change Inventory v2 aligns the inspector with the accepted boundary: record changes, do not infer execution facts.

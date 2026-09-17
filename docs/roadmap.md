@@ -131,6 +131,13 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.17.0
+
+- [x] Hook Gate contract: ordinary Edit/Write records and continues.
+- [x] Block only production/irreversible/external-side-effect actions without approval.
+- [x] Block only completion/stop claims without a verifier reference.
+- [x] Persist every hook decision to `hook-decisions.jsonl`.
+- [x] Tests and sanitized evidence added; host registration remains external integration.
 ## 2.16.0
 
 - [x] Change Inventory aggregate schema: `changed_files`, `commands`, `check_events`, `check_status`, `signals`, `cwd`, `turn_id`.

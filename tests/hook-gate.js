@@ -1,0 +1,20 @@
+'use strict';
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawnSync } = require('child_process');
+const { gate } = require('../src/lib/hook-gate');
+function must(condition, message) { if (!condition) throw new Error(message); }
+must(gate({ kind: 'edit', path: 'a.js' }).decision === 'allow', 'ordinary edit must be record-only');
+must(gate({ kind: 'action', action_tier: 'external_side_effect' }).decision === 'block', 'external action without approval must block');
+must(gate({ kind: 'action', action_tier: 'external_side_effect', approval: { status: 'approved' } }).decision === 'allow', 'approved external action must pass');
+must(gate({ kind: 'completion', verifier_ref: null }).decision === 'block', 'completion without verifier must block');
+must(gate({ kind: 'completion', verifier_ref: 'file-sha256-license' }).decision === 'allow', 'completion with verifier must pass');
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-hook-gate-'));
+const event = path.join(temp, 'event.json');
+fs.writeFileSync(event, JSON.stringify({ kind: 'completion' }), 'utf8');
+const script = path.resolve(__dirname, '..', 'scripts', 'hook-gate.js');
+const result = spawnSync(process.execPath, [script, '--event', event, '--state', path.join(temp, 'state'), '--json'], { encoding: 'utf8' });
+must(result.status === 2 && /completion claimed without a verifier/.test(result.stdout), 'hook gate CLI must block unverified completion');
+must(fs.existsSync(path.join(temp, 'state', 'hook-decisions.jsonl')), 'hook decisions must be recorded');
+console.log('hook gate tests passed: edit/write record-only, external approval gate, completion verifier gate');

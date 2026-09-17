@@ -1,0 +1,10 @@
+{
+  "schema_version": "autoarmory/hook-gate-evidence/v1",
+  "edit_write_blocked_count": 0,
+  "external_action_without_approval_blocked": true,
+  "approved_external_action_allowed": true,
+  "completion_without_verifier_blocked": true,
+  "completion_with_verifier_allowed": true,
+  "hook_decisions_persisted": true,
+  "llm_judge_calls": 0
+}
