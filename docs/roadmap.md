@@ -80,6 +80,10 @@
 
 - [x] gap-first inventory: `scripts/inventory-scan.js` scans skills, MCP servers and the verifier profile read-only. It reports **facts only** (path, sha256, existence, registered ids) and lists `judgment_required` (trigger_curation, evidence_refs, task_types) instead of filling what it cannot judge, so a scan can never produce a registerable candidate. Falsifier (external): two scans agree, the scan covers exactly the SKILL.md files present, every recorded hash equals the file on disk, and changing one byte changes the hash. This machine: 50 candidates, 0 registerable, 50 needing judgment
 
+## 1.6.0
+
+- [x] trust-root lifetime and change governance: `pinned_at` / `rotate_by` with fail-closed expiry (no override flag), and `--allow-drift` now requires `--reason` and writes a drift journal entry
+
 ## 1.5.0 (planned)
 
 - [ ] descriptor completion without invented numbers: reliability from recorded outcomes, cost/latency from measured runs, task types from real usage (fills `no_task_types` and the descriptor fields the scan cannot know)

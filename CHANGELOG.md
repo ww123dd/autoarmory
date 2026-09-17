@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0
+
+The trust root gets a lifetime, and its escape hatch gets a record.
+
+- Every re-pin stamps `<anchor>.meta.json` (`pinned_at`, `rotate_by` = +180 days). `verifier-preflight` fails closed once `rotate_by` has passed - **there is no expiry override flag**, and the test greps for the literal flag to prove it. TUF lesson: a trust root that never expires is one nobody rotates.
+- `--allow-drift` is kept (legitimate after a deliberate profile replacement) but is no longer a silent escape: it now **requires `--reason "<why>"`** and appends `{previous_anchor, next_anchor, reason, at}` to `<anchor>.drift.jsonl`, so a re-pin can be audited afterwards.
+- Fixed a syntax break I introduced in the same file last round (`verifier-pin.js` threw on load, which is what made `npm test` red); verified with `node --check`, the focused suites and the full acceptance.
+
 ## 1.5.0
 
 Attestations: the vendored anchors are now in-toto Statements, so third-party tooling can parse them without reading our prose.
