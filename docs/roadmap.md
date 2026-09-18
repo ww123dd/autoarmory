@@ -131,6 +131,13 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.18.0
+
+- [x] Claude JSONL branch: user/assistant rows split into text, tool_use and tool_result events.
+- [x] Tool linkage: `tool_use.id` ↔ `tool_result.tool_use_id`.
+- [x] Raw/normalized accounting: 699/699 tool calls and 699/699 tool results on the real Claude session.
+- [x] Fail closed: zero normalization exits 2 with `SESSION_SHADOW_EMPTY`; partial normalization exits 2 with `SESSION_SHADOW_PARTIAL`.
+- [x] Negative fixture proves unsupported raw tool formats cannot silently succeed.
 ## 2.17.0
 
 - [x] Hook Gate contract: ordinary Edit/Write records and continues.

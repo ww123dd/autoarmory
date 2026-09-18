@@ -15,8 +15,9 @@ function readIncrement(file, cursor) {
   const lines = text.split(/\r?\n/);
   if (lines[lines.length - 1] === '') lines.pop();
   const events = [];
-  for (const line of lines) { if (!line.trim()) continue; let row; try { row = JSON.parse(line); } catch (_) { continue; } const event = shadow.normalizeRow(row); if (event) events.push(event); }
-  return { events: events, offset: size };
+  const raw = { tool_use: 0, tool_result: 0 };
+  for (const line of lines) { if (!line.trim()) continue; let row; try { row = JSON.parse(line); } catch (_) { continue; } const rawCounts = shadow.countRawTools(row); raw.tool_use += rawCounts.tool_use; raw.tool_result += rawCounts.tool_result; const normalized = shadow.normalizeRows(row); if (normalized.length) events.push.apply(events, normalized); }
+  return { events: events, raw: raw, audit: shadow.normalizationAudit(raw, events), offset: size };
 }
 function verifierIds(profile) { if (!profile || !fs.existsSync(profile)) return []; try { return (readJson(profile).verifiers || []).map(function (x) { return x.id; }); } catch (_) { return []; } }
 function scan(sessions, state, options) {
@@ -24,6 +25,7 @@ function scan(sessions, state, options) {
   for (const session of sessions) {
     const cursor = state.sessions[session] || { offset: 0 };
     const inc = readIncrement(session, cursor);
+    if (!inc.audit.ok) throw new Error('SESSION_SHADOW_FAIL_CLOSED ' + JSON.stringify(inc.audit));
     if (!inc.events.length) { state.sessions[session] = inc; continue; }
     const sessionState = { session_id: path.basename(session), seen_ids: state.seen_ids || {}, signatures: state.signatures || {}, line: 0 };
     const report = inspector.inspect(inc.events, sessionState, { verifier_ids: options.verifier_ids || [], execRecords: options.exec_records || [] });
@@ -63,5 +65,10 @@ const runOnce = function () {
   writeJson(stateFile, state);
   if (args.json) printJson({ schema_version: 'autoarmory/change-inspector-run/v1', sessions: sessionArgs.length, records: records.length, metrics: metrics }); else process.stdout.write('change inspector: records=' + records.length + '\n');
 };
-runOnce();
-if (args.watch) setInterval(runOnce, 2000);
+try {
+  runOnce();
+} catch (error) {
+  process.stderr.write(String(error.message || error) + '\n');
+  process.exit(/SESSION_SHADOW_FAIL_CLOSED/.test(String(error.message || error)) ? 2 : 1);
+}
+if (args.watch) setInterval(function () { try { runOnce(); } catch (error) { process.stderr.write(String(error.message || error) + '\n'); process.exit(2); } }, 2000);

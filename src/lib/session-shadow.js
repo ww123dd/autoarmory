@@ -40,24 +40,58 @@ function textOf(value) {
 function short(value, max) { return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max || 500); }
 function idOf(row, payload) { return payload && payload.id || row && row.id || null; }
 function turnOf(row, payload) { return row && row.internal_chat_message_metadata_passthrough && row.internal_chat_message_metadata_passthrough.turn_id || payload && payload.turn_id || null; }
-function normalizeRow(row) {
-  if (!row || typeof row !== 'object') return null;
+function claudeEvents(row) {
+  if (!row || (row.type !== 'user' && row.type !== 'assistant') || !row.message) return null;
+  const content = row.message.content;
+  const blocks = Array.isArray(content) ? content : [{ type: 'text', text: content }];
+  const events = [];
+  for (const block of blocks) {
+    if (!block || typeof block !== 'object') continue;
+    const base = { timestamp: row.timestamp || null, cwd: row.cwd || null, session_id: row.sessionId || null, turn_id: row.parentUuid || null, is_sidechain: row.isSidechain === true };
+    if (block.type === 'text' && block.text) events.push(Object.assign({}, base, { type: 'message', role: row.message.role === 'assistant' ? 'assistant' : 'user', id: row.uuid || null, text: short(block.text, 4000), links: urls(block.text) }));
+    else if (block.type === 'tool_use') events.push(Object.assign({}, base, { type: 'tool_call', role: 'assistant', id: block.id || row.uuid || null, call_id: block.id || null, tool: block.name || null, args: short(JSON.stringify(block.input || {}), 4000), text: '', links: [] }));
+    else if (block.type === 'tool_result') events.push(Object.assign({}, base, { type: 'tool_output', role: 'tool', id: row.uuid || null, call_id: block.tool_use_id || null, tool: null, args: '', is_error: block.is_error === true, text: short(textOf(block.content), 4000), links: urls(textOf(block.content)) }));
+  }
+  return events;
+}
+function normalizeRows(row) {
+  if (!row || typeof row !== 'object') return [];
+  const claude = claudeEvents(row);
+  if (claude) return claude;
   const payload = row.payload || {};
   if (payload.type === 'message' && (payload.role === 'user' || payload.role === 'assistant')) {
     const text = short(textOf(payload.content), 4000);
-    return { type: 'message', role: payload.role, text: text, links: urls(text), timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) };
+    return [{ type: 'message', role: payload.role, text: text, links: urls(text), timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) }];
   }
-  if (payload.type === 'session_meta') { return { type: 'session_meta', role: 'meta', session_id: payload.session_id || payload.id || null, cwd: payload.cwd || null, text: '', links: [], timestamp: row.timestamp || null, id: payload.session_id || payload.id || null, turn_id: null }; }
-  if (payload.type === 'turn_context') { return { type: 'turn_context', role: 'meta', session_id: null, cwd: payload.cwd || null, text: '', links: [], timestamp: row.timestamp || null, id: payload.turn_id || null, turn_id: payload.turn_id || null }; }
-  if (payload.type === 'user_message') { return { type: 'user_turn', role: 'user', text: short(payload.message || '', 4000), links: urls(payload.message || ''), timestamp: row.timestamp || null, id: payload.client_id || null, turn_id: payload.turn_id || null }; }
-  if (payload.type === 'task_complete') { return { type: 'completion', role: 'assistant', text: short(payload.last_agent_message || '', 4000), links: urls(payload.last_agent_message || ''), timestamp: row.timestamp || null, id: payload.turn_id || null, turn_id: payload.turn_id || null }; }
-  if (payload.type === 'function_call') {
-    return { type: 'tool_call', role: 'assistant', tool: payload.name || null, args: short(payload.arguments || '', 2000), call_id: payload.call_id || null, text: '', links: [], timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) };
+  if (payload.type === 'session_meta') return [{ type: 'session_meta', role: 'meta', session_id: payload.session_id || payload.id || null, cwd: payload.cwd || null, text: '', links: [], timestamp: row.timestamp || null, id: payload.session_id || payload.id || null, turn_id: null }];
+  if (payload.type === 'turn_context') return [{ type: 'turn_context', role: 'meta', session_id: null, cwd: payload.cwd || null, text: '', links: [], timestamp: row.timestamp || null, id: payload.turn_id || null, turn_id: payload.turn_id || null }];
+  if (payload.type === 'user_message') return [{ type: 'user_turn', role: 'user', text: short(payload.message || '', 4000), links: urls(payload.message || ''), timestamp: row.timestamp || null, id: payload.client_id || null, turn_id: payload.turn_id || null }];
+  if (payload.type === 'task_complete') return [{ type: 'completion', role: 'assistant', text: short(payload.last_agent_message || '', 4000), links: urls(payload.last_agent_message || ''), timestamp: row.timestamp || null, id: payload.turn_id || null, turn_id: payload.turn_id || null }];
+  if (payload.type === 'function_call') return [{ type: 'tool_call', role: 'assistant', tool: payload.name || null, args: short(payload.arguments || '', 2000), call_id: payload.call_id || null, text: '', links: [], timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) }];
+  if (payload.type === 'function_call_output') return [{ type: 'tool_output', role: 'tool', tool: null, args: '', call_id: payload.call_id || null, text: short(payload.output || '', 2000), links: urls(payload.output || ''), timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) }];
+  return [];
+}
+function normalizeRow(row) { return normalizeRows(row)[0] || null; }
+function countRawTools(row) {
+  if (!row || typeof row !== 'object') return { tool_use: 0, tool_result: 0 };
+  if (row.payload) {
+    if (row.payload.type === 'function_call') return { tool_use: 1, tool_result: 0 };
+    if (row.payload.type === 'function_call_output') return { tool_use: 0, tool_result: 1 };
+    return { tool_use: 0, tool_result: 0 };
   }
-  if (payload.type === 'function_call_output') {
-    return { type: 'tool_output', role: 'tool', tool: null, args: '', call_id: payload.call_id || null, text: short(payload.output || '', 2000), links: urls(payload.output || ''), timestamp: row.timestamp || null, id: idOf(row, payload), turn_id: turnOf(row, payload) };
-  }
-  return null;
+  const content = row.message && row.message.content;
+  const blocks = Array.isArray(content) ? content : [];
+  return { tool_use: blocks.filter(function (b) { return b && b.type === 'tool_use'; }).length, tool_result: blocks.filter(function (b) { return b && b.type === 'tool_result'; }).length };
+}
+function normalizationAudit(raw, events) {
+  const calls = events.filter(function (e) { return e.type === 'tool_call'; }).length;
+  const outputs = events.filter(function (e) { return e.type === 'tool_output'; }).length;
+  const errors = [];
+  if (raw.tool_use > 0 && calls === 0) errors.push('SESSION_SHADOW_EMPTY');
+  if (raw.tool_result > 0 && outputs === 0) errors.push('SESSION_SHADOW_EMPTY');
+  if (raw.tool_use !== calls) errors.push('SESSION_SHADOW_PARTIAL');
+  if (raw.tool_result !== outputs) errors.push('SESSION_SHADOW_PARTIAL');
+  return { ok: errors.length === 0, raw: raw, normalized: { tool_call: calls, tool_output: outputs }, errors: Array.from(new Set(errors)) };
 }
 function addUnique(list, seen, text, source, reason) {
   const clean = short(text, 500);
@@ -178,4 +212,4 @@ function shadowSession(events, options) {
     }
   };
 }
-module.exports = { normalizeRow, urls, normUrl, articleDecisions, shadowSession, matchVerifier };
+module.exports = { normalizeRow, normalizeRows, countRawTools, normalizationAudit, urls, normUrl, articleDecisions, shadowSession, matchVerifier };

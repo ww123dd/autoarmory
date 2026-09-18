@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.18.0
+
+Claude JSONL normalization plus fail-closed raw/normalized accounting.
+
+- `normalizeRows()` now maps `type: user|assistant` + `message.content[]`, including multiple blocks per row (text, tool_use, tool_result).
+- `tool_use.id` is linked to `tool_result.tool_use_id`; `is_error`, `cwd`, `sessionId`, `uuid`, `parentUuid` and `isSidechain` are carried.
+- Added raw counts `raw_tool_use_count`, `raw_tool_result_count`, `normalized_tool_call_count`, `normalized_tool_output_count`.
+- A real Claude session now normalizes 699/699 tool_use and 699/699 tool_result events; the earlier silent zero is fixed.
+- The reader exits 2 with `SESSION_SHADOW_EMPTY` for zero normalization and `SESSION_SHADOW_PARTIAL` for count mismatch.
+- Added `tests/session-shadow-claude.js`, `tests/claude-normalization-evidence.js` and sanitized `docs/evidence/claude-normalization-20260918.json`.
+
 ## 2.17.0
 
 Hook Gate: only two blocking points, no blanket Edit/Write interception.

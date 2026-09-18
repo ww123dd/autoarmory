@@ -1,0 +1,16 @@
+{
+  "schema_version": "autoarmory/claude-normalization-evidence/v1",
+  "captured_at": "2026-09-18T00:00:00.000Z",
+  "source_session": "1ac86d26-cd5b-4d24-ba94-a3bc69d6d46d",
+  "raw_tool_use_count": 699,
+  "raw_tool_result_count": 699,
+  "normalized_tool_call_count": 699,
+  "normalized_tool_output_count": 699,
+  "normalized_event_count": 1648,
+  "silent_zero": false,
+  "fail_closed_exit_code": 0,
+  "negative_control_exit_code": 2,
+  "linked_tool_call_count": 699,
+  "linked_tool_result_count": 699,
+  "private_session_content_shipped": false
+}

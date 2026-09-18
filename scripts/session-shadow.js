@@ -13,15 +13,18 @@ function readVerifierIds(profile) {
 }
 async function readEvents(file) {
   const events = [];
+  const raw = { tool_use: 0, tool_result: 0 };
   const rl = readline.createInterface({ input: fs.createReadStream(file, { encoding: 'utf8' }), crlfDelay: Infinity });
   for await (const line of rl) {
     if (!line.trim()) continue;
     let row;
     try { row = JSON.parse(line); } catch (_) { continue; }
-    const event = shadow.normalizeRow(row);
-    if (event) events.push(event);
+    const rawCounts = shadow.countRawTools(row);
+    raw.tool_use += rawCounts.tool_use; raw.tool_result += rawCounts.tool_result;
+    const normalized = shadow.normalizeRows(row);
+    if (normalized.length) events.push.apply(events, normalized);
   }
-  return events;
+  return { events: events, raw: raw, audit: shadow.normalizationAudit(raw, events) };
 }
 (async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -34,8 +37,11 @@ async function readEvents(file) {
   const verifierIds = readVerifierIds(args['verifier-profile'] ? path.resolve(args['verifier-profile']) : path.resolve('verifiers.lock.json'));
   const reports = [];
   for (const session of sessions) {
-    const events = await readEvents(path.resolve(session));
+    const read = await readEvents(path.resolve(session));
+    if (!read.audit.ok) { process.stderr.write('SESSION_SHADOW_FAIL_CLOSED ' + JSON.stringify(read.audit) + '\n'); process.exit(2); }
+    const events = read.events;
     const report = shadow.shadowSession(events, { session_id: path.basename(session).replace(/^rollout-.*-/, '').replace(/\.jsonl$/, ''), verifier_ids: verifierIds });
+    report.normalization = read.audit;
     report.session_file = path.resolve(session);
     reports.push(report);
     const sessionOut = path.join(out, report.source_session_id || 'session');
