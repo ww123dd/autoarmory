@@ -8,7 +8,7 @@
 // the evidence behind it. `--rollback-if-stale` is the agent-side action that closes the
 // loop `scripts/mechanism-preflight.js` refuses to let pass.
 //
-// usage: node scripts/mechanism-lifecycle.js --mechanism <id> --promote [--state .selfforge] [--repo .] [--actor codex] [--json]
+// usage: node scripts/mechanism-lifecycle.js --mechanism <id> --promote [--scope <json>] [--state .selfforge] [--repo .] [--actor codex] [--json]
 //        node scripts/mechanism-lifecycle.js --mechanism <id> --rollback-if-stale [...]
 //        node scripts/mechanism-lifecycle.js --list [...]
 
@@ -26,7 +26,13 @@ function fail(message, json) {
 const args = parseArgs(process.argv.slice(2));
 const repo = path.resolve(args.repo || '.');
 const stateDir = path.resolve(args.state || path.join(repo, '.selfforge'));
+let requestedScope = null;
+if (args.scope) {
+  try { requestedScope = JSON.parse(args.scope); } catch (error) { fail('--scope must be a JSON object: ' + error.message, !!args.json); }
+  if (!requestedScope || typeof requestedScope !== 'object' || Array.isArray(requestedScope)) fail('--scope must be a JSON object', !!args.json);
+}
 const options = { repo: repo, actor: args.actor || 'codex' };
+if (requestedScope) options.scope = requestedScope;
 
 if (!fs.existsSync(path.join(stateDir, 'mechanisms.jsonl'))) fail('no mechanism state in ' + stateDir, !!args.json);
 

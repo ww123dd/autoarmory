@@ -127,10 +127,18 @@
 
 - [x] artifact run: `run artifact` creates/reuses the binding mechanism, executes the registered verifier through `mechanism-record`, records the run and closes the case on a passing external fact.
 - [x] user projection: pre-run artifacts are `ready_to_run`; post-run artifacts project as `lifetime.state=approved`.
+
 ## 2.4.0
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+
+## 2.19.1
+
+- [x] declared inputs separated from projections: `scope`, `expires_at`, `reopen_trigger` vs `scope_sha256`, `scope_status`, `expiry_status`, `reopen_required`.
+- [x] stale verification is a usable warning; expiry blocks verified/closed; a predicate hit requires reopen.
+- [x] three machine negative controls: file change reopens, past `expires_at` blocks, different scope promotion is rejected.
+
 ## 2.19.0
 
 - [x] optional mechanism scope/expiry/reopen trigger fields; no fifth object.

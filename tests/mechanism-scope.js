@@ -6,10 +6,15 @@ const { spawnSync } = require('child_process');
 const scope = require('../src/lib/mechanism-scope');
 function must(condition, message) { if (!condition) throw new Error(message); }
 const value = { project: 'p', task_type: 't', environment: 'e', artifact_type: 'a' };
+const schema = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'schemas', 'mechanism.schema.json'), 'utf8'));
+for (const field of ['scope_sha256', 'scope_status', 'expiry_status', 'reopen_required']) {
+  must(!schema.properties[field], field + ' must remain a projection, not a schema declaration');
+  must(!scope.validateScopeFields(Object.assign({ scope: value }, { [field]: field === 'scope_sha256' ? '0'.repeat(64) : true })).ok, field + ' must be rejected when supplied');
+}
 const check = scope.validateScopeFields({ scope: value, expires_at: '2099-01-01T00:00:00.000Z', reopen_trigger: [{ kind: 'scope_changed' }] });
 must(check.ok && check.patch.scope_sha256 === scope.scopeSha256(value), 'scope hash must be derived from scope');
-must(!scope.validateScopeFields({ scope: value, scope_sha256: '0'.repeat(64) }).ok, 'scope hash mismatch must fail');
 must(!scope.validateScopeFields({ scope: value, reopen_trigger: [{ kind: 'runner_changed', text: '当 runner 变化时' }] }).ok, 'free-text trigger must fail');
+must(!scope.validateScopeFields({ scope: value, reopen_trigger: [{ kind: 'evidence_expired' }] }).ok, 'evidence_expired requires an explicit expires_at');
 const scoped = { id: 'm1', scope: value, scope_sha256: scope.scopeSha256(value), expires_at: '2099-01-01T00:00:00.000Z', reopen_trigger: [] };
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-scope-'));
 const state = path.join(temp, '.selfforge');
@@ -20,9 +25,14 @@ must(scope.canReuse(scoped, value, state).ok, 'same scope may enter reuse check'
 must(scope.canReuse(scoped, { project: 'other' }, state).status === 'out_of_scope', 'different scope must not reuse');
 must(scope.canReuse({ id: 'legacy' }, value, state).status === 'legacy_unscoped', 'legacy unscoped must not reuse');
 const expired = Object.assign({}, scoped, { expires_at: '2000-01-01T00:00:00.000Z', reopen_trigger: [{ kind: 'evidence_expired' }] });
-must(scope.canReuse(expired, value, state).status === 'reopen_required', 'expired mechanism must require reopen');
+must(scope.canReuse(expired, value, state).status === 'expired', 'expired mechanism must be expired, not reopen_required');
+const reopenByFile = Object.assign({}, scoped, { reopen_trigger: [{ kind: 'file_changed', target: 'artifact.txt', expected_sha256: '0'.repeat(64) }] });
+must(scope.canReuse(reopenByFile, value, state, { repo: temp }).status === 'reopen_required', 'a computed predicate hit must require reopen');
 const file = path.join(temp, 'artifact.txt');
 fs.writeFileSync(file, 'new', 'utf8');
+fs.writeFileSync(path.join(state, 'mechanism-runs.jsonl'), JSON.stringify({ mechanism_id: 'm1', finished_at: '2000-01-01T00:00:00.000Z' }) + '\n', 'utf8');
+const stale = scope.canReuse(Object.assign({}, scoped, { verification_stale_days: 1 }), value, state);
+must(stale.ok && stale.expiry_status === 'stale_verification', 'stale verification must remain reusable with a warning');
 const fileHit = scope.evaluateTrigger({ kind: 'file_changed', target: 'artifact.txt', expected_sha256: '0'.repeat(64) }, Object.assign({}, scoped, { reopen_trigger: [] }), state, { repo: temp });
 must(fileHit.hit === true && fileHit.evaluable === true, 'file_changed predicate must be computed from bytes');
 const preflightState = path.join(temp, 'preflight-state');
@@ -34,4 +44,4 @@ const script = path.resolve(__dirname, '..', 'scripts', 'mechanism-preflight.js'
 const result = spawnSync(process.execPath, [script], { cwd: temp, env: Object.assign({}, process.env, { AUTOARMORY_STATE: preflightState }), encoding: 'utf8' });
 must(result.status === 2 && /expired_mechanism_reuse_count=1/.test(result.stderr), 'preflight must count expired promoted mechanism');
 must(/reopen_trigger_invalid_count=0/.test(result.stderr) && /reopen_required_escape_count=0/.test(result.stderr), 'preflight must expose reopen metrics');
-console.log('mechanism scope tests passed: scope hash/equality, legacy rejection, expiry/trigger predicates, preflight metrics');
+console.log('mechanism scope tests passed: declarations separated from projections, expiry/trigger/stale states, preflight metrics');

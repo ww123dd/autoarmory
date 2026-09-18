@@ -176,7 +176,7 @@ function closeCase(stateDir, caseId, runId, options) {
   const expiredNow = mechanism.expires_at && Date.now() >= Date.parse(mechanism.expires_at);
   const reopen = mechanismScope.evaluateReopenTriggers(mechanism, stateDir, opts);
   if (scopeDrift) return { ok: false, errors: ['mechanism scope has changed; reopen is required before close'] };
-  if (expiredNow) return { ok: false, errors: ['mechanism expires_at has passed; reopen is required before close'] };
+  if (expiredNow) return { ok: false, errors: ['mechanism expires_at has passed; cannot close'] };
   if (reopen.required) return { ok: false, errors: ['mechanism reopen trigger hit before close: ' + JSON.stringify(reopen.hits)] };
   if (closures.some(function (entry) { return entry.case_id === caseId && entry.run_id === runId; })) return { ok: false, errors: ['case already closed for this run'] };
   const closure = {
@@ -229,8 +229,6 @@ function status(stateDir, mechanismId, options) {
       trials: opts.trials,
       require_record: true
     });
-    const ageDays = (Date.now() - Date.parse(latest.finished_at || latest.recorded_at)) / 86400000;
-    const staleDays = Number(mechanism.verification_stale_days || 30);
     // A closure is only valid while the run that produced it is still fresh, so a
     // runner change cannot leave a case closed on evidence that no longer holds.
     const closure = closures.filter(function (item) { return item.case_id === latest.case_id; }).sort(function (a, b) { return Date.parse(a.closed_at || 0) - Date.parse(b.closed_at || 0); }).pop() || null;
@@ -247,28 +245,34 @@ function status(stateDir, mechanismId, options) {
     }) : null;
     if (checkResult.status !== 'verified') { verdict = 'unverified'; reason = verificationFailure(checkResult); }
     else if (latest.result !== 'pass' || latest.regression === true) { verdict = 'bypassed'; reason = 'latest run failed or regressed'; }
-    else if (ageDays > staleDays) { verdict = 'expired'; reason = 'latest run is older than verification_stale_days'; }
     else if (closure && (!closureCheck || closureCheck.status !== 'verified')) {
       verdict = 'unverified';
       reason = 'closure run is no longer fresh: ' + (closureCheck ? verificationFailure(closureCheck) : ('closure run missing: ' + closure.run_id));
     } else if (closure) { verdict = 'closed'; reason = 'latest verified run closed the case'; }
     else { verdict = 'verified'; reason = 'latest run verification passed and has not been closed'; }
   }
-  const scopeDrift = mechanism.scope && mechanism.scope_sha256 && mechanism.scope_sha256 !== mechanismScope.scopeSha256(mechanism.scope);
-  const expiredNow = mechanism.expires_at && Date.now() >= Date.parse(mechanism.expires_at);
+  const currentScopeSha = mechanismScope.scopeSha256(mechanism.scope);
+  const scopeDrift = !!(mechanism.scope && mechanism.scope_sha256 && mechanism.scope_sha256 !== currentScopeSha);
+  const expiredNow = !!(mechanism.expires_at && Date.now() >= Date.parse(mechanism.expires_at));
+  const staleDays = Number(mechanism.verification_stale_days || 30);
+  const staleVerification = !!(latest && !expiredNow && (Date.now() - Date.parse(latest.finished_at || latest.recorded_at)) / 86400000 > staleDays);
   const reopen = mechanismScope.evaluateReopenTriggers(mechanism, stateDir, opts);
   if ((verdict === 'verified' || verdict === 'closed') && scopeDrift) { verdict = 'reopen_required'; reason = 'mechanism scope hash drift (scope_changed)'; }
-  else if ((verdict === 'verified' || verdict === 'closed') && expiredNow) { verdict = 'reopen_required'; reason = 'mechanism expires_at has passed'; }
+  else if ((verdict === 'verified' || verdict === 'closed') && expiredNow) { verdict = 'expired'; reason = 'mechanism expires_at has passed'; }
   else if ((verdict === 'verified' || verdict === 'closed') && reopen.required) { verdict = 'reopen_required'; reason = 'mechanism reopen trigger hit: ' + reopen.hits.map(function (x) { return x.kind; }).join(', '); }
+  if ((verdict === 'verified' || verdict === 'closed') && staleVerification) reason = reason + '; verification is stale (older than verification_stale_days)';
   const scopeStatus = !mechanism.scope ? 'legacy_unscoped' : (scopeDrift ? 'scope_changed' : 'scoped');
+  const expiryStatus = expiredNow ? 'expired' : (staleVerification ? 'stale_verification' : 'fresh');
   return {
     ok: true,
     schema_version: 'autoarmory/mechanism-status/v1',
     mechanism_id: mechanismId,
     status: verdict,
     scope_status: scopeStatus,
-    scope_sha256: mechanism.scope_sha256 || null,
+    scope_sha256: currentScopeSha,
     expires_at: mechanism.expires_at || null,
+    expiry_status: expiryStatus,
+    stale_verification: staleVerification,
     reopen_required: reopen.required,
     reopen_hits: reopen.hits,
     reason: reason,
@@ -322,7 +326,8 @@ function promote(stateDir, mechanismId, options) {
   if (!mechanismRecord) return { ok: false, errors: ['mechanism not found: ' + mechanismId] };
   if (!mechanismRecord.scope || !mechanismRecord.scope_sha256) return { ok: false, errors: ['cannot promote legacy_unscoped mechanism: ' + mechanismId] };
   if (mechanismRecord.scope_sha256 !== mechanismScope.scopeSha256(mechanismRecord.scope)) return { ok: false, errors: ['cannot promote mechanism with scope_changed: ' + mechanismId] };
-  const reuse = mechanismScope.canReuse(mechanismRecord, mechanismRecord.scope, stateDir, opts);
+  const requestedScope = opts.scope || mechanismRecord.scope;
+  const reuse = mechanismScope.canReuse(mechanismRecord, requestedScope, stateDir, opts);
   if (!reuse.ok) return { ok: false, errors: ['cannot promote ' + mechanismId + ': ' + reuse.status + ' - ' + reuse.reason] };
   const current = status(stateDir, mechanismId, opts);
   if (!current.ok) return { ok: false, errors: ['mechanism status unavailable: ' + (current.errors || []).join('; ')] };

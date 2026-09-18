@@ -9,6 +9,7 @@ const environment = require('./environment');
 
 const TRIGGER_KINDS = ['runner_changed','case_changed','scope_changed','file_changed','evidence_expired','environment_changed'];
 const HASH = /^[a-f0-9]{64}$/i;
+const PROJECTION_FIELDS = ['scope_sha256', 'scope_status', 'expiry_status', 'reopen_required'];
 
 function scopeSha256(scope) { return scope && typeof scope === 'object' && Object.keys(scope).length ? verify.sha256Value(scope) : null; }
 function validDate(value) { return typeof value === 'string' && value.trim() !== '' && Number.isFinite(Date.parse(value)); }
@@ -37,11 +38,13 @@ function validateScopeFields(input) {
   const value = input || {};
   const errors = [];
   const patch = {};
+  for (const field of PROJECTION_FIELDS) {
+    if (value[field] !== undefined) errors.push('mechanism.' + field + ' is a projection and must not be supplied');
+  }
   if (value.scope !== undefined) {
     if (!value.scope || typeof value.scope !== 'object' || Array.isArray(value.scope) || Object.keys(value.scope).length === 0) errors.push('mechanism.scope must be a non-empty object when present');
     else {
       const computed = scopeSha256(value.scope);
-      if (value.scope_sha256 !== undefined && value.scope_sha256 !== null && value.scope_sha256 !== computed) errors.push('mechanism.scope_sha256 does not match mechanism.scope');
       patch.scope_sha256 = computed;
     }
   } else if (value.scope_sha256) {
@@ -50,6 +53,7 @@ function validateScopeFields(input) {
   if (value.expires_at !== undefined && value.expires_at !== null && !validDate(value.expires_at)) errors.push('mechanism.expires_at must be a valid date string');
   const triggerCheck = validateReopenTriggers(value.reopen_trigger);
   errors.push.apply(errors, triggerCheck.errors);
+  if ((value.reopen_trigger || []).some(function (trigger) { return trigger && trigger.kind === 'evidence_expired'; }) && !validDate(value.expires_at)) errors.push('mechanism.expires_at is required when reopen_trigger includes evidence_expired');
   return { ok: errors.length === 0, errors: errors, patch: patch };
 }
 function latestRun(state, mechanismId) {
@@ -72,11 +76,8 @@ function evaluateTrigger(trigger, mechanism, state, options) {
     return { kind: trigger.kind, hit: !mechanism.scope_sha256 || current !== mechanism.scope_sha256, evaluable: !!mechanism.scope, observed: current, expected: mechanism.scope_sha256 || null };
   }
   if (trigger.kind === 'evidence_expired') {
-    if (!mechanism.expires_at && !mechanism.verification_stale_days) return { kind: trigger.kind, hit: true, evaluable: false, reason: 'no expiry fact declared' };
-    const expires = mechanism.expires_at ? Date.parse(mechanism.expires_at) : null;
-    const ageDays = run ? (Date.now() - Date.parse(run.finished_at || run.recorded_at)) / 86400000 : Infinity;
-    const staleDays = Number(mechanism.verification_stale_days || 30);
-    return { kind: trigger.kind, hit: (expires !== null && Date.now() >= expires) || ageDays > staleDays, evaluable: !!run };
+    if (!validDate(mechanism.expires_at)) return { kind: trigger.kind, hit: false, evaluable: false, reason: 'no expires_at declared' };
+    return { kind: trigger.kind, hit: Date.now() >= Date.parse(mechanism.expires_at), evaluable: true, observed: new Date().toISOString(), expected: mechanism.expires_at };
   }
   if (trigger.kind === 'runner_changed') {
     if (!run) return { kind: trigger.kind, hit: false, evaluable: false, reason: 'no run to compare' };
@@ -115,13 +116,17 @@ function evaluateReopenTriggers(mechanism, stateDir, options) {
   return { required: hits.length > 0, hits: hits, non_evaluable: nonEvaluable, trigger_count: list.length };
 }
 function canReuse(mechanism, requestedScope, stateDir, options) {
-  if (!mechanism.scope || !mechanism.scope_sha256) return { ok: false, status: 'legacy_unscoped', reason: 'mechanism has no scope' };
+  if (!mechanism.scope) return { ok: false, status: 'legacy_unscoped', reason: 'mechanism has no scope' };
   const computed = scopeSha256(mechanism.scope);
-  if (computed !== mechanism.scope_sha256) return { ok: false, status: 'scope_changed', reason: 'mechanism scope hash drift' };
+  if (mechanism.scope_sha256 && computed !== mechanism.scope_sha256) return { ok: false, status: 'scope_changed', reason: 'mechanism scope hash drift' };
   const requested = scopeSha256(requestedScope);
-  if (!requested || requested !== mechanism.scope_sha256) return { ok: false, status: 'out_of_scope', reason: 'requested scope differs from mechanism scope' };
+  if (!requested || requested !== computed) return { ok: false, status: 'out_of_scope', reason: 'requested scope differs from mechanism scope' };
+  if (validDate(mechanism.expires_at) && Date.now() >= Date.parse(mechanism.expires_at)) return { ok: false, status: 'expired', reason: 'mechanism expires_at has passed', expiry_status: 'expired' };
   const reopen = evaluateReopenTriggers(mechanism, stateDir, options || {});
   if (reopen.required) return { ok: false, status: 'reopen_required', reason: 'reopen trigger hit', reopen: reopen };
-  return { ok: true, status: 'reusable', scope_sha256: mechanism.scope_sha256 };
+  const run = latestRun(stateDir, mechanism.id);
+  const staleDays = Number(mechanism.verification_stale_days || 30);
+  const stale = run ? (Date.now() - Date.parse(run.finished_at || run.recorded_at)) / 86400000 > staleDays : false;
+  return { ok: true, status: 'reusable', scope_sha256: computed, expiry_status: stale ? 'stale_verification' : 'fresh' };
 }
 module.exports = { TRIGGER_KINDS, scopeSha256, validateScopeFields, validateReopenTriggers, evaluateTrigger, evaluateReopenTriggers, canReuse };

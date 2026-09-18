@@ -9,8 +9,38 @@
     "reopen_trigger_invalid_count": 0,
     "reopen_required_escape_count": 0
   },
-  "predicate_kinds": ["runner_changed","case_changed","scope_changed","file_changed","evidence_expired","environment_changed"],
+  "predicate_kinds": [
+    "runner_changed",
+    "case_changed",
+    "scope_changed",
+    "file_changed",
+    "evidence_expired",
+    "environment_changed"
+  ],
   "scope_is_correctness_proof": false,
   "free_text_trigger_count": 0,
-  "private_state_shipped": false
+  "private_state_shipped": false,
+  "declared_fields": [
+    "scope",
+    "expires_at",
+    "reopen_trigger"
+  ],
+  "projection_fields": [
+    "scope_sha256",
+    "scope_status",
+    "expiry_status",
+    "reopen_required"
+  ],
+  "projection_in_schema": false,
+  "expiry_states": [
+    "fresh",
+    "stale_verification",
+    "expired"
+  ],
+  "stale_verification_usable": true,
+  "negative_controls": {
+    "file_change_reopens": true,
+    "expires_at_blocks_verified_and_closed": true,
+    "different_scope_promote_rejected": true
+  }
 }

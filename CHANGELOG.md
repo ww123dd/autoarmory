@@ -1,15 +1,25 @@
 # Changelog
 
+## 2.19.1
+
+Separate mechanism declarations from projections, and separate stale verification, expiry and reopen.
+
+- Declared inputs are `scope`, `expires_at` and `reopen_trigger`; `scope_sha256`, `scope_status`, `expiry_status` and `reopen_required` are projections computed by `status`.
+- `scope_sha256` is derived at registration and is no longer a schema declaration; callers cannot supply any projection field.
+- `verification_stale_days` produces `stale_verification` (usable warning); a past `expires_at` produces `expired` (never `verified`/`closed`); a predicate hit produces `reopen_required`.
+- `promote` accepts a requested scope and rejects `out_of_scope`; `close` rejects past expiry and reopen hits.
+- Added machine negative controls: changed file reopens, past `expires_at` blocks close/promote, different scope promotion is rejected.
+
 ## 2.19.0
 
 Mechanism Scope & Validity: scope, expiry and computable reopen predicates on the existing mechanism object.
 
-- Added optional `scope`, `scope_sha256`, `expires_at` and `reopen_trigger` fields; old mechanisms remain `legacy_unscoped`.
-- `scope_sha256` proves integrity/equality only; scope correctness remains a replay/counterexample question.
+- Added optional declared `scope`, `expires_at` and `reopen_trigger` fields; `scope_sha256` is derived state. Old mechanisms remain `legacy_unscoped`.
+- Scope hash proves integrity/equality only; scope correctness remains a replay/counterexample question.
 - Added computable predicates `runner_changed`, `case_changed`, `scope_changed`, `file_changed`, `evidence_expired`, `environment_changed`; free-text triggers are rejected.
-- `status` can return `reopen_required`; `close`, `promote` and reuse checks reject scope drift, expiry, legacy-unscoped mechanisms and trigger hits.
+- `status` can return `expired` or `reopen_required`; `close`, `promote` and reuse checks reject scope drift, expiry, legacy-unscoped mechanisms and trigger hits.
 - Added six preflight counters: `unscoped_promotion_count`, `out_of_scope_reuse_count`, `expired_mechanism_reuse_count`, `legacy_unscoped_promotion_count`, `reopen_trigger_invalid_count`, `reopen_required_escape_count`.
-- Added `tests/mechanism-scope.js`, `tests/mechanism-scope-evidence.js`, schema fields and sanitized `docs/evidence/mechanism-scope-20260918.json`.
+- Added `tests/mechanism-scope.js`, `tests/mechanism-scope-evidence.js` and sanitized `docs/evidence/mechanism-scope-20260918.json`.
 
 ## 2.18.0
 

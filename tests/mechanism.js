@@ -154,13 +154,17 @@ delete missingCounterexample.counterexample;
 result = mechanism.recordMechanismRun(fixture.state, missingCounterexample, { repo: fixture.repo });
 must(!result.ok && /counterexample/.test(result.errors.join(' ')), 'missing counterexample must be rejected');
 
-fixture = makeRepo('expired');
-must(mechanism.admitCase(fixture.state, caseRecord('case-expired', 'inc-expired')).ok, 'expired case admission');
-must(mechanism.registerMechanism(fixture.state, mechanismRecord('mech-expired', 1)).ok, 'expired mechanism registration');
-const expiredRef = capture(fixture.repo, 'expired-ref', 'pass');
-result = mechanism.recordMechanismRun(fixture.state, runRecord('run-expired', 'mech-expired', 'case-expired', expiredRef, '2020-01-01T00:00:00.000Z'), { repo: fixture.repo });
+fixture = makeRepo('stale-verification');
+must(mechanism.admitCase(fixture.state, caseRecord('case-stale', 'inc-stale')).ok, 'stale case admission');
+must(mechanism.registerMechanism(fixture.state, mechanismRecord('mech-stale', 1)).ok, 'stale mechanism registration');
+const staleRef = capture(fixture.repo, 'stale-ref', 'pass');
+result = mechanism.recordMechanismRun(fixture.state, runRecord('run-stale', 'mech-stale', 'case-stale', staleRef, '2020-01-01T00:00:00.000Z'), { repo: fixture.repo });
 must(result.ok, 'old but verifiable run must record');
-must(mechanism.status(fixture.state, 'mech-expired', { repo: fixture.repo }).status === 'expired', 'stale verified run must expire');
+const staleStatus = mechanism.status(fixture.state, 'mech-stale', { repo: fixture.repo });
+must(staleStatus.status === 'verified' && staleStatus.expiry_status === 'stale_verification' && staleStatus.stale_verification === true, 'stale verified run must stay usable with a warning');
+const staleMechanism = mechanism.listMechanisms(fixture.state).find(function (item) { return item.id === 'mech-stale'; });
+must(mechanism.canReuse(staleMechanism, staleMechanism.scope, fixture.state, { repo: fixture.repo }).ok, 'stale verification must remain reusable');
+
 
 
 fixture = makeRepo('unknown-verifier');
@@ -199,4 +203,49 @@ must(result.ok, 'the run must record before close rejects the contract mismatch'
 result = mechanism.closeCase(fixture.state, 'case-mismatched-contract', 'run-mismatch', { repo: fixture.repo });
 must(!result.ok && /case.verifier must equal mechanism.verifier_id/.test(result.errors.join(' ')), 'close must refuse a case verifier that differs from the mechanism verifier');
 
-console.log('mechanism tests passed: self-report=REJECT, missing-hash=REJECT, fake-pass=REJECT, derived-pass=close, derived-fail=bypassed, adapter-tamper=REJECT, missing-counterexample=REJECT, unbound-verifier=REJECT, unknown-verifier=REJECT, expiry=expired');
+fixture = makeRepo('expires-at');
+must(mechanism.admitCase(fixture.state, caseRecord('case-expires-at', 'inc-expires-at')).ok, 'expires_at case admission');
+const expiringMechanism = mechanismRecord('mech-expires-at');
+expiringMechanism.expires_at = '2000-01-01T00:00:00.000Z';
+must(mechanism.registerMechanism(fixture.state, expiringMechanism).ok, 'expires_at mechanism registration');
+const expiringRef = capture(fixture.repo, 'expires-at-ref', 'pass');
+result = mechanism.recordMechanismRun(fixture.state, runRecord('run-expires-at', 'mech-expires-at', 'case-expires-at', expiringRef, now), { repo: fixture.repo });
+must(result.ok, 'run before expires_at must record');
+const expiredStatus = mechanism.status(fixture.state, 'mech-expires-at', { repo: fixture.repo });
+must(expiredStatus.status === 'expired' && expiredStatus.expiry_status === 'expired', 'past expires_at must project expired status');
+must(expiredStatus.status !== 'verified' && expiredStatus.status !== 'closed', 'expired mechanism must never return verified or closed');
+result = mechanism.closeCase(fixture.state, 'case-expires-at', 'run-expires-at', { repo: fixture.repo });
+must(!result.ok && /expires_at has passed/.test(result.errors.join(' ')), 'close must reject a past expires_at');
+result = mechanism.promote(fixture.state, 'mech-expires-at', { repo: fixture.repo });
+must(!result.ok && /expired/.test(result.errors.join(' ')), 'promote must reject a past expires_at');
+
+fixture = makeRepo('reopen-file');
+must(mechanism.admitCase(fixture.state, caseRecord('case-reopen-file', 'inc-reopen-file')).ok, 'reopen file case admission');
+const reopenMechanism = mechanismRecord('mech-reopen-file');
+const target = path.join(fixture.repo, 'artifact.txt');
+write(target, 'before');
+const expectedHash = sha256File(target);
+write(target, 'after');
+reopenMechanism.reopen_trigger = [{ kind: 'file_changed', target: 'artifact.txt', expected_sha256: expectedHash }];
+must(mechanism.registerMechanism(fixture.state, reopenMechanism).ok, 'reopen file mechanism registration');
+const reopenRef = capture(fixture.repo, 'reopen-file-ref', 'pass');
+result = mechanism.recordMechanismRun(fixture.state, runRecord('run-reopen-file', 'mech-reopen-file', 'case-reopen-file', reopenRef, now), { repo: fixture.repo });
+must(result.ok, 'run before file reopen must record');
+const reopenStatus = mechanism.status(fixture.state, 'mech-reopen-file', { repo: fixture.repo });
+must(reopenStatus.status === 'reopen_required' && reopenStatus.reopen_required === true, 'a changed file must project reopen_required');
+result = mechanism.closeCase(fixture.state, 'case-reopen-file', 'run-reopen-file', { repo: fixture.repo });
+must(!result.ok && /reopen trigger hit/.test(result.errors.join(' ')), 'close must reject a reopen trigger hit');
+
+fixture = makeRepo('out-of-scope-promote');
+must(mechanism.admitCase(fixture.state, caseRecord('case-scope-promote', 'inc-scope-promote')).ok, 'scope promotion case admission');
+const scopedMechanism = mechanismRecord('mech-scope-promote');
+must(mechanism.registerMechanism(fixture.state, scopedMechanism).ok, 'scope promotion mechanism registration');
+const scopedRef = capture(fixture.repo, 'scope-promote-ref', 'pass');
+result = mechanism.recordMechanismRun(fixture.state, runRecord('run-scope-promote', 'mech-scope-promote', 'case-scope-promote', scopedRef, now), { repo: fixture.repo });
+must(result.ok, 'scope promotion run must record');
+result = mechanism.promote(fixture.state, 'mech-scope-promote', { repo: fixture.repo, scope: { project: 'other', task_type: 'fixture', environment: 'test', artifact_type: 'fixture' } });
+must(!result.ok && /out_of_scope/.test(result.errors.join(' ')), 'promote must reject a different scope');
+result = mechanism.promote(fixture.state, 'mech-scope-promote', { repo: fixture.repo, scope: scopedMechanism.scope });
+must(result.ok, 'promote must still accept the declared scope');
+
+console.log('mechanism tests passed: self-report=REJECT, missing-hash=REJECT, fake-pass=REJECT, derived-pass=close, derived-fail=bypassed, adapter-tamper=REJECT, missing-counterexample=REJECT, unbound-verifier=REJECT, unknown-verifier=REJECT, stale=warn, expires_at=BLOCK, file-change=REOPEN, out-of-scope=REJECT');

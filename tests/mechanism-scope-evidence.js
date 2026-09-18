@@ -8,8 +8,16 @@ must(report.schema_version === 'autoarmory/mechanism-scope-evidence/v1', 'mechan
 const a = report.acceptance;
 must(a.unscoped_promotion_count === 0 && a.out_of_scope_reuse_count === 0 && a.expired_mechanism_reuse_count === 0, 'scope reuse/promotion escapes');
 must(a.legacy_unscoped_promotion_count === 0 && a.reopen_trigger_invalid_count === 0 && a.reopen_required_escape_count === 0, 'legacy/trigger/reopen escapes');
-must(report.predicate_kinds.length === 6 && report.predicate_kinds.indexOf('file_changed') !== -1, 'six computable trigger kinds');
+must(JSON.stringify(report.predicate_kinds) === JSON.stringify(['runner_changed','case_changed','scope_changed','file_changed','evidence_expired','environment_changed']), 'six computable trigger kinds');
+must(JSON.stringify(report.declared_fields) === JSON.stringify(['scope','expires_at','reopen_trigger']), 'declared fields');
+must(JSON.stringify(report.projection_fields) === JSON.stringify(['scope_sha256','scope_status','expiry_status','reopen_required']), 'projection fields');
+must(report.projection_in_schema === false, 'projections must not be schema declarations');
+must(JSON.stringify(report.expiry_states) === JSON.stringify(['fresh','stale_verification','expired']), 'three expiry states');
+must(report.stale_verification_usable === true, 'stale verification remains usable with a warning');
+must(report.negative_controls && report.negative_controls.file_change_reopens === true, 'file change negative control');
+must(report.negative_controls.expires_at_blocks_verified_and_closed === true, 'expiry negative control');
+must(report.negative_controls.different_scope_promote_rejected === true, 'scope promotion negative control');
 must(report.scope_is_correctness_proof === false && report.free_text_trigger_count === 0, 'scope is not correctness proof and triggers are not labels');
 must(report.private_state_shipped === false, 'private state is not shipped');
 must(!/[A-Za-z]:[\\/]|\/Users\/|\/home\//.test(raw), 'evidence must not contain machine paths');
-console.log('mechanism scope evidence passed: six escape counts zero, six predicate kinds, no free-text triggers');
+console.log('mechanism scope evidence passed: declaration/projection split, three expiry states, three negative controls');

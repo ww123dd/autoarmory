@@ -153,12 +153,23 @@ The first slice does not execute external tools as part of the verifier core. It
 
 ## Mechanism Scope & Validity
 
-`mechanism` may optionally declare `scope`, `scope_sha256`, `expires_at` and `reopen_trigger`. No new object is introduced.
+`mechanism` keeps the same object. The new fields are split by authority:
 
-- `scope_sha256` is derived from `scope` at registration; a supplied hash must match.
-- Scope hash proves integrity and equality only. It does not prove the scope is correct.
-- Trigger kinds are limited to computable predicates: `runner_changed`, `case_changed`, `scope_changed`, `file_changed`, `evidence_expired`, `environment_changed`.
-- `file_changed` requires `target` and `expected_sha256`; free-text triggers are rejected.
-- `status` returns `reopen_required` when the scope drifted, `expires_at` passed, or a trigger predicate hit.
-- `promote`, `close` and reuse checks reject legacy unscoped mechanisms, scope drift, expiry and reopen-required mechanisms.
-- Preflight reports `unscoped_promotion_count`, `out_of_scope_reuse_count`, `expired_mechanism_reuse_count`, `legacy_unscoped_promotion_count`, `reopen_trigger_invalid_count` and `reopen_required_escape_count`.
+| Class | Fields | Authority |
+| --- | --- | --- |
+| Declaration | `scope`, `expires_at`, `reopen_trigger` | Operator/agent input; schema fields |
+| Projection | `scope_sha256`, `scope_status`, `expiry_status`, `reopen_required` | Computed by `status`; never supplied at registration |
+
+`scope_sha256` is derived from `scope` at registration for drift detection. It proves integrity and equality only; it does not prove the scope is correct. Supplying any projection field is rejected.
+
+The three time/validity states are different outcomes:
+
+| State | Trigger | Effect |
+| --- | --- | --- |
+| `stale_verification` | run age exceeds `verification_stale_days` | warning; verdict remains usable |
+| `expired` | `expires_at` has passed | `status` must not return `verified` or `closed`; close/promote reject |
+| `reopen_required` | a computable `reopen_trigger` predicate hits | reopen verification before reuse; close/promote reject |
+
+Trigger kinds are limited to computable predicates: `runner_changed`, `case_changed`, `scope_changed`, `file_changed`, `evidence_expired`, `environment_changed`. `file_changed` requires `target` and `expected_sha256`; free-text triggers are rejected. `promote` can be evaluated against a requested scope and rejects `out_of_scope`.
+
+Preflight reports `unscoped_promotion_count`, `out_of_scope_reuse_count`, `expired_mechanism_reuse_count`, `legacy_unscoped_promotion_count`, `reopen_trigger_invalid_count` and `reopen_required_escape_count`.
