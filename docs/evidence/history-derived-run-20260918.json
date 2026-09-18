@@ -1,0 +1,32 @@
+{
+  "schema_version": "autoarmory/history-derived-run-evidence/v1",
+  "captured_at": "2026-09-18T09:10:00.000Z",
+  "source_session": "1ac86d26-cd5b-4d24-ba94-a3bc69d6d46d",
+  "source_message_id": "d6dd052c-73b0-4b80-9b2b-ed068c3bed40",
+  "candidate_id": "case-df5f933ae4c6",
+  "resolved_verifier": "meta-skill-load-count",
+  "expected_transition": "COUNT->>=3",
+  "assertion": {
+    "path": "count",
+    "op": "gte",
+    "value": 3
+  },
+  "run": {
+    "status": "closed",
+    "result": "pass",
+    "exit_code": 0,
+    "observed": {
+      "count": 4,
+      "sessions": 4
+    },
+    "input_sha256": "199b4c7b8401afe7561dd732f75a5fc3f39124eeb79759c8ca3f7969681621e0",
+    "output_sha256": "7a321d51ad3568e5399476bc8fd446b49a04c628e250d34336e684d98bd9e913",
+    "case_sha256": "8cd377428c1b12e8fe2fb3db17303977556130d926e3d501c998e041133c391a",
+    "runner_sha256": "9a5a5d2c383fa2f188f2bc739fde6af11de0b6edeeb6c489eaa5f8218bcf81bf"
+  },
+  "promoted": true,
+  "history_derived_run_count": 1,
+  "verifier_expresses_transition": true,
+  "no_fabricated_verifier": true,
+  "private_session_content_shipped": false
+}

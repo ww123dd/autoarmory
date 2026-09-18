@@ -14,7 +14,9 @@ node scripts/session-shadow.js --mode articles \
 
 `rules` projects `collaboration-rules.md`, `automation-requirements.md` and `hook-requirements.md`. `articles` projects `article-decisions.jsonl`, `case-drafts.jsonl`, `verifier-bindings.jsonl` and `unverifiable.jsonl`.
 
-The extraction is deterministic: URL normalization removes fragments and tracking parameters, duplicate URLs are counted but produce one decision row, and no LLM judge is called. A draft without a matched verifier is reported as `verifier_missing`; it is never closed. A draft with no baseline/observed evidence is `baseline_missing`; a non-actionable decision is `not_a_case`.
+The extraction is deterministic: URL normalization removes fragments and tracking parameters, duplicate URLs are counted but produce one decision row, and no LLM judge is called. A draft without a matched verifier is reported as `verifier_missing`; it is never closed. A text category alone is not enough: the verifier id/kind must be explicit in the draft and the pinned assertion must express `expected_transition`. A mismatch is reported as `verifier_mismatch`; a draft with no baseline/observed evidence is `baseline_missing`; a non-actionable decision is `not_a_case`.
+
+Supported transition checks include `COUNT->0`, `COUNT->N`, `COUNT->>=N`, `COUNT-><=N` and `FAIL->PASS`. The 2026-09-18 resolver rerun turned 18 old `verified_candidate` rows into 0 verified and 18 `verifier_mismatch`; the sanitized evidence is `docs/evidence/session-shadow-resolver-20260918.json`.
 
 The 2026-09-17 real run selected the current main session plus `01a079b4-0de0-7372-a83c-d4d33e1accd4` and explicitly excluded the earlier copy `01a06a68-89ef-7762-bb42-4c3e63e9041a`. The sanitized metrics are in `docs/evidence/session-shadow-20260917.json`.
 

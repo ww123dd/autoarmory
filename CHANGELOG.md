@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.21.0
+
+Bind session-shadow drafts only when the verifier can express the transition.
+
+- A verifier now has to be named explicitly in the draft and its pinned assertion must express `expected_transition`; `file-sha256 match=true` no longer becomes `verified_candidate` for `FAIL->PASS`.
+- `COUNT->0`, `COUNT->N`, `COUNT->>=N`, `COUNT-><=N` and `FAIL->PASS` are checked structurally against the assertion path/operator/value.
+- Replaying the 18 old candidates yields 0 `verified_candidate`, 18 `verifier_mismatch`; the full source session yields 28 mismatches and 0 verified candidates.
+- One real history-derived run is recorded and closed with `meta-skill-load-count` (`count >= 3`, observed 4). Evidence is in `docs/evidence/history-derived-run-20260918.json`.
+
 ## 2.20.1
 
 Make the Stop Shadow hook genuinely non-blocking.

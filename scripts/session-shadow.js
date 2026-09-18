@@ -7,9 +7,9 @@ const readline = require('readline');
 const { parseArgs, printJson, readJson, writeJson, writeJsonl } = require('../src/lib/util');
 const shadow = require('../src/lib/session-shadow');
 
-function readVerifierIds(profile) {
+function readVerifiers(profile) {
   if (!profile || !fs.existsSync(profile)) return [];
-  try { const lock = readJson(profile); return (lock.verifiers || []).map(function (item) { return item.id; }); } catch (_) { return []; }
+  try { return (readJson(profile).verifiers || []).map(function (item) { return { id: item.id, kind: item.kind || null, assertion: item.assertion || null }; }); } catch (_) { return []; }
 }
 async function readEvents(file) {
   const events = [];
@@ -34,13 +34,13 @@ async function readEvents(file) {
   if (!sessions.length) { process.stderr.write('Usage: node scripts/session-shadow.js --session <rollout.jsonl> [--session ...] --out <dir> [--json]\n'); process.exit(2); }
   const out = path.resolve(args.out || 'session-shadow');
   fs.mkdirSync(out, { recursive: true });
-  const verifierIds = readVerifierIds(args['verifier-profile'] ? path.resolve(args['verifier-profile']) : path.resolve('verifiers.lock.json'));
+  const verifiers = readVerifiers(args['verifier-profile'] ? path.resolve(args['verifier-profile']) : path.resolve('verifiers.lock.json'));
   const reports = [];
   for (const session of sessions) {
     const read = await readEvents(path.resolve(session));
     if (!read.audit.ok) { process.stderr.write('SESSION_SHADOW_FAIL_CLOSED ' + JSON.stringify(read.audit) + '\n'); process.exit(2); }
     const events = read.events;
-    const report = shadow.shadowSession(events, { session_id: path.basename(session).replace(/^rollout-.*-/, '').replace(/\.jsonl$/, ''), verifier_ids: verifierIds });
+    const report = shadow.shadowSession(events, { session_id: path.basename(session).replace(/^rollout-.*-/, '').replace(/\.jsonl$/, ''), verifiers: verifiers });
     report.normalization = read.audit;
     report.session_file = path.resolve(session);
     reports.push(report);

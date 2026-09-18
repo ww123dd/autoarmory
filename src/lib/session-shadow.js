@@ -136,50 +136,95 @@ function articleDecisions(events) {
     return { url_hash: item.url_hash, url: item.url, seen_count: item.seen_count, first_seen: item.first_seen, last_seen: item.last_seen, intent: intent, decision: decision, reason: reason, decision_source: assistantText ? 'assistant_message' : 'none', target_skill_ref: target, verifier_ref: null, reopen_trigger: reopen };
   });
 }
-function matchVerifier(draft, verifierIds) {
-  const text = [draft.title, draft.source_text, draft.url, draft.target_skill_ref].join(' ');
-  const candidates = [];
-  if (verifierIds.indexOf('local-transcript') !== -1 && /(skill|加载|触发|会话)/i.test(text)) candidates.push('local-transcript');
-  if (verifierIds.indexOf('file-sha256-license') !== -1 && /(sha256|hash|字节|文件|artifact)/i.test(text)) candidates.push('file-sha256-license');
-  if (verifierIds.indexOf('git-commit-exists') !== -1 && /(commit|git|版本)/i.test(text)) candidates.push('git-commit-exists');
-  if (verifierIds.indexOf('doris-readonly') !== -1 && /(doris|sql|数仓|口径|表)/i.test(text)) candidates.push('doris-readonly');
-  return candidates[0] || null;
+function asVerifiers(value) {
+  return (Array.isArray(value) ? value : []).map(function (item) {
+    if (typeof item === 'string') return { id: item, kind: null, assertion: null };
+    return item || {};
+  }).filter(function (item) { return item.id; });
 }
-function classifyDraft(draft, verifier) {
+function assertionOp(assertion) { return String(assertion && assertion.op || '').toLowerCase(); }
+function assertionPath(assertion) { return String(assertion && assertion.path || '').toLowerCase(); }
+function eq(assertion) { const op = assertionOp(assertion); return op === 'eq' || op === '===' || op === 'equals'; }
+function transitionCompatible(expectedTransition, assertion) {
+  if (!assertion || typeof assertion !== 'object') return false;
+  const path = assertionPath(assertion);
+  const value = assertion && assertion.value;
+  const expected = String(expectedTransition || '').toUpperCase();
+  if (expected === 'COUNT->0') return /(count|cnt|total|missing|errors?|failures?)/.test(path) && eq(assertion) && Number(value) === 0;
+  if (expected === 'FAIL->PASS') return /(exit|status|code)/.test(path) && eq(assertion) && Number(value) === 0;
+  const countTarget = expected.match(/^COUNT->(\d+)$/);
+  if (countTarget) return /(count|cnt|total|missing|errors?|failures?)/.test(path) && eq(assertion) && Number(value) === Number(countTarget[1]);
+  const countAtLeast = expected.match(/^COUNT->>= (\d+)$/) || expected.match(/^COUNT->>=(\d+)$/);
+  if (countAtLeast) return /(count|cnt|total)/.test(path) && assertionOp(assertion) === 'gte' && Number(value) === Number(countAtLeast[1]);
+  const countAtMost = expected.match(/^COUNT-><= (\d+)$/) || expected.match(/^COUNT-><=(\d+)$/);
+  if (countAtMost) return /(count|cnt|total)/.test(path) && assertionOp(assertion) === 'lte' && Number(value) === Number(countAtMost[1]);
+  return false;
+}
+function verifierTextMatches(text, verifier) {
+  const identity = String(verifier.id || '') + ' ' + String(verifier.kind || '');
+  if (/local-transcript/i.test(identity)) return /(skill|加载|触发|会话|transcript)/i.test(text);
+  if (/file-sha256/i.test(identity)) return /(sha256|hash|字节|文件|artifact)/i.test(text);
+  if (/git-commit/i.test(identity)) return /(commit|git|版本)/i.test(text);
+  if (/doris/i.test(identity)) return /(doris|sql|数仓|口径|表)/i.test(text);
+  if (/pid-file/i.test(identity)) return /(pid|进程|存活|服务器)/i.test(text);
+  return false;
+}
+function verifierIdentityMentioned(text, verifier) {
+  const body = String(text || '').toLowerCase();
+  const id = String(verifier.id || '').toLowerCase();
+  const kind = String(verifier.kind || '').toLowerCase();
+  return (!!id && body.indexOf(id) !== -1) || (!!kind && body.indexOf(kind) !== -1);
+}
+function matchVerifier(draft, verifiers) {
+  const text = [draft.title, draft.source_text, draft.url, draft.target_skill_ref].join(' ');
+  const candidates = asVerifiers(verifiers).filter(function (verifier) { return verifierTextMatches(text, verifier); });
+  for (const verifier of candidates) {
+    if (verifierIdentityMentioned(text, verifier) && transitionCompatible(draft.expected_transition, verifier.assertion)) return { ref: verifier.id, status: 'matched', candidate: verifier.id };
+  }
+  if (candidates.length) return { ref: null, status: 'verifier_mismatch', candidate: candidates[0].id };
+  return { ref: null, status: 'verifier_missing', candidate: null };
+}
+function classifyDraft(draft, match) {
   if (draft.kind === 'article_decision' && (draft.decision === 'reject' || draft.decision === 'defer')) return 'not_a_case';
-  if (!verifier) return 'verifier_missing';
+  const resolved = typeof match === 'string' ? { ref: match, status: match ? 'matched' : 'verifier_missing' } : (match || { ref: null, status: 'verifier_missing' });
+  if (resolved.status === 'verifier_mismatch') return 'verifier_mismatch';
+  if (!resolved.ref || resolved.status !== 'matched') return 'verifier_missing';
   if (!draft.baseline && !draft.observed) return 'baseline_missing';
   return 'verified_candidate';
 }
-function caseDrafts(events, verifierIds) {
+function caseDrafts(events, verifiers) {
   const drafts = [];
   const decisions = articleDecisions(events);
   let index = 0;
   for (const decision of decisions) {
     const kind = 'article_decision';
     const draft = { id: 'case-' + sha256(kind + ':' + decision.url_hash).slice(0, 12), kind: kind, source_session_id: null, source_message_id: null, url_hash: decision.url_hash, title: (decision.target_skill_ref ? decision.target_skill_ref + ': ' : '') + 'article decision ' + decision.decision, expected_transition: 'UNKNOWN->VERIFIED', evidence_refs: ['url:' + decision.url_hash], decision: decision.decision, source_text: decision.url, target_skill_ref: decision.target_skill_ref, baseline: null, observed: null, verifier_ref: null };
-    draft.verifier_ref = matchVerifier(draft, verifierIds);
-    draft.classification = classifyDraft(draft, draft.verifier_ref);
+    const match = matchVerifier(draft, verifiers);
+    draft.verifier_ref = match.ref;
+    draft.verifier_candidate = match.candidate;
+    draft.classification = classifyDraft(draft, match);
     drafts.push(draft); index += 1;
   }
   for (const event of events) {
     if (event.type !== 'message' || event.role !== 'assistant') continue;
     if (!/(npm test|pytest|verify_all|PASS|passed|修复|已修|commit)/i.test(event.text)) continue;
     const baseline = (event.text.match(/(\d+)\s*(?:->|→|到|变成)\s*(\d+)/) || []).slice(0, 3);
-    const draft = { id: 'case-' + sha256('real-change:' + String(event.id || index)).slice(0, 12), kind: 'real_change', source_session_id: null, source_message_id: event.id, url_hash: null, title: short(event.text, 120), expected_transition: baseline.length ? 'COUNT->0' : 'FAIL->PASS', evidence_refs: [event.id], decision: null, source_text: event.text, target_skill_ref: SKILLS.find(function (name) { return event.text.indexOf(name) !== -1; }) || null, baseline: baseline.length ? { before: Number(baseline[1]), after: Number(baseline[2]) } : null, observed: /PASS|passed|已修/.test(event.text) ? 'pass' : null, verifier_ref: null };
-    draft.verifier_ref = matchVerifier(draft, verifierIds);
-    draft.classification = classifyDraft(draft, draft.verifier_ref);
+    const draft = { id: 'case-' + sha256('real-change:' + String(event.id || index)).slice(0, 12), kind: 'real_change', source_session_id: null, source_message_id: event.id, url_hash: null, title: short(event.text, 120), expected_transition: baseline.length ? (Number(baseline[2]) === 0 ? 'COUNT->0' : 'COUNT->' + Number(baseline[2])) : 'FAIL->PASS', evidence_refs: [event.id], decision: null, source_text: event.text, target_skill_ref: SKILLS.find(function (name) { return event.text.indexOf(name) !== -1; }) || null, baseline: baseline.length ? { before: Number(baseline[1]), after: Number(baseline[2]) } : null, observed: /PASS|passed|已修/.test(event.text) ? 'pass' : null, verifier_ref: null };
+    const match = matchVerifier(draft, verifiers);
+    draft.verifier_ref = match.ref;
+    draft.verifier_candidate = match.candidate;
+    draft.classification = classifyDraft(draft, match);
     drafts.push(draft); index += 1;
   }
   return drafts;
 }
 function shadowSession(events, options) {
   const opts = options || {};
-  const verifierIds = opts.verifier_ids || [];
+  const verifiers = opts.verifiers || opts.verifier_ids || [];
   const normalized = events.map(function (event) { return event; });
   const rules = extractRules(normalized);
   const decisions = articleDecisions(normalized);
-  const drafts = caseDrafts(normalized, verifierIds);
+  const drafts = caseDrafts(normalized, verifiers);
   const userMessages = normalized.filter(function (e) { return e.type === 'message' && e.role === 'user'; });
   const assistantMessages = normalized.filter(function (e) { return e.type === 'message' && e.role === 'assistant'; });
   const toolCalls = normalized.filter(function (e) { return e.type === 'tool_call'; });
@@ -198,9 +243,10 @@ function shadowSession(events, options) {
     article_decisions: decisions,
     case_drafts: drafts,
     verifier_bindings: drafts.map(function (d) { return { case_id: d.id, verifier_ref: d.verifier_ref, status: d.verifier_ref ? 'matched' : 'missing' }; }),
-    unverifiable: drafts.filter(function (d) { return d.classification !== 'verified_candidate'; }).map(function (d) { return { case_id: d.id, classification: d.classification, reason: d.classification === 'verifier_missing' ? 'no registered verifier matched' : (d.classification === 'baseline_missing' ? 'no baseline/observed evidence' : 'not a verifiable case') }; }),
+    unverifiable: drafts.filter(function (d) { return d.classification !== 'verified_candidate'; }).map(function (d) { return { case_id: d.id, classification: d.classification, reason: d.classification === 'verifier_mismatch' ? 'verifier assertion cannot express expected_transition' : (d.classification === 'verifier_missing' ? 'no registered verifier matched' : (d.classification === 'baseline_missing' ? 'no baseline/observed evidence' : 'not a verifiable case')) }; }),
     summary: {
       verified_candidate: drafts.filter(function (d) { return d.classification === 'verified_candidate'; }).length,
+      verifier_mismatch: drafts.filter(function (d) { return d.classification === 'verifier_mismatch'; }).length,
       baseline_missing: drafts.filter(function (d) { return d.classification === 'baseline_missing'; }).length,
       verifier_missing: drafts.filter(function (d) { return d.classification === 'verifier_missing'; }).length,
       not_a_case: drafts.filter(function (d) { return d.classification === 'not_a_case'; }).length,
@@ -212,4 +258,4 @@ function shadowSession(events, options) {
     }
   };
 }
-module.exports = { normalizeRow, normalizeRows, countRawTools, normalizationAudit, urls, normUrl, articleDecisions, shadowSession, matchVerifier };
+module.exports = { normalizeRow, normalizeRows, countRawTools, normalizationAudit, urls, normUrl, articleDecisions, shadowSession, matchVerifier, transitionCompatible };

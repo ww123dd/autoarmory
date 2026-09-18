@@ -133,6 +133,12 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
+## 2.21.0
+
+- [x] resolver matches only explicit verifier identity plus an assertion that expresses `expected_transition`.
+- [x] 18 old candidates rerun as 0 `verified_candidate` / 18 `verifier_mismatch`; no fabricated candidate survives.
+- [x] one history-derived run is closed with a transition-expressing verifier (`COUNT->>=3`).
+
 ## 2.20.1
 
 - [x] Stop hook runs the scanner detached: hook returns immediately; scanner owns timeout and `shadow_gap`.
