@@ -13,7 +13,7 @@ const sessionDir = path.join(sessionRoot, '2026', '09', '18');
 fs.mkdirSync(sessionDir, { recursive: true });
 const sessionFile = path.join(sessionDir, 'rollout-2026-09-18T16-00-00-' + sessionId + '.jsonl');
 const events = [
-  { payload: { type: 'message', role: 'assistant', content: 'apply a change and verify it' } },
+  { payload: { type: 'message', role: 'assistant', content: '已修复 npm test PASS，并记录 sha256 文件证据。' } },
   { payload: { type: 'function_call', name: 'apply_patch', call_id: 'c1', id: 'e1', arguments: JSON.stringify({ file_path: 'src/a.js' }) } },
   { payload: { type: 'function_call_output', call_id: 'c1', id: 'e2', output: 'Success. Updated src/a.js' } },
   { payload: { type: 'function_call', name: 'exec_command', call_id: 'c2', id: 'e3', arguments: JSON.stringify({ cmd: 'npm test' }) } },
@@ -51,8 +51,9 @@ function filesUnder(dir) {
   }
   return out;
 }
-const textual = filesUnder(state).filter(function (file) { return /\.(?:json|jsonl)$/i.test(file); }).map(function (file) { return fs.readFileSync(file, 'utf8'); }).join('\n');
-must(!/verifier_resolution|verifier_ref|verifier-bindings/.test(textual), 'stop shadow outputs must not contain verifier bindings');
+const textual = filesUnder(state).filter(function (file) { return /\.(?:json|jsonl)$/i.test(file) && !/session-case-drafts|session-unverifiable/.test(file); }).map(function (file) { return fs.readFileSync(file, 'utf8'); }).join('\n');
+must(!/verifier_resolution|verifier_ref|verifier-bindings/.test(textual), 'change-inventory outputs must not contain verifier bindings');
+must(!fs.existsSync(path.join(state, 'verifier-bindings.jsonl')), 'stop shadow must not write verifier-bindings.jsonl');
 must(high.llm_judge_calls === 0 && high.auto_close_count === 0 && high.manual_case_creation_count === 0, 'stop shadow must be deterministic and non-final');
 for (const forbidden of ['mechanisms.jsonl', 'mechanism-runs.jsonl', 'closures.jsonl', 'verifier-bindings.jsonl']) {
   must(!fs.existsSync(path.join(state, forbidden)), 'stop shadow must not generate ' + forbidden);
@@ -66,6 +67,9 @@ const gapState = path.join(temp, 'gap-state');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name: 'Stop', session_id: 'missing-session-id', stop_hook_active: false }), encoding: 'utf8', env: Object.assign({}, process.env, { CODEX_SESSION_ROOT: sessionRoot, AUTOARMORY_STOP_STATE: gapState }) });
 must(result.status === 0, 'missing session must not block');
 must(fs.existsSync(path.join(gapState, 'shadow-gaps.jsonl')), 'missing session must record a shadow_gap');
+must(fs.existsSync(path.join(state, 'session-case-drafts.jsonl')), 'stop shadow must write strict session-shadow drafts');
+const sessionDrafts = fs.readFileSync(path.join(state, 'session-case-drafts.jsonl'), 'utf8').trim().split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); });
+must(sessionDrafts.every(function (draft) { return draft.classification && draft.closure === false && draft.requires_agent_decision === true; }), 'session-shadow drafts must remain non-final');
 must(fs.existsSync(path.join(state, 'last-run.jsonl')), 'stop shadow must leave a heartbeat');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name: 'Stop', session_id: sessionId, stop_hook_active: true }), encoding: 'utf8', env: Object.assign({}, process.env, { CODEX_SESSION_ROOT: sessionRoot, AUTOARMORY_STOP_STATE: path.join(temp, 'active-state') }) });
 must(result.status === 0 && !fs.existsSync(path.join(temp, 'active-state')), 'active stop recursion must be skipped');

@@ -22,6 +22,7 @@ function readIncrement(file, cursor) {
 function verifierIds(profile) { if (!profile || !fs.existsSync(profile)) return []; try { return (readJson(profile).verifiers || []).map(function (x) { return x.id; }); } catch (_) { return []; } }
 function scan(sessions, state, options) {
   const all = [];
+  const events = [];
   for (const session of sessions) {
     const cursor = state.sessions[session] || { offset: 0 };
     const inc = readIncrement(session, cursor);
@@ -31,8 +32,9 @@ function scan(sessions, state, options) {
     const report = inspector.inspect(inc.events, sessionState, { verifier_ids: options.verifier_ids || [], execRecords: options.exec_records || [] });
     state.seen_ids = sessionState.seen_ids; state.signatures = sessionState.signatures; state.sessions[session] = inc;
     all.push.apply(all, report.records);
+    events.push.apply(events, inc.events);
   }
-  return all;
+  return { records: all, events: events };
 }
 const args = parseArgs(process.argv.slice(2));
 const sessionArgs = [];
@@ -44,7 +46,9 @@ fs.mkdirSync(stateDir, { recursive: true });
 const stateFile = path.join(stateDir, 'state.json');
 const runOnce = function () {
   const state = loadState(stateFile);
-  const records = scan(sessionArgs, state, { verifier_ids: verifierIds(args['verifier-profile'] ? path.resolve(args['verifier-profile']) : path.resolve('verifiers.lock.json')), exec_records: [] });
+  const scanned = scan(sessionArgs, state, { verifier_ids: verifierIds(args['verifier-profile'] ? path.resolve(args['verifier-profile']) : path.resolve('verifiers.lock.json')), exec_records: [] });
+  const records = scanned.records;
+  writeJsonl(path.join(stateDir, 'new-events.jsonl'), scanned.events);
   if (records.length) writeJsonl(path.join(stateDir, 'change-inventory.jsonl'), fs.existsSync(path.join(stateDir, 'change-inventory.jsonl')) ? require('../src/lib/util').readJsonl(path.join(stateDir, 'change-inventory.jsonl')).concat(records) : records);
   const ids = verifierIds(args['verifier-profile'] ? path.resolve(args['verifier-profile']) : path.resolve('verifiers.lock.json'));
   const drafts = records.length ? inspector.candidateCases(records, { verifier_ids: ids }) : [];

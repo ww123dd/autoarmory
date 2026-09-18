@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.21.1
+
+Run the fixed session-shadow resolver from the Stop hook incrementally.
+
+- Change Inspector now writes `new-events.jsonl` for the bytes scanned on the current Stop.
+- Stop Shadow feeds those events to session-shadow with the active verifier profile and writes `session-case-drafts.jsonl` / `session-unverifiable.jsonl`.
+- These are candidate drafts only: no verifier binding file, run, close or verdict is created by the Stop hook.
+
 ## 2.21.0
 
 Bind session-shadow drafts only when the verifier can express the transition.

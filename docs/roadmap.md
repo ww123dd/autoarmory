@@ -133,6 +133,11 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
+## 2.21.1
+
+- [x] Stop hook runs fixed session-shadow on `new-events.jsonl`; strict resolver output is persisted as session drafts.
+- [x] Session drafts remain candidates only: no binding file, run, close or verdict.
+
 ## 2.21.0
 
 - [x] resolver matches only explicit verifier identity plus an assertion that expresses `expected_transition`.

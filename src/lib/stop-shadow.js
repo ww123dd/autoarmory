@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { readJsonl, writeJson, writeJsonl } = require('./util');
+const sessionShadow = require('./session-shadow');
 
 function cleanPart(value) { return String(value || '').replace(/[^A-Za-z0-9._-]/g, '_'); }
 function sessionRoot(options) { return path.resolve((options && options.sessionRoot) || process.env.CODEX_SESSION_ROOT || path.join(os.homedir(), '.codex', 'sessions')); }
@@ -99,6 +100,16 @@ function runStopShadow(event, options) {
   const candidates = fs.existsSync(path.join(engineDir, 'candidate-cases.jsonl')) ? readJsonl(path.join(engineDir, 'candidate-cases.jsonl')) : [];
   const drafts = uniqueDrafts(candidates.map(function (draft) { return stripDraft(draft, event); }));
   writeJsonl(path.join(dir, 'case-drafts.jsonl'), drafts);
+
+  const newEvents = fs.existsSync(path.join(engineDir, 'new-events.jsonl')) ? readJsonl(path.join(engineDir, 'new-events.jsonl')) : [];
+  let verifiers = [];
+  try { const lock = JSON.parse(fs.readFileSync(path.join(repo, 'verifiers.lock.json'), 'utf8')); verifiers = (lock.verifiers || []).map(function (item) { return { id: item.id, kind: item.kind || null, assertion: item.assertion || null }; }); } catch (_) { verifiers = []; }
+  const sessionReport = sessionShadow.shadowSession(newEvents, { session_id: event.session_id || null, verifiers: verifiers });
+  const sessionDrafts = uniqueDrafts((fs.existsSync(path.join(dir, 'session-case-drafts.jsonl')) ? readJsonl(path.join(dir, 'session-case-drafts.jsonl')) : []).concat(sessionReport.case_drafts.map(function (draft) { const copy = Object.assign({}, draft); copy.closure = false; copy.requires_agent_decision = true; return copy; })));
+  writeJsonl(path.join(dir, 'session-case-drafts.jsonl'), sessionDrafts);
+  const unverifiable = (fs.existsSync(path.join(dir, 'session-unverifiable.jsonl')) ? readJsonl(path.join(dir, 'session-unverifiable.jsonl')) : []).concat(sessionReport.unverifiable);
+  const seenUnverifiable = {};
+  writeJsonl(path.join(dir, 'session-unverifiable.jsonl'), unverifiable.filter(function (item) { const key = item && item.case_id || JSON.stringify(item); if (seenUnverifiable[key]) return false; seenUnverifiable[key] = true; return true; }));
   writeJsonl(path.join(engineDir, 'candidate-cases.jsonl'), drafts);
   const highSignal = drafts.filter(function (draft) { return draft.notify === true; });
   writeJsonl(path.join(engineDir, 'notifications.jsonl'), highSignal);
@@ -121,6 +132,9 @@ function runStopShadow(event, options) {
     session_file: sessionFile,
     auto_scan_count: 1,
     auto_case_draft_count: drafts.length,
+    session_verified_candidate: sessionDrafts.filter(function (draft) { return draft.classification === 'verified_candidate'; }).length,
+    session_verifier_mismatch: sessionDrafts.filter(function (draft) { return draft.classification === 'verifier_mismatch'; }).length,
+    session_verifier_missing: sessionDrafts.filter(function (draft) { return draft.classification === 'verifier_missing'; }).length,
     duplicate_run_draft_count: 0,
     stop_hook_blocked_session_count: 0,
     llm_judge_calls: 0,

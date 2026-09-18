@@ -19,5 +19,7 @@
   "private_session_content_shipped": false,
   "hook_detached": true,
   "heartbeat": "last-run.jsonl",
-  "event_file_removed_after_read": true
+  "event_file_removed_after_read": true,
+  "session_shadow_attached": true,
+  "session_shadow_incremental": "new-events.jsonl"
 }

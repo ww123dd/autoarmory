@@ -7,9 +7,13 @@ Stop
   -> resolve transcript_path or find <session_id>.jsonl
   -> incremental Change Inspector
   -> case-drafts.jsonl
+  -> session-case-drafts.jsonl
+  -> session-unverifiable.jsonl
   -> high-signal.json
   -> stop-shadow-summary.json
 ```
+
+The `session-*` files are the fixed session-shadow resolver output over the bytes newly scanned on this Stop. They are candidate drafts, not a verifier binding, run, close or verdict.
 
 It only records observations:
 

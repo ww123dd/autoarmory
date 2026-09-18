@@ -11,6 +11,7 @@ must(a.duplicate_run_draft_count === 0 && a.stop_hook_blocked_session_count === 
 must(a.llm_judge_calls === 0 && a.auto_close_count === 0 && a.manual_case_creation_count === 0, 'stop hook must not judge, close or require manual case creation');
 must(report.no_verifier_binding === true && report.no_run === true && report.no_closure === true && report.no_verdict === true, 'stop hook must stop before verifier/run/close/verdict');
 must(report.hook_detached === true && report.heartbeat === 'last-run.jsonl' && report.event_file_removed_after_read === true, 'detached hook, heartbeat and event cleanup');
+must(report.session_shadow_attached === true && report.session_shadow_incremental === 'new-events.jsonl', 'session-shadow must run incrementally from the Stop hook');
 must(report.private_session_content_shipped === false, 'private session content must not ship');
 must(!/[A-Za-z]:[\\/]|\/Users\/|\/home\//.test(raw), 'evidence must not contain machine paths');
 console.log('stop shadow evidence passed: automatic scan, idempotent drafts, non-blocking, no verifier/run/close/verdict');
