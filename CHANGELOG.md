@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.23.1
+
+Backfill the canonical change records so the projection rebuild cannot wipe history.
+
+- The real state dir had no `change-records.jsonl`; the next new draft would have rebuilt `case-drafts.jsonl` from an empty canonical and dropped 26k+ drafts.
+- `scripts/backfill-change-records.js` merges legacy `change-inventory.jsonl` into `change-records.jsonl`, deduped by change_id, idempotent on rerun, inventory untouched.
+- Verified on the real state dir: 36649 records backfilled, rerun is a no-op; the simulated projection rebuild yields 26401 drafts with all sessions traced to rollout files (legacy projection carried 26363 attribution_lost rows).
+
 ## 2.23.0
 
 Move real verifier execution behind a background history runner.
