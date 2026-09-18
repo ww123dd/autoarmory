@@ -35,6 +35,10 @@ ok(countMatch.ref === 'doris-readonly-count' && countMatch.status === 'matched',
 const looseCategory = matchVerifier({ title: 'doris count', source_text: 'doris count must return to zero', expected_transition: 'COUNT->0' }, [{ id: 'doris-readonly-count', assertion: { path: 'cnt', op: 'eq', value: 0 } }]);
 ok(looseCategory.ref === null && looseCategory.status === 'verifier_mismatch', 'category mention without verifier identity is a mismatch');
 const mismatchReport = shadowSession([{ type:'message', role:'assistant', id:'m1', text:'已修复并记录 sha256 文件证据，FAIL->PASS。', links:[], timestamp:'2026-01-01T00:00:00Z' }], { session_id:'mismatch-fixture', verifiers:[{ id:'file-sha256-license', assertion:{ path:'match', op:'eq', value:true } }] });
+const thresholdReport = shadowSession([{ type:'message', role:'assistant', id:'m-threshold', text:'已修复：meta-skill-load-count 的 count >= 3，PASS。', links:[], timestamp:'2026-01-01T00:00:00Z' }], { session_id:'threshold-fixture', verifiers:[{ id:'meta-skill-load-count', kind:'local-transcript-readonly', assertion:{ path:'count', op:'gte', value:3 } }] });
+const thresholdDraft = thresholdReport.case_drafts.find(function (d) { return d.source_message_id === 'm-threshold'; });
+ok(thresholdDraft && thresholdDraft.expected_transition === 'COUNT->>=3', 'count threshold is extracted from history text');
+ok(thresholdDraft.classification === 'verified_candidate' && thresholdDraft.verifier_ref === 'meta-skill-load-count', 'threshold draft binds only to the matching verifier');
 ok(mismatchReport.summary.verifier_mismatch >= 1, 'mismatch count is reported');
 ok(!mismatchReport.case_drafts.some(function (d) { return d.classification === 'verified_candidate'; }), 'wrong verifier must not remain verified_candidate');
 console.log('session shadow tests passed: rules, dedup, decisions, drafts, verifier transition matching, no unverified close');

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.21.2
+
+Extract threshold transitions from history before binding a verifier.
+
+- History text such as `count >= 3` now becomes `COUNT->>=3` instead of the generic `FAIL->PASS`.
+- With explicit `meta-skill-load-count`, the fixed resolver finds 3 true history candidates; the first one is `case-1990aca9a628`.
+- The recorded history-derived run stays closed with observed `count=4` and a pinned assertion `count >= 3`.
+
 ## 2.21.1
 
 Run the fixed session-shadow resolver from the Stop hook incrementally.

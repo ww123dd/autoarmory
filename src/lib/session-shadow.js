@@ -192,6 +192,15 @@ function classifyDraft(draft, match) {
   if (!draft.baseline && !draft.observed) return 'baseline_missing';
   return 'verified_candidate';
 }
+function expectedTransition(text, baseline) {
+  if (baseline && baseline.length) return Number(baseline[2]) === 0 ? 'COUNT->0' : 'COUNT->' + Number(baseline[2]);
+  const body = String(text || '');
+  const atLeast = body.match(/(?:count|cnt|数量|次数|加载次数)[^\n]{0,40}?(?:>=|≥|at least|至少)\s*(\d+)/i);
+  if (atLeast) return 'COUNT->>=' + Number(atLeast[1]);
+  const atMost = body.match(/(?:count|cnt|数量|次数|加载次数)[^\n]{0,40}?(?:<=|≤|at most|至多)\s*(\d+)/i);
+  if (atMost) return 'COUNT-><=' + Number(atMost[1]);
+  return 'FAIL->PASS';
+}
 function caseDrafts(events, verifiers) {
   const drafts = [];
   const decisions = articleDecisions(events);
@@ -209,7 +218,7 @@ function caseDrafts(events, verifiers) {
     if (event.type !== 'message' || event.role !== 'assistant') continue;
     if (!/(npm test|pytest|verify_all|PASS|passed|修复|已修|commit)/i.test(event.text)) continue;
     const baseline = (event.text.match(/(\d+)\s*(?:->|→|到|变成)\s*(\d+)/) || []).slice(0, 3);
-    const draft = { id: 'case-' + sha256('real-change:' + String(event.id || index)).slice(0, 12), kind: 'real_change', source_session_id: null, source_message_id: event.id, url_hash: null, title: short(event.text, 120), expected_transition: baseline.length ? (Number(baseline[2]) === 0 ? 'COUNT->0' : 'COUNT->' + Number(baseline[2])) : 'FAIL->PASS', evidence_refs: [event.id], decision: null, source_text: event.text, target_skill_ref: SKILLS.find(function (name) { return event.text.indexOf(name) !== -1; }) || null, baseline: baseline.length ? { before: Number(baseline[1]), after: Number(baseline[2]) } : null, observed: /PASS|passed|已修/.test(event.text) ? 'pass' : null, verifier_ref: null };
+    const draft = { id: 'case-' + sha256('real-change:' + String(event.id || index)).slice(0, 12), kind: 'real_change', source_session_id: null, source_message_id: event.id, url_hash: null, title: short(event.text, 120), expected_transition: expectedTransition(event.text, baseline), evidence_refs: [event.id], decision: null, source_text: event.text, target_skill_ref: SKILLS.find(function (name) { return event.text.indexOf(name) !== -1; }) || null, baseline: baseline.length ? { before: Number(baseline[1]), after: Number(baseline[2]) } : null, observed: /PASS|passed|已修/.test(event.text) ? 'pass' : null, verifier_ref: null };
     const match = matchVerifier(draft, verifiers);
     draft.verifier_ref = match.ref;
     draft.verifier_candidate = match.candidate;

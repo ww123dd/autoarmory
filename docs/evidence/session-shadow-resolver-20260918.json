@@ -19,10 +19,10 @@
   "selected_sessions_after_fix": [
     {
       "source_session": "c33fa0cf00d9",
-      "auto_case_draft_count": 477,
-      "verified_candidate": 0,
-      "verifier_mismatch": 156,
-      "verifier_missing": 31,
+      "auto_case_draft_count": 478,
+      "verified_candidate": 3,
+      "verifier_mismatch": 153,
+      "verifier_missing": 32,
       "not_a_case": 290
     },
     {
@@ -36,5 +36,6 @@
   ],
   "no_fabricated_candidate": true,
   "llm_judge_calls": 0,
-  "private_session_content_shipped": false
+  "private_session_content_shipped": false,
+  "threshold_transition_supported": true
 }

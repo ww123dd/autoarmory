@@ -2,8 +2,8 @@
   "schema_version": "autoarmory/history-derived-run-evidence/v1",
   "captured_at": "2026-09-18T09:10:00.000Z",
   "source_session": "1ac86d26-cd5b-4d24-ba94-a3bc69d6d46d",
-  "source_message_id": "d6dd052c-73b0-4b80-9b2b-ed068c3bed40",
-  "candidate_id": "case-df5f933ae4c6",
+  "source_message_id": "dd3dbae8-0df9-4993-b849-3b11a31c8b86",
+  "candidate_id": "case-1990aca9a628",
   "resolved_verifier": "meta-skill-load-count",
   "expected_transition": "COUNT->>=3",
   "assertion": {
@@ -28,5 +28,6 @@
   "history_derived_run_count": 1,
   "verifier_expresses_transition": true,
   "no_fabricated_verifier": true,
-  "private_session_content_shipped": false
+  "private_session_content_shipped": false,
+  "candidate_selection": "session-shadow after threshold-transition extraction"
 }
