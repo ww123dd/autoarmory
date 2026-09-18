@@ -1,0 +1,26 @@
+{
+  "schema_version": "autoarmory/phase-a-evidence/v1",
+  "captured_at": "2026-09-18T15:57:58.727Z",
+  "change_id": "change-tableau-release-zip-20260918",
+  "owner": "user",
+  "decision": "tableau-bitable-plugin release zip is the approved final package",
+  "verifier": "tableau-release-zip",
+  "artifact": "tableau-bitable-plugin-release.zip",
+  "artifact_sha256": "cb4a48d9a61944abc14f102bf34ab4babab3af146c841514c5cdf2638e855014",
+  "manifest_git_commit": "ab8482b0bbb3fb37ff01bc044e83112fb1593459",
+  "baseline_accident": "2026-09-12 zip did not contain the latest fix and could not be used as the final release package",
+  "run": {
+    "id": "mech-change-tableau-release-zip-20260918-20260918155756",
+    "status": "closed",
+    "result": "pass",
+    "exit_code": 0,
+    "input_sha256": "ae17a2b5a8e4d6c7777f476d22e930d3a668cdec274a1a9cebf504b48b6b6a5e",
+    "output_sha256": "6b11474f8bcb25eeebe01c9c58479a8a353774f03c4b3efc246cb4c70bfbaa02",
+    "case_sha256": "a3c5e083fbca644dfb75c25e6d986c3d7c7ce1ed1bfa9bea84fae58acd2edca3",
+    "runner_sha256": "56d4f6f929a80dc443fc30502de22b49ac47ee0537a23d0f737f61c6e2e4c4fb"
+  },
+  "reuse_record": true,
+  "no_fabricated_verifier": true,
+  "llm_judge_calls": 0,
+  "private_session_content_shipped": false
+}

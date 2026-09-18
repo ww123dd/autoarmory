@@ -40,4 +40,7 @@ must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'non-whiteliste
 fs.writeFileSync(path.join(pending,'change-missing-file.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-missing-file',session_id:'s5',signals:['file_changed'],verifier_candidate:{kind:'file_hash',ref:'missing-file.txt'}}),'utf8');
 r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
 must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'missing file hash target must be unverifiable');
+fs.writeFileSync(path.join(pending,'change-shell-meta.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-shell-meta',session_id:'s6',signals:['check_gap'],verifier_candidate:{kind:'project_test',ref:'node tests/signal-recall.js && rm -rf production'}}),'utf8');
+r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
+must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'shell metacharacters must stay unverifiable');
 console.log('history runner tests passed: pending -> real run -> close -> reuse, idempotent, unverifiable stays open');

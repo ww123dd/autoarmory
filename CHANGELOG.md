@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.26.0
+
+Complete Phase A with a real release-package closure.
+
+- Registered `tableau-release-zip` as a read-only file-sha256 verifier pinned to the actual release zip.
+- Real decision: `tableau-bitable-plugin-release.zip` is approved only if its SHA-256 remains `cb4a48...`.
+- Real run closed with exit_code 0 and wrote a reuse record; owner is the user.
+- Added runner shell-metacharacter rejection for project_test commands.
+
 ## 2.25.1
 
 Distinguish missing JSONL from empty JSONL.

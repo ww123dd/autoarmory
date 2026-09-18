@@ -133,6 +133,11 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
+## 2.26.0
+
+- [x] Phase A real closure: tableau release zip -> read-only verifier -> run -> close -> reuse-record.
+- [x] project_test runner rejects shell metacharacters and stays unverifiable.
+
 ## 2.25.1
 
 - [x] `readJsonlResult()` distinguishes missing vs empty JSONL.
