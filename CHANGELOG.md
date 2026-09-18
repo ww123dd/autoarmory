@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.25.1
+
+Distinguish missing JSONL from empty JSONL.
+
+- Added `readJsonlResult()` with `exists`, `path` and `rows`.
+- Kept `readJsonl()` backward-compatible, but callers can now tell “never written” from “written empty”.
+- Added persistence coverage for both cases.
+
 ## 2.25.0
 
 Fix repeat starvation and let the runner mechanically replay safe verification commands.

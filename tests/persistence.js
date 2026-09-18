@@ -2,7 +2,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { writeJsonl, readJsonl, appendJsonl, dedupeJsonl, pruneBackups } = require('../src/lib/util');
+const { writeJsonl, readJsonl, readJsonlResult, appendJsonl, dedupeJsonl, pruneBackups } = require('../src/lib/util');
 
 function must(condition, message) {
   if (!condition) throw new Error(message);
@@ -25,4 +25,9 @@ must(readJsonl(appendFile).map(function (row) { return row.id; }).join(',') === 
 for (let i = 0; i < 5; i++) { const backup = path.join(temp, 'retention-' + i + '.jsonl.bak'); fs.writeFileSync(backup, String(i), 'utf8'); }
 const retention = pruneBackups(temp, { maxPerFile: 0, maxAgeDays: 7 });
 must(retention.pruned >= 5, 'backup retention must prune old .bak files');
+const missingJsonl = readJsonlResult(path.join(temp, 'missing.jsonl'));
+must(missingJsonl.exists === false && missingJsonl.rows.length === 0, 'missing JSONL must be distinguishable');
+const emptyFile = path.join(temp, 'empty.jsonl'); fs.writeFileSync(emptyFile, '', 'utf8');
+const emptyJsonl = readJsonlResult(emptyFile);
+must(emptyJsonl.exists === true && emptyJsonl.rows.length === 0, 'empty JSONL must be distinguishable from missing');
 console.log('persistence tests passed: atomic write, backup, recovery');
