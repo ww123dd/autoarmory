@@ -1,6 +1,6 @@
 {
   "name": "autoarmory",
-  "version": "2.27.0",
+  "version": "2.28.0",
   "description": "A local capability manager for one operator, built on SkillCanary evidence and gates.",
   "license": "MIT",
   "type": "commonjs",

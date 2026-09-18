@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.28.0
+
+Harden the approval boundary and capture reliability.
+
+- Approvals now require all six impact fields: case, evidence, verifier, who_reruns, scope_expiry, rollback_reopen. Missing disclosure exits non-zero and writes no approval.
+- Repeat signatures rebind commands from the original tool call, not the output line.
+- Added a session registry; successful lookup pins session file/cwd for later Stops.
+- Gap retries are bounded with retry_count and give_up after 3 attempts.
+- Documented transcript_path as an optional host contract, not a parser bug.
+
 ## 2.27.0
 
 Bind verdicts back to the projection and put locks and consumption gates at the boundaries.

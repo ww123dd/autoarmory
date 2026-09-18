@@ -83,12 +83,16 @@ steps.push('request-approval');
 // 3. the one operator decision: an approval without the operator words must be refused
 result = run(APPROVE, ['--candidate', candidateId, '--state', state, '--json']);
 must(result.code !== 0 && /own words/.test(result.out + result.err), 'an unattributed approval must be refused');
+const impact = {"case":"cand-approval-loop test case","evidence":"deterministic target file baseline","verifier":"fixture verifier","who_reruns":"agent","scope_expiry":"scope gated, expires 2099-01-01","rollback_reopen":"restore target.txt from baseline"};
 const dryOut = path.join(work, 'dry-approval.json');
-result = run(APPROVE, ['--candidate', candidateId, '--quote', 'go ahead, approve this candidate', '--state', state, '--out', dryOut, '--dry-run', '--json']);
+result = run(APPROVE, ['--candidate', candidateId, '--quote', 'go ahead, approve this candidate', '--impact', JSON.stringify(impact), '--state', state, '--out', dryOut, '--dry-run', '--json']);
 must(result.code === 0 && JSON.parse(result.out).dry_run === true, 'dry run must print the approval request');
 must(!fs.existsSync(dryOut), 'a dry run must not write an approval');
+const missingImpactOut = path.join(work, 'missing-impact-approval.json');
+result = run(APPROVE, ['--candidate', candidateId, '--quote', 'go ahead, approve this candidate', '--state', state, '--out', missingImpactOut, '--json']);
+must(result.code !== 0 && /impact disclosure is incomplete/.test(result.out + result.err) && !fs.existsSync(missingImpactOut), 'approval without impact disclosure must be refused and not written');
 const approvalFile = path.join(work, 'approval.json');
-result = run(APPROVE, ['--candidate', candidateId, '--quote', 'go ahead, approve this candidate', '--state', state, '--out', approvalFile, '--json']);
+result = run(APPROVE, ['--candidate', candidateId, '--quote', 'go ahead, approve this candidate', '--impact', JSON.stringify(impact), '--state', state, '--out', approvalFile, '--json']);
 must(result.code === 0 && fs.existsSync(approvalFile), 'approval must be recorded mechanically: ' + result.out + result.err);
 const approval = JSON.parse(fs.readFileSync(approvalFile, 'utf8'));
 must(approval.approved_by === 'user' && approval.requested_by === 'agent' && approval.scope === 'gated', 'the approval must attribute the operator and the agent separately');

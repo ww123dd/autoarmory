@@ -76,6 +76,6 @@ result = json(run(['result', 'best_skill.md', '--state', state, '--repo', temp, 
 must(result.lifetime.state === 'approved', 'after the run, the artifact result must show an approved lifetime');
 result = json(run(['result', 'best_skill.md', '--state', state, '--repo', temp, '--json']));
 must(result.case && result.verifier && result.lifetime.state === 'approved', 'run artifact result must expose case/verifier/lifetime');
-result = json(run(['approve', '--candidate', 'cand-user-surface', '--quote', 'please approve this change', '--state', state, '--dry-run', '--json']));
+result = json(run(['approve', '--candidate', 'cand-user-surface', '--quote', 'please approve this change', '--impact', JSON.stringify({"case":"cand-user-surface","evidence":"fixture artifact baseline","verifier":"fixture-verifier","who_reruns":"agent","scope_expiry":"gated until expiry","rollback_reopen":"restore artifact baseline"}), '--state', state, '--dry-run', '--json']));
 must(result.ok && result.dry_run === true, 'approve must delegate to the existing one-decision approval recorder');
 console.log('user surface tests passed: artifact intake hashes/revisions, generic bind to case+verifier, run and close, pending inbox, four-field result card, status projection, approval delegation');

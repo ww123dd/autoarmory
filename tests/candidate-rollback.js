@@ -49,7 +49,7 @@ function promote(candidateId, evidence) {
   let result = run(CLI, ['transition', candidateFile, '--to', 'pending_approval', '--state', state, '--json']);
   must(result.code === 0, candidateId + ': pending_approval failed: ' + result.out + result.err);
   const approvalFile = path.join(work, candidateId + '-approval.json');
-  result = run(APPROVE, ['--candidate', candidateId, '--quote', 'approve the candidate rollback fixture', '--state', state, '--out', approvalFile, '--json']);
+  result = run(APPROVE, ['--candidate', candidateId, '--quote', 'approve the candidate rollback fixture', '--impact', JSON.stringify({"case":"candidate rollback fixture","evidence":"candidate evidence fixture","verifier":"candidate evidence verifier","who_reruns":"agent","scope_expiry":"candidate scope until expiry","rollback_reopen":"retire and reopen on mismatch"}), '--state', state, '--out', approvalFile, '--json']);
   must(result.code === 0, candidateId + ': approval failed: ' + result.out + result.err);
   result = run(CLI, ['transition', candidateFile, '--to', 'gated', '--gate', gateFile, '--approval', approvalFile, '--state', state, '--json']);
   must(result.code === 0, candidateId + ': gated failed: ' + result.out + result.err);

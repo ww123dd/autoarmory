@@ -85,7 +85,8 @@ const approvalFile = writeJson('approval.json', {
   approved_at: '2026-09-16T00:00:00.000Z',
   channel: 'conversation',
   scope: 'gated',
-  status: 'approved'
+  status: 'approved',
+  impact: {"case":"cand-approval-loop test case","evidence":"deterministic target file baseline","verifier":"fixture verifier","who_reruns":"agent","scope_expiry":"scope gated, expires 2099-01-01","rollback_reopen":"restore target.txt from baseline"}
 });
 result = run(['transition', candidateFile, '--to', 'gated', '--gate', gateFile, '--approval', approvalFile, '--state', state, '--json']);
 must(result.code === 0 && JSON.parse(result.out).to === 'gated', 'approved candidate must become gated');

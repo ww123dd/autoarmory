@@ -133,8 +133,14 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
-## 2.27.0
+## 2.28.0
 
+- [x] U2 hard gate: six impact fields required before approval; missing disclosure refuses and does not activate.
+- [x] H5 repeat_signature command rebinding.
+- [x] C1/C3 session registry pin; C2 bounded gap retry with give_up.
+- [x] C4 transcript_path contract documented as host-dependent.
+
+## 2.27.0
 - [x] verdict join: `case-drafts = change-records ⨝ reuse-records` with explicit missing verdict states.
 - [x] single-writer lock for change-inspect and history-runner with stale-lock takeover.
 - [x] mechanical jobs are pinned at bind time and verified before replay.

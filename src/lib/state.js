@@ -22,6 +22,16 @@ function validate(from, to) {
   return { ok: false, errors: ['invalid transition: ' + from + ' -> ' + to] };
 }
 
+const APPROVAL_IMPACT_FIELDS = ['case','evidence','verifier','who_reruns','scope_expiry','rollback_reopen'];
+function validateApprovalImpact(impact) {
+  const value = impact && typeof impact === 'object' ? impact : {};
+  const errors = [];
+  for (const field of APPROVAL_IMPACT_FIELDS) {
+    const item = value[field];
+    if (typeof item !== 'string' || !item.trim()) errors.push('approval.impact.' + field + ' is required');
+  }
+  return { ok: errors.length === 0, errors: errors, fields: APPROVAL_IMPACT_FIELDS };
+}
 function isApprovalPass(approval, candidateId, scope) {
   return !!approval &&
     approval.schema_version === 'selfforge/approval/v1' &&
@@ -48,4 +58,4 @@ function requiresReason(to) {
   return to === 'rejected';
 }
 
-module.exports = { ALLOWED, currentState, validate, isApprovalPass, requiresGate, requiresApproval, requiresEvidence, requiresReason };
+module.exports = { ALLOWED, APPROVAL_IMPACT_FIELDS, validateApprovalImpact, currentState, validate, isApprovalPass, requiresGate, requiresApproval, requiresEvidence, requiresReason };

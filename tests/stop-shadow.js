@@ -68,6 +68,11 @@ const gapState = path.join(temp, 'gap-state');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name: 'Stop', session_id: 'missing-session-id', stop_hook_active: false }), encoding: 'utf8', env: Object.assign({}, process.env, { CODEX_SESSION_ROOT: sessionRoot, AUTOARMORY_STOP_STATE: gapState }) });
 must(result.status === 0, 'missing session must not block');
 must(fs.existsSync(path.join(gapState, 'shadow-gaps.jsonl')), 'missing session must record a shadow_gap');
+const registryRows=fs.readFileSync(path.join(state,'session-registry.jsonl'),'utf8').trim().split(/\r?\n/).filter(Boolean).map(function(line){return JSON.parse(line);});
+must(registryRows.some(function(row){return row.session_id===sessionId && row.session_file;}),'successful lookup must pin the session in the registry');
+for(let i=0;i<2;i++){ result=spawnSync(process.execPath,[script],{cwd:repo,input:JSON.stringify({hook_event_name:'Stop',session_id:'missing-session-id',stop_hook_active:false}),encoding:'utf8',env:Object.assign({},process.env,{CODEX_SESSION_ROOT:sessionRoot,AUTOARMORY_STOP_STATE:gapState})}); }
+const gaps=fs.readFileSync(path.join(gapState,'shadow-gaps.jsonl'),'utf8').trim().split(/\r?\n/).filter(Boolean).map(function(line){return JSON.parse(line);});
+must(gaps.length===3&&gaps[2].retry_count===3&&gaps[2].give_up===true,'gap retry must be bounded and marked give_up');
 must(fs.existsSync(path.join(state, 'session-case-drafts.jsonl')), 'stop shadow must write strict session-shadow drafts');
 const sessionDrafts = fs.readFileSync(path.join(state, 'session-case-drafts.jsonl'), 'utf8').trim().split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); });
 must(sessionDrafts.every(function (draft) { return draft.classification && draft.closure === false && draft.requires_agent_decision === true; }), 'session-shadow drafts must remain non-final');

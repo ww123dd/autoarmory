@@ -17,7 +17,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { parseArgs, readJsonl, writeJson, printJson, sha256 } = require('../src/lib/util');
+const { parseArgs, readJson, readJsonl, writeJson, printJson, sha256 } = require('../src/lib/util');
 const state = require('../src/lib/state');
 
 function fail(message, json) {
@@ -30,9 +30,13 @@ const args = parseArgs(process.argv.slice(2));
 const stateDir = path.resolve(args.state || '.selfforge');
 const candidateId = args.candidate;
 const quote = typeof args.quote === 'string' ? args.quote.trim() : '';
+let impact = null;
+try { impact = args['impact-file'] ? readJson(path.resolve(args['impact-file'])) : JSON.parse(args.impact || 'null'); } catch (error) { impact = null; }
 
 if (!candidateId) fail('an approval needs --candidate <id>; nothing was recorded', !!args.json);
 if (quote.length < 8) fail('an approval needs the operator own words in --quote; without them nothing is recorded', !!args.json);
+const impactCheck = state.validateApprovalImpact(impact);
+if (!impactCheck.ok) fail('approval impact disclosure is incomplete: ' + impactCheck.errors.join('; '), !!args.json);
 
 const transitions = readJsonl(path.join(stateDir, 'transitions.jsonl'));
 const candidates = readJsonl(path.join(stateDir, 'candidates.jsonl'));

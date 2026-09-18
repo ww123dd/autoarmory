@@ -117,7 +117,8 @@ function inspectEvents(events, state, options) {
           if (!state.signature_events[sigKey]) {
             state.signature_events[sigKey] = true;
             state.signatures[sig] = (state.signatures[sig] || 0) + 1;
-            if (state.signatures[sig] >= 2) { const rep = record('repeat_signature', event, { signature: sig, count: state.signatures[sig], command: pendingCall.command || null }, state); if (rep) records.push(rep); }
+            if (state.signatures[sig] >= 2) { const reboundCommand = pendingCall.command || commandOf(pendingCall.event) || null;
+            const rep = record('repeat_signature', event, { signature: sig, count: state.signatures[sig], command: reboundCommand }, state); if (rep) records.push(rep); }
           }
         }
       }

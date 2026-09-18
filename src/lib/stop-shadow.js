@@ -12,6 +12,10 @@ const verdictView = require('./verdict-view');
 function cleanPart(value) { return String(value || '').replace(/[^A-Za-z0-9._-]/g, '_'); }
 function sessionRoot(options) { return path.resolve((options && options.sessionRoot) || process.env.CODEX_SESSION_ROOT || path.join(os.homedir(), '.codex', 'sessions')); }
 function stateDir(options) { return path.resolve((options && options.stateDir) || process.env.AUTOARMORY_STOP_STATE || path.join(os.homedir(), '.codex', 'autoarmory', 'stop-shadow')); }
+function registryFile(dir) { return path.join(dir, 'session-registry.jsonl'); }
+function findInRegistry(dir, sessionId) { if (!sessionId || !fs.existsSync(registryFile(dir))) return null; const rows = readJsonl(registryFile(dir)); for (let index = rows.length - 1; index >= 0; index--) { const row = rows[index]; if (row.session_id === sessionId && row.session_file && fs.existsSync(row.session_file)) return row; } return null; }
+function pinSession(dir, event, sessionFile, located) { try { fs.mkdirSync(dir, { recursive: true }); fs.appendFileSync(registryFile(dir), JSON.stringify({ schema_version: 'autoarmory/session-registry/v1', session_id: event.session_id || null, session_file: sessionFile, cwd: event.cwd || null, match: located.match || null, pinned_at: new Date().toISOString() }) + '\n', 'utf8'); } catch (_) {} }
+function gapRetryCount(dir, sessionId) { try { if (!fs.existsSync(path.join(dir, 'shadow-gaps.jsonl'))) return 0; return readJsonl(path.join(dir, 'shadow-gaps.jsonl')).filter(function (row) { return row.session_id === sessionId; }).length; } catch (_) { return 0; } }
 function recordGap(dir, event, reason, diagnostics) {
   try {
     fs.mkdirSync(dir, { recursive: true });
@@ -27,6 +31,8 @@ function recordGap(dir, event, reason, diagnostics) {
       candidate_count: diagnostics && diagnostics.candidate_count || 0,
       exact_matches: diagnostics && diagnostics.exact_matches || 0,
       tail_matches: diagnostics && diagnostics.tail_matches || 0,
+      retry_count: gapRetryCount(dir, event && event.session_id) + 1,
+      give_up: gapRetryCount(dir, event && event.session_id) + 1 >= 3,
       match: diagnostics && diagnostics.match || null,
       fallback_candidate: diagnostics && diagnostics.fallback_candidate || null
     }) + '\n', 'utf8');
@@ -173,12 +179,14 @@ function runStopShadow(event, options) {
   if (!event || event.stop_hook_active === true) return { ok: true, skipped: 'stop_hook_active' };
   if (!event.session_id && !event.transcript_path) return { ok: true, skipped: 'no_session_identity' };
   const dir = stateDir(opts);
-  const located = event.transcript_path && fs.existsSync(event.transcript_path) ? { file: path.resolve(event.transcript_path), match: 'transcript_path', candidate_count: 0, root: sessionRoot(opts), elapsed_ms: 0 } : locateSession(event.session_id, opts, event);
+  const registryHit = findInRegistry(dir, event.session_id);
+  const located = registryHit ? { file: registryHit.session_file, match: 'registry', candidate_count: 0, root: sessionRoot(opts), elapsed_ms: 0 } : (event.transcript_path && fs.existsSync(event.transcript_path) ? { file: path.resolve(event.transcript_path), match: 'transcript_path', candidate_count: 0, root: sessionRoot(opts), elapsed_ms: 0 } : locateSession(event.session_id, opts, event));
   const sessionFile = located.file;
   if (!sessionFile) {
     recordGap(dir, event, 'session_not_found', located);
     return { ok: true, gap: 'session_not_found', diagnostics: located };
   }
+  pinSession(dir, event, sessionFile, located);
   const repo = opts.repo || path.resolve(__dirname, '..', '..');
   const engineDir = path.join(dir, 'change-inspector');
   const candidatesFile = path.join(engineDir, 'candidate-cases.jsonl');

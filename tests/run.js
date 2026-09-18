@@ -24,7 +24,7 @@ function firstJsonl(file) {
 }
 
 let result = run(['version']);
-must(result.code === 0 && result.out.trim() === '2.27.0', 'version');
+must(result.code === 0 && result.out.trim() === '2.28.0', 'version');
 must(pkg.name === 'autoarmory' && pkg.bin.autoarmory === 'bin/autoarmory.js' && pkg.bin.selfforge === 'bin/selfforge.js', 'AutoArmory package and legacy aliases');
 const legacyVersion = spawnSync(process.execPath, [legacyCli, 'version'], { cwd: root, encoding: 'utf8' });
 must(legacyVersion.status === 0 && legacyVersion.stdout.trim() === pkg.version, 'legacy selfforge CLI alias');
@@ -153,7 +153,8 @@ fs.writeFileSync(approvalFile, JSON.stringify({
   approved_at: '2026-09-16T00:00:00.000Z',
   channel: 'conversation',
   scope: 'gated',
-  status: 'approved'
+  status: 'approved',
+  impact: {"case":"cand-approval-loop test case","evidence":"deterministic target file baseline","verifier":"fixture verifier","who_reruns":"agent","scope_expiry":"scope gated, expires 2099-01-01","rollback_reopen":"restore target.txt from baseline"}
 }, null, 2), 'utf8');
 result = run(['transition', candidateFile, '--to', 'gated', '--gate', gateProofFile, '--approval', approvalFile, '--state', transitionState, '--json']);
 must(result.code === 0 && JSON.parse(result.out).to === 'gated' && JSON.parse(result.out).approval && JSON.parse(result.out).approval.approved_by === 'user', 'approved candidate -> gated transition');
