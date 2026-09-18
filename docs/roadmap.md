@@ -133,6 +133,12 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
+## 2.23.0
+
+- [x] Stop enqueues `pending/<change_id>.json` for high-signal changes only.
+- [x] background `history-runner --drain` performs verifier resolution, run, close and reuse-record.
+- [x] real acceptance: pending -> `windows-service-state` closed run; idempotent rerun and unverifiable path covered.
+
 ## 2.22.1
 
 - [x] risk + file change no longer triggers high signal.

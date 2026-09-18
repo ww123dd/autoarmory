@@ -10,8 +10,11 @@ Stop
   -> session-case-drafts.jsonl
   -> session-unverifiable.jsonl
   -> high-signal.json
+  -> pending/<change_id>.json
   -> stop-shadow-summary.json
 ```
+
+Stop never runs a verifier. A detached `history-runner --drain` consumes pending jobs after Stop, resolves the registered verifier, runs it, and writes `reuse-records/<change_id>.json`.
 
 The `session-*` files are the fixed session-shadow resolver output over the bytes newly scanned on this Stop. They are candidate drafts, not a verifier binding, run, close or verdict.
 

@@ -3,6 +3,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { spawn } = require('child_process');
 const { runStopShadow, recordGap } = require('../src/lib/stop-shadow');
 function arg(name) { const index = process.argv.indexOf(name); return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : null; }
 function event() {
@@ -71,5 +72,11 @@ else {
     try { recordGap(stateDir, ev, 'internal_error'); } catch (_) {}
     beat(stateDir, ev, 'error', String((error && error.message) || error), null);
   }
+}
+if (process.env.AUTOARMORY_RUNNER_OFF !== '1') {
+  try {
+    const runner = spawn(process.execPath, [path.join(__dirname, 'history-runner.js'), '--drain', '--state', stateDir, '--repo', path.resolve(__dirname, '..')], { detached: true, stdio: 'ignore', windowsHide: true });
+    runner.unref();
+  } catch (_) {}
 }
 process.exit(0);

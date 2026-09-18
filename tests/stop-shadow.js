@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
+process.env.AUTOARMORY_RUNNER_OFF = '1';
 function must(condition, message) { if (!condition) throw new Error(message); }
 const repo = path.resolve(__dirname, '..');
 const script = path.join(repo, 'scripts', 'stop-shadow.js');
@@ -103,18 +104,18 @@ fs.writeFileSync(provenanceFile, [
 const provenanceState = path.join(temp, 'provenance-state');
 const provenanceEngine = path.join(provenanceState, 'change-inspector');
 fs.mkdirSync(provenanceEngine, { recursive: true });
-fs.writeFileSync(path.join(provenanceEngine, 'candidate-cases.jsonl'), [
-  JSON.stringify({ id:'dup', session_id:'session-A', signals:['file_changed'], status:'candidate', notify:false }),
-  JSON.stringify({ id:'dup', session_id:'session-B', signals:['file_changed'], status:'candidate', notify:false })
-  ,JSON.stringify({ id:'fill', session_id:null, signals:['file_changed'], status:'candidate', notify:false })
+fs.writeFileSync(path.join(provenanceEngine, 'change-records.jsonl'), [
+  JSON.stringify({ id:'a1', session_id:'session-A', turn_id:'turn-A', signal:'file_changed', source:{ event_id:'a1', turn_id:'turn-A', line:1 }, detail:{} }),
+  JSON.stringify({ id:'b1', session_id:'session-B', turn_id:'turn-B', signal:'file_changed', source:{ event_id:'b1', turn_id:'turn-B', line:2 }, detail:{} }),
+  JSON.stringify({ id:'fill1', session_id:null, turn_id:'turn-F', signal:'file_changed', source:{ event_id:'fill1', turn_id:'turn-F', line:3 }, detail:{} })
 ].join('\n') + '\n', 'utf8');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name:'Stop', session_id:provenanceSession, turn_id:'turn-provenance', cwd:temp, stop_hook_active:false }), encoding:'utf8', env:Object.assign({}, process.env, { CODEX_SESSION_ROOT:provenanceRoot, AUTOARMORY_STOP_STATE:provenanceState }) });
 must(result.status === 0, 'provenance stop shadow must not block');
 const projected = fs.readFileSync(path.join(provenanceState, 'case-drafts.jsonl'), 'utf8').trim().split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); });
-must(projected.some(function (d) { return d.id === 'dup' && d.session_id === 'session-A'; }), 'canonical session A provenance preserved');
-must(projected.some(function (d) { return d.id === 'dup' && d.session_id === 'session-B'; }), 'canonical session B provenance preserved');
+must(projected.some(function (d) { return d.session_id === 'session-A' && d.change_record_ids.indexOf('a1') !== -1; }), 'canonical session A provenance preserved');
+must(projected.some(function (d) { return d.session_id === 'session-B' && d.change_record_ids.indexOf('b1') !== -1; }), 'canonical session B provenance preserved');
 const newProjected = projected.filter(function (d) { return String(d.session_id || '').indexOf(provenanceSession) !== -1; });
-const fillProjected = projected.find(function (d) { return d.id === 'fill'; });
+const fillProjected = projected.find(function (d) { return d.change_record_ids.indexOf('fill1') !== -1; });
 must(fillProjected && fillProjected.session_id === provenanceSession && fillProjected.provenance_status === 'filled_from_event', 'only missing provenance fills from current event');
 must(newProjected.length >= 2, 'new and filled drafts point to the current session');
 const provenanceSummary = JSON.parse(fs.readFileSync(path.join(provenanceState, 'stop-shadow-summary.json'), 'utf8'));
@@ -126,4 +127,20 @@ result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringif
 must(result.status === 0, 'provenance rerun must not block');
 const rerunSummary = JSON.parse(fs.readFileSync(path.join(provenanceState, 'stop-shadow-summary.json'), 'utf8'));
 must(rerunSummary.projection_total === firstProjectionTotal, 'projection total stable across reruns');
+const pendingRoot = path.join(temp, 'pending-sessions');
+const pendingDir = path.join(pendingRoot, '2026', '09', '18');
+fs.mkdirSync(pendingDir, { recursive: true });
+const pendingSession = '01a0pending-0000-0000-000000000001';
+const pendingFile = path.join(pendingDir, 'rollout-2026-09-18T18-10-00-' + pendingSession + '.jsonl');
+fs.writeFileSync(pendingFile, [
+  JSON.stringify({ payload:{ type:'function_call', name:'exec_command', call_id:'pend-c1', id:'pend-e1', turn_id:'turn-pending', arguments:JSON.stringify({ cmd:'Set-Content -Path "production.txt" x' }) } }),
+  JSON.stringify({ payload:{ type:'function_call_output', call_id:'pend-c1', id:'pend-e2', turn_id:'turn-pending', output:'Success. Updated production.txt' } })
+].join('\n') + '\n', 'utf8');
+const pendingState = path.join(temp, 'pending-state');
+result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name:'Stop', session_id:pendingSession, turn_id:'turn-pending', cwd:temp, stop_hook_active:false }), encoding:'utf8', env:Object.assign({}, process.env, { CODEX_SESSION_ROOT:pendingRoot, AUTOARMORY_STOP_STATE:pendingState }) });
+must(result.status === 0, 'pending stop shadow must not block');
+const pendingFiles = fs.existsSync(path.join(pendingState, 'pending')) ? fs.readdirSync(path.join(pendingState, 'pending')).filter(function (name) { return /\.json$/.test(name); }) : [];
+must(pendingFiles.length === 1, 'high-signal change must enqueue one pending job');
+const pendingJob = JSON.parse(fs.readFileSync(path.join(pendingState, 'pending', pendingFiles[0]), 'utf8'));
+must(pendingJob.change_id && pendingJob.session_id && pendingJob.signals.indexOf('risk_signal') !== -1 && pendingJob.signals.indexOf('check_gap') !== -1, 'pending job carries change identity, provenance and signals');
 console.log('stop shadow tests passed: automatic session scan, idempotent drafts, shadow_gap fallback, no verifier/run/close/verdict');

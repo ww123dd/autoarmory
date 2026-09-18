@@ -118,7 +118,7 @@ function inspectEvents(events, state, options) {
     }
   }
   for (const pending of pendingChanges) {
-    const synthetic = { id: 'gap-' + state.session_id + '-' + pending.record.id, timestamp: pending.event.timestamp || null, call_id: pending.event.call_id || null, tool: pending.event.tool || null };
+    const synthetic = { id: 'gap-' + state.session_id + '-' + pending.record.id, timestamp: pending.event.timestamp || null, call_id: pending.event.call_id || null, tool: pending.event.tool || null, turn_id: pending.event.turn_id || state.turn_id || null };
     const r = record('check_gap', synthetic, { change_record_id: pending.record.id, reason: 'file change has no later observed check in scanned increment' }, state);
     if (r) records.push(r);
   }
@@ -181,7 +181,7 @@ function isHighSignal(signals, repeatCount) {
 function candidateCases(records, options) {
   const opts = options || {};
   const groups = {};
-  for (const item of records) { const key = item.session_id + ':' + (item.source.turn_id || item.source.event_id || item.source.line || ''); (groups[key] = groups[key] || []).push(item); }
+  for (const item of records) { const key = item.session_id + ':' + (item.turn_id || item.source.turn_id || item.source.event_id || item.source.line || ''); (groups[key] = groups[key] || []).push(item); }
   const drafts = [];
   for (const list of Object.values(groups)) {
     const signals = Array.from(new Set(list.map(function (r) { return r.signal; })));

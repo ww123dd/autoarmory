@@ -54,5 +54,8 @@
   "last_stop_json": true,
   "change_primary_key": "change_id",
   "candidate_vs_high_signal": true,
-  "no_new_stop_full_projection": false
+  "no_new_stop_full_projection": false,
+  "pending_jobs": true,
+  "background_runner": "history-runner --drain",
+  "stop_runs_verifier": false
 }

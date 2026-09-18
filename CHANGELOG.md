@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.23.0
+
+Move real verifier execution behind a background history runner.
+
+- Stop only writes `pending/<change_id>.json` for high-signal changes; it never runs verifiers.
+- `history-runner --drain` consumes pending jobs, resolves an explicit registered verifier or records `unverifiable`, runs the verifier, closes on pass and writes `reuse-records/<change_id>.json`.
+- `change-records.jsonl` is canonical; `case-drafts.jsonl` remains a projection.
+- Real runner acceptance: one pending job -> `windows-service-state` run -> closed reuse record; rerun is idempotent and missing verifier stays `unverifiable`.
+
 ## 2.22.1
 
 Narrow high signal once more: risk plus file change is not enough.

@@ -1,0 +1,20 @@
+{
+  "schema_version": "autoarmory/history-runner-evidence/v1",
+  "captured_at": "2026-09-18T10:14:45.022Z",
+  "pending_job_count": 1,
+  "history_derived_run_count": 1,
+  "closed": 1,
+  "verifier": "windows-service-state",
+  "observed": {
+    "name": "Winmgmt",
+    "state": "RUNNING"
+  },
+  "idempotent_rerun": true,
+  "unverifiable_recorded": true,
+  "manual_step_after_goal": 0,
+  "canonical_projection_writeback_count": 0,
+  "provenance_overwrite_count": 0,
+  "close_without_verifier_count": 0,
+  "llm_judge_calls": 0,
+  "private_session_content_shipped": false
+}

@@ -130,6 +130,34 @@ function uniqueDrafts(rows) {
     return true;
   });
 }
+function writePendingJobs(dir, drafts) {
+  if (!drafts || !drafts.length) return [];
+  const pendingDir = path.join(dir, 'pending');
+  fs.mkdirSync(pendingDir, { recursive: true });
+  const written = [];
+  for (const draft of drafts) {
+    const changeId = draft.change_id || draft.id;
+    if (!changeId) continue;
+    const resolution = draft.verifier_resolution || {};
+    const job = {
+      schema_version: 'autoarmory/pending-change/v1',
+      change_id: changeId,
+      session_id: draft.session_id || null,
+      turn_id: draft.turn_id || null,
+      source_message_id: draft.source_message_id || null,
+      changed_files: draft.changed_files || [],
+      commands: draft.commands || [],
+      check_status: draft.check_status || null,
+      signals: draft.signals || [],
+      verifier_id: resolution.kind === 'registered' ? resolution.ref : null,
+      verifier_candidate: resolution.kind && resolution.kind !== 'registered' ? resolution : null
+    };
+    const file = path.join(pendingDir, changeId + '.json');
+    writeJson(file, job);
+    written.push(file);
+  }
+  return written;
+}
 function runStopShadow(event, options) {
   const opts = options || {};
   if (process.env.STOP_SHADOW_OFF === '1') return { ok: true, skipped: 'disabled' };
@@ -175,7 +203,8 @@ function runStopShadow(event, options) {
   const forceProjection = projectionState.policy_version !== 3;
 
   if (newCandidates.length || forceProjection) {
-    const candidates = fs.existsSync(candidatesFile) ? readJsonl(candidatesFile) : [];
+    const allRecords = fs.existsSync(path.join(engineDir, 'change-records.jsonl')) ? readJsonl(path.join(engineDir, 'change-records.jsonl')) : [];
+    const candidates = changeInspector.candidateCases(allRecords, { verifier_ids: [] });
     const attribution = { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 };
     const drafts = uniqueDrafts(candidates.map(function (draft) { return stripDraft(draft, event, attribution); }));
     const sessionCounts = {};
@@ -188,6 +217,7 @@ function runStopShadow(event, options) {
     writeJsonl(path.join(engineDir, 'notifications.jsonl'), highSignal);
     writeJson(path.join(engineDir, 'high-signal-changes.json'), { schema_version: 'autoarmory/high-signal-changes/v1', count: highSignal.length, changes: highSignal });
     writeJson(path.join(dir, 'high-signal.json'), { schema_version: 'autoarmory/stop-shadow-high-signal/v1', captured_at: new Date().toISOString(), session_id: event.session_id || null, count: highSignal.length, changes: highSignal, llm_judge_calls: 0, auto_close_count: 0, manual_case_creation_count: 0, stop_hook_blocked_session_count: 0 });
+    writePendingJobs(dir, newHighSignal);
   }
 
   const newEvents = fs.existsSync(path.join(engineDir, 'new-events.jsonl')) ? readJsonl(path.join(engineDir, 'new-events.jsonl')) : [];
