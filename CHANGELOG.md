@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.29.0
+
+Write the decision interface down and enforce it at the gate.
+
+- `docs/contracts/decision-interface-v1.md`: five contracts (decision, verdict, action registry, policy table, consumption log) now exist as a written interface, not tribal knowledge.
+- `load-gate.consultAction` routes `action_class x verdict_state` through a versioned policy table (state-root `decision-policy.json` override); unknown classes fail closed.
+- Every consult appends a `consumption.jsonl` event; scoped invariants: enforce-mode gate holes must stay 0, observe-mode would-blocks accumulate as the flip signal.
+- `load-gate.refresh` recomputes effective verdict states, appends `verdict-event` transitions and materialises `decision-state.json`; it never runs a verifier and never creates a verdict.
+- Legacy risk-based `consult` untouched for existing callers.
+
 ## 2.28.1
 
 Fix a crash that took down the Stop observation layer after every 2.28.0 deploy.
