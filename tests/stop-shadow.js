@@ -66,6 +66,7 @@ const gapState = path.join(temp, 'gap-state');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name: 'Stop', session_id: 'missing-session-id', stop_hook_active: false }), encoding: 'utf8', env: Object.assign({}, process.env, { CODEX_SESSION_ROOT: sessionRoot, AUTOARMORY_STOP_STATE: gapState }) });
 must(result.status === 0, 'missing session must not block');
 must(fs.existsSync(path.join(gapState, 'shadow-gaps.jsonl')), 'missing session must record a shadow_gap');
+must(fs.existsSync(path.join(state, 'last-run.jsonl')), 'stop shadow must leave a heartbeat');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name: 'Stop', session_id: sessionId, stop_hook_active: true }), encoding: 'utf8', env: Object.assign({}, process.env, { CODEX_SESSION_ROOT: sessionRoot, AUTOARMORY_STOP_STATE: path.join(temp, 'active-state') }) });
 must(result.status === 0 && !fs.existsSync(path.join(temp, 'active-state')), 'active stop recursion must be skipped');
 console.log('stop shadow tests passed: automatic session scan, idempotent drafts, shadow_gap fallback, no verifier/run/close/verdict');

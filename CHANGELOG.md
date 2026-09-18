@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.20.1
+
+Make the Stop Shadow hook genuinely non-blocking.
+
+- The host Stop hook now writes the event to a temp file and spawns `scripts/stop-shadow.js` detached; the hook returns immediately.
+- The detached scanner keeps the Change Inspector timeout and records `shadow_gap` itself; it deletes its event file after reading it.
+- Added an append-only `last-run.jsonl` heartbeat so a stopped/never-running shadow is visible instead of inferred from an empty state directory.
+- Active Stop recursion still writes nothing; `STOP_SHADOW_OFF=1` disables the shadow hook.
+
 ## 2.20.0
 
 Stop Shadow: the Stop hook now runs the incremental session scan automatically.

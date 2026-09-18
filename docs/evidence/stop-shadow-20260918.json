@@ -16,5 +16,8 @@
   "no_run": true,
   "no_closure": true,
   "no_verdict": true,
-  "private_session_content_shipped": false
+  "private_session_content_shipped": false,
+  "hook_detached": true,
+  "heartbeat": "last-run.jsonl",
+  "event_file_removed_after_read": true
 }

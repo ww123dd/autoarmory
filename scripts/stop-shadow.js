@@ -1,17 +1,58 @@
 #!/usr/bin/env node
 'use strict';
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { runStopShadow, recordGap } = require('../src/lib/stop-shadow');
 function arg(name) { const index = process.argv.indexOf(name); return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : null; }
 function event() {
   const file = arg('--event');
-  if (file) return JSON.parse(fs.readFileSync(path.resolve(file), 'utf8') || '{}');
+  if (file) {
+    const full = path.resolve(file);
+    const rawEvent = fs.readFileSync(full, 'utf8') || '{}';
+    try { fs.unlinkSync(full); } catch (_) {}
+    return JSON.parse(rawEvent);
+  }
   let raw = '';
   try { raw = fs.readFileSync(0, 'utf8'); } catch (_) { raw = ''; }
   return JSON.parse(raw || '{}');
 }
+// Heartbeat. Every Stop appends exactly one row, on every exit path — ran, gap or
+// error. Without it the only way to learn whether shadow ran is to open the state
+// directory and infer, which is how it went unnoticed that no real session had
+// ever produced a draft.
+//
+// Appended (.jsonl), not overwritten: a single last-run.json can only say what
+// happened once, while the point of a heartbeat is to see that it has been
+// failing every time. The most recent row still answers "did it run just now".
+function beat(stateDir, ev, status, reason, result) {
+  try {
+    fs.mkdirSync(stateDir, { recursive: true });
+    fs.appendFileSync(path.join(stateDir, 'last-run.jsonl'), JSON.stringify({
+      schema_version: 'autoarmory/stop-shadow-last-run/v1',
+      at: new Date().toISOString(),
+      session_id: ev.session_id || null,
+      transcript_path: ev.transcript_path || null,
+      status: status,
+      reason: reason || null,
+      draft_count: (result && result.drafts) || 0,
+      high_signal_count: (result && result.high_signal) || 0
+    }) + '\n', 'utf8');
+  } catch (_) {}
+}
 let ev = {};
 try { ev = event(); } catch (_) { ev = {}; }
-try { runStopShadow(ev, { repo: path.resolve(__dirname, '..') }); } catch (error) { try { recordGap(process.env.AUTOARMORY_STOP_STATE || path.join(require('os').homedir(), '.codex', 'autoarmory', 'stop-shadow'), ev, 'internal_error'); } catch (_) {} }
+if (ev.stop_hook_active === true || process.env.STOP_SHADOW_OFF === '1') process.exit(0);
+const stateDir = process.env.AUTOARMORY_STOP_STATE || path.join(os.homedir(), '.codex', 'autoarmory', 'stop-shadow');
+if (!ev.session_id && !ev.transcript_path) beat(stateDir, ev, 'skipped', 'no session_id and no transcript_path');
+else {
+  try {
+    const result = runStopShadow(ev, { repo: path.resolve(__dirname, '..') });
+    if (result && result.gap) beat(stateDir, ev, 'gap', result.gap, result);
+    else beat(stateDir, ev, 'ran', null, result);
+  } catch (error) {
+    try { recordGap(stateDir, ev, 'internal_error'); } catch (_) {}
+    beat(stateDir, ev, 'error', String((error && error.message) || error), null);
+  }
+}
 process.exit(0);
