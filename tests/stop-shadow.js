@@ -55,7 +55,7 @@ function filesUnder(dir) {
 const textual = filesUnder(state).filter(function (file) { return /\.(?:json|jsonl)$/i.test(file) && !/change-inspector|session-case-drafts|session-unverifiable/.test(file); }).map(function (file) { return fs.readFileSync(file, 'utf8'); }).join('\n');
 must(!/verifier_resolution|verifier_ref|verifier-bindings/.test(textual), 'change-inventory outputs must not contain verifier bindings');
 must(!fs.existsSync(path.join(state, 'verifier-bindings.jsonl')), 'stop shadow must not write verifier-bindings.jsonl');
-must(high.llm_judge_calls === 0 && high.auto_close_count === 0 && high.manual_case_creation_count === 0, 'stop shadow must be deterministic and non-final');
+must(high.policy_invariants.llm_judge_calls === 0 && high.policy_invariants.auto_close_count === 0 && high.policy_invariants.manual_case_creation_count === 0, 'stop shadow must be deterministic and non-final');
 for (const forbidden of ['mechanisms.jsonl', 'mechanism-runs.jsonl', 'closures.jsonl', 'verifier-bindings.jsonl']) {
   must(!fs.existsSync(path.join(state, forbidden)), 'stop shadow must not generate ' + forbidden);
 }
@@ -88,9 +88,11 @@ fs.writeFileSync(fallbackFile, [
 const fallbackState = path.join(temp, 'fallback-state');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name:'Stop', session_id:fallbackId, cwd:temp, stop_hook_active:false }), encoding:'utf8', env:Object.assign({}, process.env, { CODEX_SESSION_ROOT:fallbackRoot, AUTOARMORY_STOP_STATE:fallbackState }) });
 must(result.status === 0, 'fallback stop shadow must not block');
-must(fs.existsSync(path.join(fallbackState, 'case-drafts.jsonl')), 'cwd fallback must find a real rollout');
+must(!fs.existsSync(path.join(fallbackState, 'case-drafts.jsonl')), 'cwd fallback must not be accepted as canonical session');
+const fallbackGap = JSON.parse(fs.readFileSync(path.join(fallbackState, 'shadow-gaps.jsonl'), 'utf8').trim().split(/\r?\n/).pop());
+must(fallbackGap.match === 'cwd_candidate' && fallbackGap.fallback_candidate.indexOf('different-id') !== -1, 'cwd fallback must remain diagnostic-only');
 const beat = JSON.parse(fs.readFileSync(path.join(fallbackState, 'last-stop.json'), 'utf8'));
-must(beat.match === 'latest_cwd' && beat.candidate_count >= 1, 'heartbeat must report fallback match and candidate count');
+must(beat.match === 'cwd_candidate' && beat.candidate_count >= 1, 'heartbeat must report cwd candidate without using it');
 const provenanceRoot = path.join(temp, 'provenance-sessions');
 const provenanceDir = path.join(provenanceRoot, '2026', '09', '18');
 fs.mkdirSync(provenanceDir, { recursive: true });

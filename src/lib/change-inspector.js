@@ -10,6 +10,15 @@ const CHANGE_COMMAND_RE = /(set-content|add-content|out-file|sed\s+-i|tee\s|trun
 const STRUCTURED_EXIT_RE = /"exit_code"\s*:\s*(-?\d+)/;
 const ERROR_RE = /(error|exception|failed|failure|not found|traceback|fatal|exit code [1-9])/i;
 
+function auditSignalClassifier() {
+  const checkPositive = ['pytest -q','npm test','npm run build','tsc --noEmit','node tests/run.js','verify_all','curl https://example.com','SELECT id FROM t','EXPLAIN SELECT 1','SHOW TABLES','DESC t','doris query','数据同步','海豚调度','compaction lag','profile query'];
+  const checkNegative = ['hello world','git status','echo done','write a paragraph','review the design'];
+  const riskPositive = ['production deploy','prod release','publish package','permission change','授权管理员','权限提升','删除文件','DROP TABLE t','TRUNCATE t','write file','写入生产','外部 webhook','oauth token','secret value','凭据轮换'];
+  const riskNegative = ['read only','SELECT id FROM t','summary only','local test','safe refactor'];
+  const recall = function (items, re) { return items.filter(function (text) { return re.test(text); }).length / items.length; };
+  const falsePositiveRate = function (items, re) { return items.filter(function (text) { return re.test(text); }).length / items.length; };
+  return { check_recall: recall(checkPositive, CHECK_RE), check_false_positive_rate: falsePositiveRate(checkNegative, CHECK_RE), risk_recall: recall(riskPositive, RISK_RE), risk_false_positive_rate: falsePositiveRate(riskNegative, RISK_RE), check_samples: checkPositive.length + checkNegative.length, risk_samples: riskPositive.length + riskNegative.length };
+}
 function parseArgsValue(value) { try { return JSON.parse(value || '{}'); } catch (_) { return { raw: String(value || '') }; } }
 function commandOf(event) {
   const tool = String(event && event.tool || '').toLowerCase();
@@ -242,4 +251,4 @@ function inspect(events, state, options) {
     metrics: metrics
   };
 }
-module.exports = { inspectEvents, inspect, summarize, buildChanges, candidateCases, resolveVerifier, resultStatus, commandOf, isCheckCommand, isHighSignal };
+module.exports = { CHECK_RE, RISK_RE, inspectEvents, inspect, summarize, buildChanges, candidateCases, resolveVerifier, resultStatus, commandOf, isCheckCommand, isHighSignal, auditSignalClassifier };

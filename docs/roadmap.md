@@ -133,6 +133,13 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
+## 2.24.0
+
+- [x] CHECK/RISK recall audit: recall=1, curated false-positive rate=0.
+- [x] append-only canonical change-records with duplicate-ID repair.
+- [x] `latest_cwd` fallback diagnostic-only; no false session attribution.
+- [x] `.bak` retention and policy-invariant telemetry cleanup.
+
 ## 2.23.0
 
 - [x] Stop enqueues `pending/<change_id>.json` for high-signal changes only.
@@ -154,7 +161,7 @@
 
 ## 2.21.4
 
-- [x] canonical `candidate-cases.jsonl` -> derived `case-drafts.jsonl` projection.
+- [x] canonical `change-records.jsonl` -> derived `case-drafts.jsonl` projection; legacy `candidate-cases.jsonl` is not canonical.
 - [x] existing session/turn provenance wins; event fills only missing fields.
 - [x] projection/new/current/attribution counters are separated; bare-UUID pollution is marked `attribution_lost`.
 - [x] dedupe key is `session_id|id`.

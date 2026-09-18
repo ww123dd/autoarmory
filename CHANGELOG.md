@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.24.0
+
+Audit the signal layer, make canonical writes append-only, and fail closed on uncertain session attribution.
+
+- Added CHECK/RISK recall audit plus evidence tests.
+- `change-records.jsonl` and `change-inventory.jsonl` are appended, not rewrite-merged; duplicate IDs are repaired on read.
+- `latest_cwd` is diagnostic-only and no longer becomes a canonical session.
+- Policy invariants moved under `policy_invariants`; `.bak` retention prunes old backups.
+- Contract references now point to `change-records.jsonl` as canonical everywhere.
+
 ## 2.23.1
 
 Backfill the canonical change records so the projection rebuild cannot wipe history.
@@ -39,7 +49,7 @@ Separate candidate recording from user interruption and make change_id primary.
 
 Preserve canonical provenance in the Stop Shadow projection.
 
-- `candidate-cases.jsonl` remains the canonical source of truth; `case-drafts.jsonl` is a derived projection.
+- `change-records.jsonl` is the canonical source of truth; `case-drafts.jsonl` is a derived projection.
 - The current Stop event only fills missing `session_id` / `turn_id`; existing provenance always wins.
 - Projection summary now separates `projection_total`, `current_session_draft_count`, `new_draft_count`, `attribution_preserved_count`, `attribution_lost_count` and `attribution_filled_from_event_count`.
 - Dedupe key is now `session_id|id`, so the same draft id in different sessions is not silently merged.

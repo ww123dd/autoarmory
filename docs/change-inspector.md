@@ -26,4 +26,4 @@ Signals:
 
 `check_gap` means no later observed check in the local window. It does not mean `unverified`.
 
-High-signal candidates are written to `candidate-cases.jsonl` and `notifications.jsonl`. Low-signal changes are recorded but suppressed. No item is closed by the inspector; `close_without_verifier_count` stays zero and `false_close_count` is a lagging indicator requiring a future counterexample.
+The canonical ledger is `change-records.jsonl`; `new-drafts.jsonl` contains the current increment. High-signal candidates are written to `notifications.jsonl` and `pending/<change_id>.json`. Low-signal changes are recorded but suppressed. No item is closed by the inspector; `close_without_verifier_count` stays zero and `false_close_count` is a lagging indicator requiring a future counterexample.

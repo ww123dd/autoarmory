@@ -37,7 +37,7 @@
     "exact_matches",
     "tail_matches"
   ],
-  "canonical_source": "change-inspector/candidate-cases.jsonl",
+  "canonical_source": "change-inspector/change-records.jsonl",
   "projection": "case-drafts.jsonl",
   "append_only_case_drafts": false,
   "event_priority": false,
@@ -57,5 +57,7 @@
   "no_new_stop_full_projection": false,
   "pending_jobs": true,
   "background_runner": "history-runner --drain",
-  "stop_runs_verifier": false
+  "stop_runs_verifier": false,
+  "legacy_candidate_cases_canonical": false,
+  "cwd_fallback_attribution": "diagnostic_only"
 }

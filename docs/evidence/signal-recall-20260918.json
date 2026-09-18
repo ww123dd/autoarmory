@@ -1,0 +1,12 @@
+{
+  "schema_version": "autoarmory/signal-recall-evidence/v1",
+  "captured_at": "2026-09-18T13:00:00.000Z",
+  "check_recall": 1,
+  "check_false_positive_rate": 0,
+  "risk_recall": 1,
+  "risk_false_positive_rate": 0,
+  "check_samples": 20,
+  "risk_samples": 20,
+  "llm_judge_calls": 0,
+  "private_session_content_shipped": false
+}

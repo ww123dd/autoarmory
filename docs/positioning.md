@@ -14,7 +14,7 @@ Four questions, each answerable only from records:
 | **optimise** skills (edit the text until scores improve) | **SkillOpt (Microsoft Research, 2026-06)**: text-space optimizer, trajectory-driven edits, validation-gated updates, best-or-tied in 52 evaluation cells | **no, deliberately** |
 | **verify and manage the lifecycle** of a capability in one operator environment | nobody systematically | **yes** |
 
-The most advanced optimizer still needs a validation gate - SkillOpt calls its own updates "validation-gated". But that gate is *its* benchmark in *its* environment. That is the self-证明 problem this project exists to remove: when the thing that improves a skill also decides whether the improvement worked, the score is part of the product.
+The most advanced optimizer still needs a validation gate - SkillOpt calls its own updates "validation-gated". But that gate is *its* benchmark in *its* environment. That is the self-proving problem this project exists to remove: when the thing that improves a skill also decides whether the improvement worked, the score is part of the product.
 
 Stronger optimizers do not crowd this layer out; they enlarge its entrance. More optimised skills means more claims of "it got better", and every such claim needs an external fact before anyone can act on it. The analogy is SLSA to build tools and TUF to package managers: nobody expects SLSA to write a compiler.
 

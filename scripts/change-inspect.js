@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { parseArgs, printJson, readJson, writeJson, writeJsonl } = require('../src/lib/util');
+const { parseArgs, printJson, readJson, writeJson, writeJsonl, appendJsonl, dedupeJsonl, pruneBackups } = require('../src/lib/util');
 const shadow = require('../src/lib/session-shadow');
 const inspector = require('../src/lib/change-inspector');
 
@@ -52,15 +52,25 @@ const runOnce = function () {
   if (records.length) {
     const inventoryFile = path.join(stateDir, 'change-inventory.jsonl');
     const canonicalFile = path.join(stateDir, 'change-records.jsonl');
-    writeJsonl(inventoryFile, fs.existsSync(inventoryFile) ? require('../src/lib/util').readJsonl(inventoryFile).concat(records) : records);
-    writeJsonl(canonicalFile, fs.existsSync(canonicalFile) ? require('../src/lib/util').readJsonl(canonicalFile).concat(records) : records);
+    appendJsonl(canonicalFile, records);
+    appendJsonl(inventoryFile, records);
+    dedupeJsonl(canonicalFile, function (row) { return row.id; });
+    dedupeJsonl(inventoryFile, function (row) { return row.id; });
   }
   const ids = verifierIds(args['verifier-profile'] ? path.resolve(args['verifier-profile']) : path.resolve('verifiers.lock.json'));
   const drafts = records.length ? inspector.candidateCases(records, { verifier_ids: ids }) : [];
   writeJsonl(path.join(stateDir, 'new-drafts.jsonl'), drafts);
-  if (drafts.length) writeJsonl(path.join(stateDir, 'candidate-cases.jsonl'), fs.existsSync(path.join(stateDir, 'candidate-cases.jsonl')) ? require('../src/lib/util').readJsonl(path.join(stateDir, 'candidate-cases.jsonl')).concat(drafts) : drafts);
+  if (drafts.length) {
+    const candidateFile = path.join(stateDir, 'candidate-cases.jsonl');
+    appendJsonl(candidateFile, drafts);
+    dedupeJsonl(candidateFile, function (row) { return row.change_id || row.id; });
+  }
   const notifications = drafts.filter(function (d) { return d.high_signal === true; });
-  if (notifications.length) writeJsonl(path.join(stateDir, 'notifications.jsonl'), fs.existsSync(path.join(stateDir, 'notifications.jsonl')) ? require('../src/lib/util').readJsonl(path.join(stateDir, 'notifications.jsonl')).concat(notifications) : notifications);
+  if (notifications.length) {
+    const notificationFile = path.join(stateDir, 'notifications.jsonl');
+    appendJsonl(notificationFile, notifications);
+    dedupeJsonl(notificationFile, function (row) { return row.change_id || row.id; });
+  }
   const changes = inspector.buildChanges(records);
   const metrics = inspector.summarize(records, drafts);
   const gaps = changes.filter(function (c) { return c.check_status === 'check_gap'; });
@@ -72,6 +82,7 @@ const runOnce = function () {
   writeJson(path.join(stateDir, 'check-gap-report.json'), { schema_version: 'autoarmory/check-gap-report/v1', check_gap_path_computable: metrics.check_gap_path_computable, check_gap_count: gaps.length, changes: gaps });
   writeJson(path.join(stateDir, 'high-signal-changes.json'), { schema_version: 'autoarmory/high-signal-changes/v1', count: drafts.filter(function (d) { return d.high_signal === true; }).length, changes: drafts.filter(function (d) { return d.high_signal === true; }) });
   writeJson(path.join(stateDir, 'change-summary.json'), { schema_version: 'autoarmory/change-inspector-summary/v1', sessions: sessionArgs, records: records.length, changes: changes.length, metrics: metrics, generated_at: new Date().toISOString() });
+  pruneBackups(stateDir, { maxPerFile: 3, maxAgeDays: 7 });
   writeJson(stateFile, state);
   if (args.json) printJson({ schema_version: 'autoarmory/change-inspector-run/v1', sessions: sessionArgs.length, records: records.length, metrics: metrics }); else process.stdout.write('change inspector: records=' + records.length + '\n');
 };

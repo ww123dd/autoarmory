@@ -25,7 +25,9 @@ function recordGap(dir, event, reason, diagnostics) {
       elapsed_ms: diagnostics && diagnostics.elapsed_ms || null,
       candidate_count: diagnostics && diagnostics.candidate_count || 0,
       exact_matches: diagnostics && diagnostics.exact_matches || 0,
-      tail_matches: diagnostics && diagnostics.tail_matches || 0
+      tail_matches: diagnostics && diagnostics.tail_matches || 0,
+      match: diagnostics && diagnostics.match || null,
+      fallback_candidate: diagnostics && diagnostics.fallback_candidate || null
     }) + '\n', 'utf8');
   } catch (_) {}
 }
@@ -84,7 +86,7 @@ function locateSession(sessionId, options, event) {
   if (event && event.cwd) {
     for (const item of candidates) {
       const meta = sessionMeta(item.file);
-      if (meta && sameCwd(meta.cwd, event.cwd)) { info.file = item.file; info.match = 'latest_cwd'; info.elapsed_ms = Date.now() - started; return info; }
+      if (meta && sameCwd(meta.cwd, event.cwd)) { info.fallback_candidate = item.file; info.match = 'cwd_candidate'; info.elapsed_ms = Date.now() - started; return info; }
     }
   }
   info.elapsed_ms = Date.now() - started;
@@ -216,7 +218,7 @@ function runStopShadow(event, options) {
     writeJson(path.join(dir, 'projection-state.json'), projectionState);
     writeJsonl(path.join(engineDir, 'notifications.jsonl'), highSignal);
     writeJson(path.join(engineDir, 'high-signal-changes.json'), { schema_version: 'autoarmory/high-signal-changes/v1', count: highSignal.length, changes: highSignal });
-    writeJson(path.join(dir, 'high-signal.json'), { schema_version: 'autoarmory/stop-shadow-high-signal/v1', captured_at: new Date().toISOString(), session_id: event.session_id || null, count: highSignal.length, changes: highSignal, llm_judge_calls: 0, auto_close_count: 0, manual_case_creation_count: 0, stop_hook_blocked_session_count: 0 });
+    writeJson(path.join(dir, 'high-signal.json'), { schema_version: 'autoarmory/stop-shadow-high-signal/v1', captured_at: new Date().toISOString(), session_id: event.session_id || null, count: highSignal.length, changes: highSignal, policy_invariants: { llm_judge_calls: 0, auto_close_count: 0, manual_case_creation_count: 0, stop_hook_blocked_session_count: 0 } });
     writePendingJobs(dir, newHighSignal);
   }
 
@@ -253,10 +255,7 @@ function runStopShadow(event, options) {
     session_verifier_mismatch: 0,
     session_verifier_missing: 0,
     duplicate_run_draft_count: 0,
-    stop_hook_blocked_session_count: 0,
-    llm_judge_calls: 0,
-    auto_close_count: 0,
-    manual_case_creation_count: 0
+    policy_invariants: { stop_hook_blocked_session_count: 0, llm_judge_calls: 0, auto_close_count: 0, manual_case_creation_count: 0 }
   });
   return { ok: true, session_id: event.session_id || null, drafts: newCandidates.length, projection_total: projectionState.projection_total || 0, current_session_draft_count: currentSessionDraftCount, new_draft_count: newCandidates.length, attribution_preserved_count: attribution.session_preserved || 0, attribution_lost_count: attribution.session_lost || 0, attribution_filled_from_event_count: attribution.session_filled || 0, high_signal: newHighSignal.length, diagnostics: Object.assign({}, located, { session_file: sessionFile }) };
 }

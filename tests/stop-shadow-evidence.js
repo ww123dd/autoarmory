@@ -13,7 +13,7 @@ must(report.no_verifier_binding === true && report.no_run === true && report.no_
 must(report.hook_detached === true && report.heartbeat === 'last-stop.json' && report.event_file_removed_after_read === true, 'detached hook, heartbeat and event cleanup');
 must(report.session_shadow_attached === true && report.session_shadow_incremental === 'new-events.jsonl', 'session-shadow must run incrementally from the Stop hook');
 must(report.real_stop_verified === true && report.real_stop_match === 'exact' && report.real_stop_draft_count > 0, 'a real Stop must produce drafts');
-must(report.canonical_source === 'change-inspector/candidate-cases.jsonl' && report.projection === 'case-drafts.jsonl' && report.append_only_case_drafts === false, 'canonical/projection boundary');
+must(report.canonical_source === 'change-inspector/change-records.jsonl' && report.projection === 'case-drafts.jsonl' && report.append_only_case_drafts === false, 'canonical/projection boundary');
 must(report.event_priority === false && report.provenance_policy === 'existing_wins_fill_missing_only' && report.dedupe_key === 'change_id', 'provenance policy');
 must(report.projection_counts.projection_total > report.projection_counts.new_draft_count && report.projection_counts.attribution_lost_count > 0, 'projection and attribution counters');
 must(report.last_stop_json === true && report.cwd_fallback === true && report.gap_diagnostics.length === 6, 'heartbeat and failure diagnostics');
