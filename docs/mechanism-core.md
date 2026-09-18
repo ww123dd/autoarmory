@@ -150,3 +150,15 @@ unverified | verified | expired | bypassed | closed
 - records a non-empty counterexample;`n- declares and passes the case Done Contract bound to that same verifier and run.
 
 The first slice does not execute external tools as part of the verifier core. It re-runs only registered, read-only verifier adapters whose digest is pinned in the trust root.
+
+## Mechanism Scope & Validity
+
+`mechanism` may optionally declare `scope`, `scope_sha256`, `expires_at` and `reopen_trigger`. No new object is introduced.
+
+- `scope_sha256` is derived from `scope` at registration; a supplied hash must match.
+- Scope hash proves integrity and equality only. It does not prove the scope is correct.
+- Trigger kinds are limited to computable predicates: `runner_changed`, `case_changed`, `scope_changed`, `file_changed`, `evidence_expired`, `environment_changed`.
+- `file_changed` requires `target` and `expected_sha256`; free-text triggers are rejected.
+- `status` returns `reopen_required` when the scope drifted, `expires_at` passed, or a trigger predicate hit.
+- `promote`, `close` and reuse checks reject legacy unscoped mechanisms, scope drift, expiry and reopen-required mechanisms.
+- Preflight reports `unscoped_promotion_count`, `out_of_scope_reuse_count`, `expired_mechanism_reuse_count`, `legacy_unscoped_promotion_count`, `reopen_trigger_invalid_count` and `reopen_required_escape_count`.

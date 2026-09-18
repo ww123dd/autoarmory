@@ -70,7 +70,7 @@ function makeFixture(name) {
   must(mechanism.registerMechanism(state, {
     schema_version: 'autoarmory/mechanism/v1', id: 'mech-rollback', name: 'Rollback fixture', covered_failure_modes: ['masked_failure'],
     trigger: 'fixture trigger', action: 'fixture action', verification: 'pinned fixture runner', verifier_id: 'rollback-verifier',
-    closure_criteria: 'evidence stays fresh', owner: 'user', version: '1.0.0'
+    closure_criteria: 'evidence stays fresh', owner: 'user', version: '1.0.0', scope: { project: 'rollback', task_type: 'fixture', environment: 'test', artifact_type: 'fixture' }
   }, { repo: repo }).ok, 'mechanism registration');
   return { repo: repo, state: state, adapter: adapter, lockFile: path.join(repo, 'verifiers.lock.json') };
 }

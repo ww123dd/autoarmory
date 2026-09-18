@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.19.0
+
+Mechanism Scope & Validity: scope, expiry and computable reopen predicates on the existing mechanism object.
+
+- Added optional `scope`, `scope_sha256`, `expires_at` and `reopen_trigger` fields; old mechanisms remain `legacy_unscoped`.
+- `scope_sha256` proves integrity/equality only; scope correctness remains a replay/counterexample question.
+- Added computable predicates `runner_changed`, `case_changed`, `scope_changed`, `file_changed`, `evidence_expired`, `environment_changed`; free-text triggers are rejected.
+- `status` can return `reopen_required`; `close`, `promote` and reuse checks reject scope drift, expiry, legacy-unscoped mechanisms and trigger hits.
+- Added six preflight counters: `unscoped_promotion_count`, `out_of_scope_reuse_count`, `expired_mechanism_reuse_count`, `legacy_unscoped_promotion_count`, `reopen_trigger_invalid_count`, `reopen_required_escape_count`.
+- Added `tests/mechanism-scope.js`, `tests/mechanism-scope-evidence.js`, schema fields and sanitized `docs/evidence/mechanism-scope-20260918.json`.
+
 ## 2.18.0
 
 Claude JSONL normalization plus fail-closed raw/normalized accounting.

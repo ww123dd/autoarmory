@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const mechanism = require('../src/lib/mechanism');
 const verify = require('../src/lib/verify');
+const mechanismScope = require('../src/lib/mechanism-scope');
 
 const repo = process.cwd();
 const state = path.resolve(process.env.AUTOARMORY_STATE || path.join(repo, '.selfforge'));
@@ -39,12 +40,26 @@ const cases = readJsonl(path.join(state, 'cases.jsonl'));
 const blockers = [];
 let staleVerdictEscapes = 0;
 let staleLifecycleEscapes = 0;
+let unscopedPromotionCount = 0;
+let legacyUnscopedPromotionCount = 0;
+let outOfScopeReuseCount = 0;
+let expiredMechanismReuseCount = 0;
+let reopenTriggerInvalidCount = 0;
+let reopenRequiredEscapeCount = 0;
 for (const record of records) {
   const status = mechanism.status(state, record.id, { repo: repo });
   const life = mechanism.lifecycle(state, record.id);
   const promoted = life.to === 'promoted';
   const retired = life.to === 'retired';
   const healthy = status.ok && (status.status === 'verified' || status.status === 'closed');
+  const triggerCheck = mechanismScope.validateReopenTriggers(record.reopen_trigger);
+  if (!triggerCheck.ok) { reopenTriggerInvalidCount += triggerCheck.errors.length; blockers.push(record.id + ': invalid reopen trigger - ' + triggerCheck.errors.join('; ')); }
+  const scopeDrift = record.scope && record.scope_sha256 && record.scope_sha256 !== mechanismScope.scopeSha256(record.scope);
+  const expired = record.expires_at && Date.now() >= Date.parse(record.expires_at);
+  if (promoted && (!record.scope || !record.scope_sha256)) { unscopedPromotionCount += 1; legacyUnscopedPromotionCount += 1; blockers.push(record.id + ': promoted legacy_unscoped mechanism'); }
+  if (promoted && scopeDrift) { outOfScopeReuseCount += 1; blockers.push(record.id + ': promoted mechanism has scope_changed'); }
+  if (promoted && expired) { expiredMechanismReuseCount += 1; blockers.push(record.id + ': promoted mechanism is past expires_at'); }
+  if (promoted && status.status === 'reopen_required') reopenRequiredEscapeCount += 1;
   // A promotion outliving its evidence is the escape this loop exists to prevent:
   // the verdict is already gone, yet the capability would stay promoted.
   if (promoted && !healthy) {
@@ -101,7 +116,7 @@ try {
 }
 
 if (blockers.length) {
-  process.stderr.write('MECHANISM_PREFLIGHT_BLOCK\n' + blockers.join('\n') + '\n' + 'stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + ', stale_candidate_escape_count=' + staleCandidateEscapes + ', uncovered_candidate_evidence=' + uncoveredCandidateEvidence + '\n');
+  process.stderr.write('MECHANISM_PREFLIGHT_BLOCK\n' + blockers.join('\n') + '\n' + 'stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + ', stale_candidate_escape_count=' + staleCandidateEscapes + ', uncovered_candidate_evidence=' + uncoveredCandidateEvidence + ', unscoped_promotion_count=' + unscopedPromotionCount + ', legacy_unscoped_promotion_count=' + legacyUnscopedPromotionCount + ', out_of_scope_reuse_count=' + outOfScopeReuseCount + ', expired_mechanism_reuse_count=' + expiredMechanismReuseCount + ', reopen_trigger_invalid_count=' + reopenTriggerInvalidCount + ', reopen_required_escape_count=' + reopenRequiredEscapeCount + '\n');
   process.exit(2);
 }
-process.stdout.write('mechanism preflight passed: ' + records.length + ' mechanism(s) verified/closed, stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + ', stale_candidate_escape_count=' + staleCandidateEscapes + ', uncovered_candidate_evidence=' + uncoveredCandidateEvidence + '\n');
+process.stdout.write('mechanism preflight passed: ' + records.length + ' mechanism(s) verified/closed, stale_verdict_escape_count=' + staleVerdictEscapes + ', stale_lifecycle_escape_count=' + staleLifecycleEscapes + ', stale_candidate_escape_count=' + staleCandidateEscapes + ', uncovered_candidate_evidence=' + uncoveredCandidateEvidence + ', unscoped_promotion_count=' + unscopedPromotionCount + ', legacy_unscoped_promotion_count=' + legacyUnscopedPromotionCount + ', out_of_scope_reuse_count=' + outOfScopeReuseCount + ', expired_mechanism_reuse_count=' + expiredMechanismReuseCount + ', reopen_trigger_invalid_count=' + reopenTriggerInvalidCount + ', reopen_required_escape_count=' + reopenRequiredEscapeCount + '\n');

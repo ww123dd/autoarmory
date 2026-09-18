@@ -5,8 +5,9 @@ const path = require('path');
 const { readJsonl, writeJsonl, sha256 } = require('./util');
 const verify = require('./verify');
 const doneContract = require('./done-contract');
+const mechanismScope = require('./mechanism-scope');
 
-const STATUSES = ['unverified', 'verified', 'expired', 'bypassed', 'closed'];
+const STATUSES = ['unverified', 'verified', 'expired', 'bypassed', 'closed', 'reopen_required'];
 function files(stateDir) {
   return {
     cases: path.join(stateDir, 'cases.jsonl'),
@@ -58,6 +59,8 @@ function registerMechanism(stateDir, value, options) {
   const errors = requireFields(input, ['schema_version', 'id', 'name', 'covered_failure_modes', 'trigger', 'action', 'verification', 'verifier_id', 'closure_criteria', 'owner', 'version'], 'mechanism');
   if (input.schema_version !== 'autoarmory/mechanism/v1') errors.push('schema_version must be autoarmory/mechanism/v1');
   if (!Array.isArray(input.covered_failure_modes) || input.covered_failure_modes.length === 0) errors.push('mechanism.covered_failure_modes must be a non-empty array');
+  const scopeCheck = mechanismScope.validateScopeFields(input);
+  errors.push.apply(errors, scopeCheck.errors);
   const inventory = verify.listVerifiers(opts.repo || stateDir);
   if (!inventory.ok) {
     errors.push('mechanism.verifier_id cannot be checked: ' + inventory.errors.join('; '));
@@ -71,7 +74,7 @@ function registerMechanism(stateDir, value, options) {
   const rows = read(state.mechanisms);
   const duplicate = recordExists(rows, input.id, 'mechanism');
   if (duplicate.length) return { ok: false, errors: duplicate };
-  const record = Object.assign({}, input, { schema_version: 'autoarmory/mechanism/v1', status: input.status || 'proposed', registered_at: new Date().toISOString() });
+  const record = Object.assign({}, input, { schema_version: 'autoarmory/mechanism/v1', status: input.status || 'proposed', registered_at: new Date().toISOString() }, scopeCheck.patch);
   append(state.mechanisms, record);
   return { ok: true, mechanism: record };
 }
@@ -169,6 +172,12 @@ function closeCase(stateDir, caseId, runId, options) {
   if (verification.status !== 'verified') return { ok: false, errors: [verificationFailure(verification)] };
   const completion = doneContract.evaluateDoneContract(item, mechanism, run, verification);
   if (!completion.ok) return { ok: false, errors: completion.errors };
+  const scopeDrift = mechanism.scope && mechanism.scope_sha256 && mechanism.scope_sha256 !== mechanismScope.scopeSha256(mechanism.scope);
+  const expiredNow = mechanism.expires_at && Date.now() >= Date.parse(mechanism.expires_at);
+  const reopen = mechanismScope.evaluateReopenTriggers(mechanism, stateDir, opts);
+  if (scopeDrift) return { ok: false, errors: ['mechanism scope has changed; reopen is required before close'] };
+  if (expiredNow) return { ok: false, errors: ['mechanism expires_at has passed; reopen is required before close'] };
+  if (reopen.required) return { ok: false, errors: ['mechanism reopen trigger hit before close: ' + JSON.stringify(reopen.hits)] };
   if (closures.some(function (entry) { return entry.case_id === caseId && entry.run_id === runId; })) return { ok: false, errors: ['case already closed for this run'] };
   const closure = {
     schema_version: 'autoarmory/closure/v1',
@@ -245,11 +254,23 @@ function status(stateDir, mechanismId, options) {
     } else if (closure) { verdict = 'closed'; reason = 'latest verified run closed the case'; }
     else { verdict = 'verified'; reason = 'latest run verification passed and has not been closed'; }
   }
+  const scopeDrift = mechanism.scope && mechanism.scope_sha256 && mechanism.scope_sha256 !== mechanismScope.scopeSha256(mechanism.scope);
+  const expiredNow = mechanism.expires_at && Date.now() >= Date.parse(mechanism.expires_at);
+  const reopen = mechanismScope.evaluateReopenTriggers(mechanism, stateDir, opts);
+  if ((verdict === 'verified' || verdict === 'closed') && scopeDrift) { verdict = 'reopen_required'; reason = 'mechanism scope hash drift (scope_changed)'; }
+  else if ((verdict === 'verified' || verdict === 'closed') && expiredNow) { verdict = 'reopen_required'; reason = 'mechanism expires_at has passed'; }
+  else if ((verdict === 'verified' || verdict === 'closed') && reopen.required) { verdict = 'reopen_required'; reason = 'mechanism reopen trigger hit: ' + reopen.hits.map(function (x) { return x.kind; }).join(', '); }
+  const scopeStatus = !mechanism.scope ? 'legacy_unscoped' : (scopeDrift ? 'scope_changed' : 'scoped');
   return {
     ok: true,
     schema_version: 'autoarmory/mechanism-status/v1',
     mechanism_id: mechanismId,
     status: verdict,
+    scope_status: scopeStatus,
+    scope_sha256: mechanism.scope_sha256 || null,
+    expires_at: mechanism.expires_at || null,
+    reopen_required: reopen.required,
+    reopen_hits: reopen.hits,
     reason: reason,
     latest_run_id: latest ? latest.id : null,
     runner_id: latest ? latest.runner_id || null : null,
@@ -299,6 +320,10 @@ function promote(stateDir, mechanismId, options) {
   const opts = options || {};
   const mechanismRecord = read(files(stateDir).mechanisms).find(function (item) { return item.id === mechanismId; });
   if (!mechanismRecord) return { ok: false, errors: ['mechanism not found: ' + mechanismId] };
+  if (!mechanismRecord.scope || !mechanismRecord.scope_sha256) return { ok: false, errors: ['cannot promote legacy_unscoped mechanism: ' + mechanismId] };
+  if (mechanismRecord.scope_sha256 !== mechanismScope.scopeSha256(mechanismRecord.scope)) return { ok: false, errors: ['cannot promote mechanism with scope_changed: ' + mechanismId] };
+  const reuse = mechanismScope.canReuse(mechanismRecord, mechanismRecord.scope, stateDir, opts);
+  if (!reuse.ok) return { ok: false, errors: ['cannot promote ' + mechanismId + ': ' + reuse.status + ' - ' + reuse.reason] };
   const current = status(stateDir, mechanismId, opts);
   if (!current.ok) return { ok: false, errors: ['mechanism status unavailable: ' + (current.errors || []).join('; ')] };
   if (current.status !== 'verified' && current.status !== 'closed') {
@@ -375,4 +400,4 @@ function staleLifecycleEscapes(stateDir, options) {
   return escapes;
 }
 
-module.exports = { STATUSES, files, admitCase, registerMechanism, recordMechanismRun, closeCase, status, listMechanisms, lifecycle, lifecycleHistory, promote, rollbackIfStale, staleLifecycleEscapes };
+module.exports = { STATUSES, files, admitCase, registerMechanism, recordMechanismRun, closeCase, status, listMechanisms, lifecycle, lifecycleHistory, promote, rollbackIfStale, staleLifecycleEscapes, canReuse: mechanismScope.canReuse };

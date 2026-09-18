@@ -48,7 +48,7 @@ function caseRecord(id, incidentId) {
   return { schema_version: 'autoarmory/case/v1', id: id, incident_id: incidentId, title: 'Replayable failure case', expected_transition: 'COUNT->0', failure_mode: 'drift', severity: 'critical', evidence: ['fixture evidence'], reproducible: true, owner: 'codex', verifier: 'fixture', done_criteria: 'exit code 0 with a re-derived counterexample' };
 }
 function mechanismRecord(id, staleDays) {
-  return { schema_version: 'autoarmory/mechanism/v1', id: id, name: 'Fixture guard', covered_failure_modes: ['drift'], trigger: 'fixture trigger', action: 'fixture action', verification: 'pinned fixture adapter', verifier_id: 'fixture', closure_criteria: 'exit code 0 with a counterexample', owner: 'codex', version: '1.0.0', verification_stale_days: staleDays || 30 };
+  return { schema_version: 'autoarmory/mechanism/v1', id: id, name: 'Fixture guard', covered_failure_modes: ['drift'], trigger: 'fixture trigger', action: 'fixture action', verification: 'pinned fixture adapter', verifier_id: 'fixture', closure_criteria: 'exit code 0 with a counterexample', owner: 'codex', version: '1.0.0', verification_stale_days: staleDays || 30, scope: { project: 'fixture', task_type: 'fixture', environment: 'test', artifact_type: 'fixture' } };
 }
 function fixtureRef(id, mode, verifier) { return { id: id, verifier: verifier || 'fixture', params: { mode: mode || 'pass' } }; }
 function capture(repo, id, mode, verifier) {

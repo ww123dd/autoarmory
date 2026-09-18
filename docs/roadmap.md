@@ -131,6 +131,14 @@
 
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
+## 2.19.0
+
+- [x] optional mechanism scope/expiry/reopen trigger fields; no fifth object.
+- [x] scope hash, equality and drift are mechanically checked; scope correctness is not claimed.
+- [x] trigger predicates are limited to existing facts and free-text triggers are rejected.
+- [x] status/promote/close/reuse all honor expiry, scope drift and reopen predicates.
+- [x] legacy unscoped mechanisms remain viewable but cannot promote or reuse.
+- [x] preflight six-count acceptance: unscoped promotion, out-of-scope reuse, expired reuse, legacy promotion, invalid trigger and reopen escape all zero.
 ## 2.18.0
 
 - [x] Claude JSONL branch: user/assistant rows split into text, tool_use and tool_result events.

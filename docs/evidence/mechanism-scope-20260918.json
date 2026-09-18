@@ -1,0 +1,16 @@
+{
+  "schema_version": "autoarmory/mechanism-scope-evidence/v1",
+  "captured_at": "2026-09-18T00:10:00.000Z",
+  "acceptance": {
+    "unscoped_promotion_count": 0,
+    "out_of_scope_reuse_count": 0,
+    "expired_mechanism_reuse_count": 0,
+    "legacy_unscoped_promotion_count": 0,
+    "reopen_trigger_invalid_count": 0,
+    "reopen_required_escape_count": 0
+  },
+  "predicate_kinds": ["runner_changed","case_changed","scope_changed","file_changed","evidence_expired","environment_changed"],
+  "scope_is_correctness_proof": false,
+  "free_text_trigger_count": 0,
+  "private_state_shipped": false
+}
