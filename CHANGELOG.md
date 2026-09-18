@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.29.1
+
+One state root for both legs, so the first real verdict reaches the operator surface.
+
+- inbox/result/status/intake/bind/run now default to the shared state root (AUTOARMORY_STATE || AUTOARMORY_STOP_STATE || ~/.codex/autoarmory/stop-shadow) instead of a CWD-relative .selfforge; explicit --state still wins.
+- scripts/merge-state-roots.js unions legacy roots (phase-a, .selfforge) into the shared root by id: target rows win, reuse-records copy by change_id, reruns write nothing; sources are never modified. Applied for real: the tableau release-zip verdict is reachable via autoarmory result.
+- The gate itself caught that the approved release zip changed on disk after the closure (cb4a48d9 -> 86cba6ad), so the verdict honestly reads unverified. Next reviewed change: post-closure unverified should surface as an attention/reopen card instead of falling outside the four inbox buckets.
+
+
 ## 2.29.0
 
 Write the decision interface down and enforce it at the gate.

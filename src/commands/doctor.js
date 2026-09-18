@@ -1,5 +1,6 @@
 'use strict';
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { parseArgs, printJson, readJson, readJsonl } = require('../lib/util');
@@ -7,6 +8,13 @@ const skillcanary = require('../lib/skillcanary');
 const artifact = require('../lib/artifact');
 const mechanism = require('../lib/mechanism');
 const view = require('../lib/user-view');
+
+// One state root for both legs: the operator surface and the shadow runner.
+// CWD-relative defaults split the truth across roots; this keeps every command
+// on the same files unless an explicit --state overrides it.
+function defaultState() {
+  return path.resolve(process.env.AUTOARMORY_STATE || process.env.AUTOARMORY_STOP_STATE || path.join(os.homedir(), '.codex', 'autoarmory', 'stop-shadow'));
+}
 
 function run(argv) {
   const args = parseArgs(argv);
@@ -29,7 +37,7 @@ function run(argv) {
 
 function inbox(argv) {
   const args = parseArgs(argv);
-  const state = path.resolve(args.state || '.selfforge');
+  const state = path.resolve(args.state || defaultState());
   const report = view.inbox(state, { repo: path.resolve(args.repo || process.cwd()) });
   if (args.json) printJson(report);
   else {
@@ -46,8 +54,8 @@ function inbox(argv) {
 function result(argv) {
   const args = parseArgs(argv);
   const id = args._[0];
-  if (!id) { process.stderr.write('Usage: autoarmory result <case|run|artifact-id> [--state .selfforge] [--json]\n'); return 2; }
-  const report = view.result(path.resolve(args.state || '.selfforge'), id, { repo: path.resolve(args.repo || process.cwd()) });
+  if (!id) { process.stderr.write('Usage: autoarmory result <case|run|artifact-id> [--state <root>] [--json]\n'); return 2; }
+  const report = view.result(path.resolve(args.state || defaultState()), id, { repo: path.resolve(args.repo || process.cwd()) });
   if (!report.ok) { if (args.json) printJson(report); else process.stderr.write(report.errors.join('\n') + '\n'); return 1; }
   const card = report.card;
   if (args.json) printJson(card);
@@ -63,7 +71,7 @@ function result(argv) {
 
 function status(argv) {
   const args = parseArgs(argv);
-  const report = view.status(path.resolve(args.state || '.selfforge'), { repo: path.resolve(args.repo || process.cwd()) });
+  const report = view.status(path.resolve(args.state || defaultState()), { repo: path.resolve(args.repo || process.cwd()) });
   if (args.json) printJson(report);
   else process.stdout.write('pending=' + report.pending + ' approved=' + report.approved + ' attention=' + report.attention + ' expired=' + report.expired + ' revoked=' + report.revoked + ' unbound_artifacts=' + report.unbound_artifacts + '\n');
   return 0;
@@ -76,9 +84,9 @@ function approve(argv) {
 
 function intake(argv) {
   const args = parseArgs(argv);
-  if (args._[0] !== 'artifact' || !args._[1]) { process.stderr.write('Usage: autoarmory intake artifact <descriptor.json> [--state .selfforge] [--repo .] [--json]\n'); return 2; }
+  if (args._[0] !== 'artifact' || !args._[1]) { process.stderr.write('Usage: autoarmory intake artifact <descriptor.json> [--state <root>] [--repo .] [--json]\n'); return 2; }
   const repo = path.resolve(args.repo || '.');
-  const state = path.resolve(args.state || path.join(repo, '.selfforge'));
+  const state = path.resolve(args.state || defaultState());
   let descriptor;
   try { descriptor = readJson(path.resolve(args._[1])); } catch (error) { const out = { schema_version: 'autoarmory/artifact-intake/v1', ok: false, errors: ['descriptor is unreadable: ' + error.message] }; if (args.json) printJson(out); else process.stderr.write(out.errors.join('\n') + '\n'); return 1; }
   const result = artifact.intakeArtifact(state, descriptor, { repo: repo });
@@ -90,10 +98,10 @@ function intake(argv) {
 
 function bind(argv) {
   const args = parseArgs(argv);
-  if (args._[0] !== 'artifact' || !args._[1]) { process.stderr.write('Usage: autoarmory bind artifact <artifact-id> --case <case-id> --verifier <verifier-id> [--case-file case.json] [--state .selfforge] [--repo .] [--json]\n'); return 2; }
+  if (args._[0] !== 'artifact' || !args._[1]) { process.stderr.write('Usage: autoarmory bind artifact <artifact-id> --case <case-id> --verifier <verifier-id> [--case-file case.json] [--state <root>] [--repo .] [--json]\n'); return 2; }
   const artifactId = args._[1];
   const repo = path.resolve(args.repo || '.');
-  const state = path.resolve(args.state || path.join(repo, '.selfforge'));
+  const state = path.resolve(args.state || defaultState());
   let caseDescriptor = null;
   if (args['case-file']) {
     try { const raw = readJson(path.resolve(args['case-file'])); caseDescriptor = raw.case || raw; } catch (error) { process.stderr.write('case file is unreadable: ' + error.message + '\n'); return 1; }
@@ -131,10 +139,10 @@ function ensureMechanism(state, binding, artifactRecord, caseRecord, repo) {
 }
 function runArtifact(argv) {
   const args = parseArgs(argv);
-  if (args._[0] !== 'artifact' || !args._[1]) { process.stderr.write('Usage: autoarmory run artifact <artifact-id> [--trials 3] [--state .selfforge] [--repo .] [--json]\n'); return 2; }
+  if (args._[0] !== 'artifact' || !args._[1]) { process.stderr.write('Usage: autoarmory run artifact <artifact-id> [--trials 3] [--state <root>] [--repo .] [--json]\n'); return 2; }
   const artifactId = args._[1];
   const repo = path.resolve(args.repo || '.');
-  const state = path.resolve(args.state || path.join(repo, '.selfforge'));
+  const state = path.resolve(args.state || defaultState());
   const artifactRecord = artifact.readArtifacts(state).filter(function (item) { return item.artifact_id === artifactId; }).pop() || null;
   if (!artifactRecord) { process.stderr.write('artifact not found: ' + artifactId + '\n'); return 1; }
   const binding = artifact.readBindings(state).filter(function (item) { return item.artifact_id === artifactId; }).pop() || null;
