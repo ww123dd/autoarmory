@@ -1,0 +1,20 @@
+{
+  "schema_version": "autoarmory/stop-shadow-evidence/v1",
+  "captured_at": "2026-09-18T08:50:00.000Z",
+  "source": "stop-hook-integration",
+  "acceptance": {
+    "stop_hook_ran": true,
+    "auto_scan_count": 1,
+    "auto_case_draft_count": 1,
+    "duplicate_run_draft_count": 0,
+    "stop_hook_blocked_session_count": 0,
+    "llm_judge_calls": 0,
+    "auto_close_count": 0,
+    "manual_case_creation_count": 0
+  },
+  "no_verifier_binding": true,
+  "no_run": true,
+  "no_closure": true,
+  "no_verdict": true,
+  "private_session_content_shipped": false
+}

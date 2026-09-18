@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.20.0
+
+Stop Shadow: the Stop hook now runs the incremental session scan automatically.
+
+- The Stop hook resolves the current session rollout and runs the Change Inspector only over appended bytes.
+- It writes `case-drafts.jsonl`, `high-signal.json` and `stop-shadow-summary.json`; it does not create cases, verifier bindings, runs, closures or verdicts.
+- Reruns are idempotent; missing sessions, scan failures and timeouts write `shadow_gap` and still exit successfully.
+- Added `tests/stop-shadow.js`, `tests/stop-shadow-evidence.js`, `docs/stop-shadow.md` and sanitized `docs/evidence/stop-shadow-20260918.json`.
+
 ## 2.19.1
 
 Separate mechanism declarations from projections, and separate stale verification, expiry and reopen.

@@ -133,6 +133,12 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
+## 2.20.0
+
+- [x] Stop hook automatically scans the current session and writes incremental `case-drafts.jsonl` / `high-signal.json`.
+- [x] Stop-facing output contains no verifier binding, run, closure or verdict; missing sessions/timeouts record `shadow_gap`.
+- [x] Rerun is idempotent and the hook no longer needs a user-triggered scan.
+
 ## 2.19.1
 
 - [x] declared inputs separated from projections: `scope`, `expires_at`, `reopen_trigger` vs `scope_sha256`, `scope_status`, `expiry_status`, `reopen_required`.
