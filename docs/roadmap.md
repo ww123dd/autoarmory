@@ -133,6 +133,13 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
+## 2.21.4
+
+- [x] canonical `candidate-cases.jsonl` -> derived `case-drafts.jsonl` projection.
+- [x] existing session/turn provenance wins; event fills only missing fields.
+- [x] projection/new/current/attribution counters are separated; bare-UUID pollution is marked `attribution_lost`.
+- [x] dedupe key is `session_id|id`.
+
 ## 2.21.3
 
 - [x] real session lookup: exact filename -> tail -> newest matching `cwd`.

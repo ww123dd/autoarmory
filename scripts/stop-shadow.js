@@ -45,6 +45,12 @@ function beat(stateDir, ev, status, reason, result) {
       exact_matches: diagnostics.exact_matches || 0,
       tail_matches: diagnostics.tail_matches || 0,
       draft_count: (result && result.drafts) || 0,
+      projection_total: (result && result.projection_total) || 0,
+      current_session_draft_count: (result && result.current_session_draft_count) || 0,
+      new_draft_count: (result && result.new_draft_count) || 0,
+      attribution_preserved_count: (result && result.attribution_preserved_count) || 0,
+      attribution_lost_count: (result && result.attribution_lost_count) || 0,
+      attribution_filled_from_event_count: (result && result.attribution_filled_from_event_count) || 0,
       high_signal_count: (result && result.high_signal) || 0
     };
     fs.appendFileSync(path.join(stateDir, 'last-run.jsonl'), JSON.stringify(row) + '\n', 'utf8');

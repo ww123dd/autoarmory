@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.21.4
+
+Preserve canonical provenance in the Stop Shadow projection.
+
+- `candidate-cases.jsonl` remains the canonical source of truth; `case-drafts.jsonl` is a derived projection.
+- The current Stop event only fills missing `session_id` / `turn_id`; existing provenance always wins.
+- Projection summary now separates `projection_total`, `current_session_draft_count`, `new_draft_count`, `attribution_preserved_count`, `attribution_lost_count` and `attribution_filled_from_event_count`.
+- Dedupe key is now `session_id|id`, so the same draft id in different sessions is not silently merged.
+- Already polluted bare-UUID rows are marked `attribution_lost`; they are not guessed back.
+
 ## 2.21.3
 
 Make Stop Shadow find real sessions and report why it failed.

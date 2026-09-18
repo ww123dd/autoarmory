@@ -90,23 +90,41 @@ function locateSession(sessionId, options, event) {
   return info;
 }
 function findSessionFile(sessionId, options) { return locateSession(sessionId, options, {}).file; }
-function stripDraft(draft, event) {
+function draftKey(row) { return String(row && row.session_id || '') + '|' + String(row && row.id || ''); }
+function stripDraft(draft, event, stats) {
   const copy = Object.assign({}, draft);
+  const hadSession = !!copy.session_id;
+  const hadTurn = !!copy.turn_id;
+  if (!copy.session_id && event && event.session_id) copy.session_id = event.session_id;
+  if (!copy.turn_id && event && event.turn_id) copy.turn_id = event.turn_id;
+  const bareUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(copy.session_id || ''));
+  if (!copy.provenance_status) {
+    if (hadSession && bareUuid) copy.provenance_status = 'attribution_lost';
+    else if (hadSession) copy.provenance_status = 'canonical';
+    else if (copy.session_id) copy.provenance_status = 'filled_from_event';
+    else copy.provenance_status = 'missing';
+  }
   delete copy.verifier_resolution;
   delete copy.verifier_ref;
-  copy.session_id = event && event.session_id || copy.session_id;
-  copy.turn_id = copy.turn_id || event && event.turn_id || null;
   copy.verification_state = 'unresolved';
   copy.closure = false;
   copy.requires_agent_decision = true;
+  if (stats) {
+    if (hadSession && copy.provenance_status === 'attribution_lost') stats.session_lost += 1;
+    else if (hadSession) stats.session_preserved += 1;
+    else if (copy.session_id) stats.session_filled += 1;
+    if (hadTurn) stats.turn_preserved += 1;
+    else if (copy.turn_id) stats.turn_filled += 1;
+  }
   return copy;
 }
 function uniqueDrafts(rows) {
   const seen = {};
   return (rows || []).filter(function (row) {
     const id = row && row.id;
-    if (!id || seen[id]) return false;
-    seen[id] = true;
+    const key = draftKey(row);
+    if (!id || seen[key]) return false;
+    seen[key] = true;
     return true;
   });
 }
@@ -124,6 +142,8 @@ function runStopShadow(event, options) {
   }
   const repo = opts.repo || path.resolve(__dirname, '..', '..');
   const engineDir = path.join(dir, 'change-inspector');
+  const candidatesFile = path.join(engineDir, 'candidate-cases.jsonl');
+  const beforeKeys = new Set((fs.existsSync(candidatesFile) ? readJsonl(candidatesFile) : []).map(draftKey));
   const timeoutMs = Number(opts.timeoutMs || process.env.AUTOARMORY_STOP_TIMEOUT_MS || 5000);
   const scan = spawnSync(process.execPath, [path.join(repo, 'scripts', 'change-inspect.js'), '--session', sessionFile, '--state', engineDir, '--json'], {
     cwd: repo,
@@ -140,8 +160,10 @@ function runStopShadow(event, options) {
     recordGap(dir, event, 'scan_failed');
     return { ok: true, gap: 'scan_failed' };
   }
-  const candidates = fs.existsSync(path.join(engineDir, 'candidate-cases.jsonl')) ? readJsonl(path.join(engineDir, 'candidate-cases.jsonl')) : [];
-  const drafts = uniqueDrafts(candidates.map(function (draft) { return stripDraft(draft, event); }));
+  const candidates = fs.existsSync(candidatesFile) ? readJsonl(candidatesFile) : [];
+  const newCandidates = candidates.filter(function (draft) { return !beforeKeys.has(draftKey(draft)); });
+  const attribution = { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 };
+  const drafts = uniqueDrafts(candidates.map(function (draft) { return stripDraft(draft, event, attribution); }));
   writeJsonl(path.join(dir, 'case-drafts.jsonl'), drafts);
 
   const newEvents = fs.existsSync(path.join(engineDir, 'new-events.jsonl')) ? readJsonl(path.join(engineDir, 'new-events.jsonl')) : [];
@@ -153,8 +175,10 @@ function runStopShadow(event, options) {
   const unverifiable = (fs.existsSync(path.join(dir, 'session-unverifiable.jsonl')) ? readJsonl(path.join(dir, 'session-unverifiable.jsonl')) : []).concat(sessionReport.unverifiable);
   const seenUnverifiable = {};
   writeJsonl(path.join(dir, 'session-unverifiable.jsonl'), unverifiable.filter(function (item) { const key = item && item.case_id || JSON.stringify(item); if (seenUnverifiable[key]) return false; seenUnverifiable[key] = true; return true; }));
-  writeJsonl(path.join(engineDir, 'candidate-cases.jsonl'), drafts);
   const highSignal = drafts.filter(function (draft) { return draft.notify === true; });
+  const newKeys = new Set(newCandidates.map(draftKey));
+  const newHighSignal = highSignal.filter(function (draft) { return newKeys.has(draftKey(draft)); });
+  const currentSessionDraftCount = drafts.filter(function (draft) { return draft.provenance_status !== 'attribution_lost' && (draft.session_id === path.basename(sessionFile) || draft.session_id === event.session_id); }).length;
   writeJsonl(path.join(engineDir, 'notifications.jsonl'), highSignal);
   writeJson(path.join(engineDir, 'high-signal-changes.json'), { schema_version: 'autoarmory/high-signal-changes/v1', count: highSignal.length, changes: highSignal });
   writeJson(path.join(dir, 'high-signal.json'), {
@@ -174,7 +198,14 @@ function runStopShadow(event, options) {
     session_id: event.session_id || null,
     session_file: sessionFile,
     auto_scan_count: 1,
-    auto_case_draft_count: drafts.length,
+    projection_total: drafts.length,
+    scanned_session_id: event.session_id || null,
+    current_session_draft_count: currentSessionDraftCount,
+    new_draft_count: newCandidates.length,
+    attribution_preserved_count: attribution.session_preserved,
+    attribution_lost_count: attribution.session_lost,
+    attribution_filled_from_event_count: attribution.session_filled,
+    auto_case_draft_count: newCandidates.length,
     session_verified_candidate: sessionDrafts.filter(function (draft) { return draft.classification === 'verified_candidate'; }).length,
     session_verifier_mismatch: sessionDrafts.filter(function (draft) { return draft.classification === 'verifier_mismatch'; }).length,
     session_verifier_missing: sessionDrafts.filter(function (draft) { return draft.classification === 'verifier_missing'; }).length,
@@ -184,6 +215,6 @@ function runStopShadow(event, options) {
     auto_close_count: 0,
     manual_case_creation_count: 0
   });
-  return { ok: true, session_id: event.session_id || null, drafts: drafts.length, high_signal: highSignal.length, diagnostics: Object.assign({}, located, { session_file: sessionFile }) };
+  return { ok: true, session_id: event.session_id || null, drafts: newCandidates.length, projection_total: drafts.length, current_session_draft_count: currentSessionDraftCount, new_draft_count: newCandidates.length, attribution_preserved_count: attribution.session_preserved, attribution_lost_count: attribution.session_lost, attribution_filled_from_event_count: attribution.session_filled, high_signal: newHighSignal.length, diagnostics: Object.assign({}, located, { session_file: sessionFile }) };
 }
 module.exports = { findSessionFile, locateSession, runStopShadow, recordGap };

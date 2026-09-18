@@ -36,5 +36,19 @@
     "candidate_count",
     "exact_matches",
     "tail_matches"
-  ]
+  ],
+  "canonical_source": "change-inspector/candidate-cases.jsonl",
+  "projection": "case-drafts.jsonl",
+  "append_only_case_drafts": false,
+  "event_priority": false,
+  "provenance_policy": "existing_wins_fill_missing_only",
+  "dedupe_key": "session_id|id",
+  "projection_counts": {
+    "projection_total": 26373,
+    "current_session_draft_count": 10,
+    "new_draft_count": 10,
+    "attribution_preserved_count": 10,
+    "attribution_lost_count": 26363,
+    "attribution_filled_from_event_count": 0
+  }
 }

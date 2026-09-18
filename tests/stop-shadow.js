@@ -37,7 +37,7 @@ must(fs.existsSync(draftsFile), 'stop shadow must write case-drafts.jsonl');
 must(fs.existsSync(highSignalFile), 'stop shadow must write high-signal.json');
 const drafts = fs.readFileSync(draftsFile, 'utf8').trim().split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); });
 must(drafts.length > 0, 'stop shadow must produce at least one draft');
-must(drafts.every(function (draft) { return draft.session_id === sessionId && draft.requires_agent_decision === true && draft.closure === false; }), 'drafts must point to the session and remain non-final');
+must(drafts.every(function (draft) { return String(draft.session_id || '').indexOf(sessionId) !== -1 && draft.requires_agent_decision === true && draft.closure === false; }), 'drafts must preserve rollout provenance and remain non-final');
 must(drafts.every(function (draft) { return !Object.prototype.hasOwnProperty.call(draft, 'verifier_resolution') && !Object.prototype.hasOwnProperty.call(draft, 'verifier_ref'); }), 'stop shadow must not bind a verifier');
 const high = JSON.parse(fs.readFileSync(highSignalFile, 'utf8'));
 must(high.schema_version === 'autoarmory/stop-shadow-high-signal/v1' && Array.isArray(high.changes), 'high-signal output shape');
@@ -51,7 +51,7 @@ function filesUnder(dir) {
   }
   return out;
 }
-const textual = filesUnder(state).filter(function (file) { return /\.(?:json|jsonl)$/i.test(file) && !/session-case-drafts|session-unverifiable/.test(file); }).map(function (file) { return fs.readFileSync(file, 'utf8'); }).join('\n');
+const textual = filesUnder(state).filter(function (file) { return /\.(?:json|jsonl)$/i.test(file) && !/change-inspector|session-case-drafts|session-unverifiable/.test(file); }).map(function (file) { return fs.readFileSync(file, 'utf8'); }).join('\n');
 must(!/verifier_resolution|verifier_ref|verifier-bindings/.test(textual), 'change-inventory outputs must not contain verifier bindings');
 must(!fs.existsSync(path.join(state, 'verifier-bindings.jsonl')), 'stop shadow must not write verifier-bindings.jsonl');
 must(high.llm_judge_calls === 0 && high.auto_close_count === 0 && high.manual_case_creation_count === 0, 'stop shadow must be deterministic and non-final');
@@ -88,4 +88,34 @@ must(result.status === 0, 'fallback stop shadow must not block');
 must(fs.existsSync(path.join(fallbackState, 'case-drafts.jsonl')), 'cwd fallback must find a real rollout');
 const beat = JSON.parse(fs.readFileSync(path.join(fallbackState, 'last-run.json'), 'utf8'));
 must(beat.match === 'latest_cwd' && beat.candidate_count >= 1, 'heartbeat must report fallback match and candidate count');
+const provenanceRoot = path.join(temp, 'provenance-sessions');
+const provenanceDir = path.join(provenanceRoot, '2026', '09', '18');
+fs.mkdirSync(provenanceDir, { recursive: true });
+const provenanceSession = '01a0provenance-0000-0000-000000000001';
+const provenanceFile = path.join(provenanceDir, 'rollout-2026-09-18T18-00-00-' + provenanceSession + '.jsonl');
+fs.writeFileSync(provenanceFile, JSON.stringify({ payload:{ type:'message', role:'assistant', content:'已修复 npm test PASS，并记录 provenance。' } }) + '\n', 'utf8');
+const provenanceState = path.join(temp, 'provenance-state');
+const provenanceEngine = path.join(provenanceState, 'change-inspector');
+fs.mkdirSync(provenanceEngine, { recursive: true });
+fs.writeFileSync(path.join(provenanceEngine, 'candidate-cases.jsonl'), [
+  JSON.stringify({ id:'dup', session_id:'session-A', signals:['file_changed'], status:'candidate', notify:false }),
+  JSON.stringify({ id:'dup', session_id:'session-B', signals:['file_changed'], status:'candidate', notify:false })
+  ,JSON.stringify({ id:'fill', session_id:null, signals:['file_changed'], status:'candidate', notify:false })
+].join('\n') + '\n', 'utf8');
+result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name:'Stop', session_id:provenanceSession, turn_id:'turn-provenance', cwd:temp, stop_hook_active:false }), encoding:'utf8', env:Object.assign({}, process.env, { CODEX_SESSION_ROOT:provenanceRoot, AUTOARMORY_STOP_STATE:provenanceState }) });
+must(result.status === 0, 'provenance stop shadow must not block');
+const projected = fs.readFileSync(path.join(provenanceState, 'case-drafts.jsonl'), 'utf8').trim().split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); });
+must(projected.some(function (d) { return d.id === 'dup' && d.session_id === 'session-A'; }), 'canonical session A provenance preserved');
+must(projected.some(function (d) { return d.id === 'dup' && d.session_id === 'session-B'; }), 'canonical session B provenance preserved');
+const newProjected = projected.filter(function (d) { return String(d.session_id || '').indexOf(provenanceSession) !== -1; });
+must(newProjected.length === 1 && newProjected[0].provenance_status === 'filled_from_event', 'only missing provenance fills from current event');
+const provenanceSummary = JSON.parse(fs.readFileSync(path.join(provenanceState, 'stop-shadow-summary.json'), 'utf8'));
+must(provenanceSummary.projection_total === projected.length && provenanceSummary.projection_total >= 3, 'projection total counts the full projection');
+must(provenanceSummary.attribution_preserved_count === 2 && provenanceSummary.attribution_filled_from_event_count === 1, 'attribution counters preserve canonical and fill only missing');
+must(provenanceSummary.new_draft_count === 0 && provenanceSummary.projection_total === 3, 'new draft count must not inflate projection total');
+const firstProjectionTotal = provenanceSummary.projection_total;
+result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name:'Stop', session_id:provenanceSession, turn_id:'turn-provenance-2', cwd:temp, stop_hook_active:false }), encoding:'utf8', env:Object.assign({}, process.env, { CODEX_SESSION_ROOT:provenanceRoot, AUTOARMORY_STOP_STATE:provenanceState }) });
+must(result.status === 0, 'provenance rerun must not block');
+const rerunSummary = JSON.parse(fs.readFileSync(path.join(provenanceState, 'stop-shadow-summary.json'), 'utf8'));
+must(rerunSummary.projection_total === firstProjectionTotal, 'projection total stable across reruns');
 console.log('stop shadow tests passed: automatic session scan, idempotent drafts, shadow_gap fallback, no verifier/run/close/verdict');
