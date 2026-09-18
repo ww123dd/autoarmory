@@ -21,5 +21,20 @@
   "heartbeat": "last-run.jsonl",
   "event_file_removed_after_read": true,
   "session_shadow_attached": true,
-  "session_shadow_incremental": "new-events.jsonl"
+  "session_shadow_incremental": "new-events.jsonl",
+  "real_stop_verified": true,
+  "real_session_id": "01a0b3a1-8b86-7003-bb0a-5938d73ad79e",
+  "real_stop_match": "exact",
+  "real_stop_draft_count": 25918,
+  "real_stop_high_signal_count": 3213,
+  "last_run_json": true,
+  "cwd_fallback": true,
+  "gap_diagnostics": [
+    "cwd",
+    "search_root",
+    "elapsed_ms",
+    "candidate_count",
+    "exact_matches",
+    "tail_matches"
+  ]
 }

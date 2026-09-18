@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.21.3
+
+Make Stop Shadow find real sessions and report why it failed.
+
+- Session lookup now tries exact filename, session-id tail, then newest rollout with matching `cwd`; a real Stop no longer has to fail because the event id is not in the filename.
+- Every Stop writes both append-only `last-run.jsonl` and the latest `last-run.json`, including match mode, search root, elapsed time, candidate count and draft/high-signal counts.
+- `shadow-gaps.jsonl` now carries `cwd`, `search_root`, `elapsed_ms`, `candidate_count`, `exact_matches` and `tail_matches`.
+- Real Stop verification against `01a0b3a1-8b86-7003-bb0a-5938d73ad79e` produced `case-drafts.jsonl`, `high-signal.json`, `session-case-drafts.jsonl` and `stop-shadow-summary.json`.
+
 ## 2.21.2
 
 Extract threshold transitions from history before binding a verifier.

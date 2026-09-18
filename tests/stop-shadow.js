@@ -73,4 +73,19 @@ must(sessionDrafts.every(function (draft) { return draft.classification && draft
 must(fs.existsSync(path.join(state, 'last-run.jsonl')), 'stop shadow must leave a heartbeat');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name: 'Stop', session_id: sessionId, stop_hook_active: true }), encoding: 'utf8', env: Object.assign({}, process.env, { CODEX_SESSION_ROOT: sessionRoot, AUTOARMORY_STOP_STATE: path.join(temp, 'active-state') }) });
 must(result.status === 0 && !fs.existsSync(path.join(temp, 'active-state')), 'active stop recursion must be skipped');
+const fallbackRoot = path.join(temp, 'fallback-sessions');
+const fallbackDir = path.join(fallbackRoot, '2026', '09', '18');
+fs.mkdirSync(fallbackDir, { recursive: true });
+const fallbackId = '01a0fallback-0000-0000-000000000001';
+const fallbackFile = path.join(fallbackDir, 'rollout-2026-09-18T17-50-00-different-id.jsonl');
+fs.writeFileSync(fallbackFile, [
+  JSON.stringify({ type:'session_meta', payload:{ session_id:'different-id', cwd:temp } }),
+  JSON.stringify({ payload:{ type:'message', role:'assistant', content:'已修复 npm test PASS，并记录 sha256 文件证据。' } })
+].join('\n') + '\n', 'utf8');
+const fallbackState = path.join(temp, 'fallback-state');
+result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name:'Stop', session_id:fallbackId, cwd:temp, stop_hook_active:false }), encoding:'utf8', env:Object.assign({}, process.env, { CODEX_SESSION_ROOT:fallbackRoot, AUTOARMORY_STOP_STATE:fallbackState }) });
+must(result.status === 0, 'fallback stop shadow must not block');
+must(fs.existsSync(path.join(fallbackState, 'case-drafts.jsonl')), 'cwd fallback must find a real rollout');
+const beat = JSON.parse(fs.readFileSync(path.join(fallbackState, 'last-run.json'), 'utf8'));
+must(beat.match === 'latest_cwd' && beat.candidate_count >= 1, 'heartbeat must report fallback match and candidate count');
 console.log('stop shadow tests passed: automatic session scan, idempotent drafts, shadow_gap fallback, no verifier/run/close/verdict');

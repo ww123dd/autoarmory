@@ -28,16 +28,27 @@ function event() {
 function beat(stateDir, ev, status, reason, result) {
   try {
     fs.mkdirSync(stateDir, { recursive: true });
-    fs.appendFileSync(path.join(stateDir, 'last-run.jsonl'), JSON.stringify({
+    const diagnostics = result && result.diagnostics || {};
+    const row = {
       schema_version: 'autoarmory/stop-shadow-last-run/v1',
       at: new Date().toISOString(),
       session_id: ev.session_id || null,
       transcript_path: ev.transcript_path || null,
+      cwd: ev.cwd || null,
       status: status,
       reason: reason || null,
+      match: diagnostics.match || null,
+      session_file: diagnostics.session_file || diagnostics.file || null,
+      search_root: diagnostics.root || null,
+      elapsed_ms: diagnostics.elapsed_ms || null,
+      candidate_count: diagnostics.candidate_count || 0,
+      exact_matches: diagnostics.exact_matches || 0,
+      tail_matches: diagnostics.tail_matches || 0,
       draft_count: (result && result.drafts) || 0,
       high_signal_count: (result && result.high_signal) || 0
-    }) + '\n', 'utf8');
+    };
+    fs.appendFileSync(path.join(stateDir, 'last-run.jsonl'), JSON.stringify(row) + '\n', 'utf8');
+    fs.writeFileSync(path.join(stateDir, 'last-run.json'), JSON.stringify(row, null, 2) + '\n', 'utf8');
   } catch (_) {}
 }
 let ev = {};

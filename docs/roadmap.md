@@ -133,6 +133,12 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
+## 2.21.3
+
+- [x] real session lookup: exact filename -> tail -> newest matching `cwd`.
+- [x] every Stop writes both `last-run.jsonl` and latest `last-run.json` with search diagnostics.
+- [x] real Stop verified with `01a0b3a1-8b86-7003-bb0a-5938d73ad79e`: 25918 drafts and 3213 high-signal changes written.
+
 ## 2.21.2
 
 - [x] threshold text extraction: `count >= N` / `count <= N` maps to `COUNT->>=N` / `COUNT-><=N`.
