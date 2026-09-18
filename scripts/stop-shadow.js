@@ -30,7 +30,7 @@ function beat(stateDir, ev, status, reason, result) {
     fs.mkdirSync(stateDir, { recursive: true });
     const diagnostics = result && result.diagnostics || {};
     const row = {
-      schema_version: 'autoarmory/stop-shadow-last-run/v1',
+      schema_version: 'autoarmory/stop-shadow-last-stop/v1',
       at: new Date().toISOString(),
       session_id: ev.session_id || null,
       transcript_path: ev.transcript_path || null,
@@ -53,7 +53,7 @@ function beat(stateDir, ev, status, reason, result) {
       attribution_filled_from_event_count: (result && result.attribution_filled_from_event_count) || 0,
       high_signal_count: (result && result.high_signal) || 0
     };
-    fs.appendFileSync(path.join(stateDir, 'last-run.jsonl'), JSON.stringify(row) + '\n', 'utf8');
+    fs.writeFileSync(path.join(stateDir, 'last-stop.json'), JSON.stringify(row, null, 2) + '\n', 'utf8');
     fs.writeFileSync(path.join(stateDir, 'last-run.json'), JSON.stringify(row, null, 2) + '\n', 'utf8');
   } catch (_) {}
 }

@@ -184,9 +184,13 @@ function candidateCases(records, options) {
     if (signals.indexOf('command_result_failed') !== -1) score += 2;
     if (signals.indexOf('file_changed') !== -1) score += 1;
     const resolution = resolveVerifier(list, opts.verifier_ids || []);
-    const id = 'candidate-' + sha256(list.map(function (r) { return r.id; }).join('|')).slice(0, 16);
-    const notify = score >= 4 || signals.indexOf('repeat_signature') !== -1 || signals.indexOf('risk_signal') !== -1 || signals.indexOf('command_result_failed') !== -1;
-drafts.push({ schema_version: 'autoarmory/candidate-case-draft/v1', id: id, session_id: list[0].session_id, signals: signals, signal_score: score, status: score >= 2 ? 'candidate' : 'suppressed', notify: notify, change_record_ids: list.map(function (r) { return r.id; }), verifier_resolution: resolution, expected_transition: null, requires_agent_decision: true, closure: false });
+    const changeId = 'change-' + sha256(list.map(function (r) { return r.id; }).sort().join('|')).slice(0, 16);
+    const repeatCount = list.filter(function (r) { return r.signal === 'repeat_signature'; }).length;
+    const has = function (signal) { return signals.indexOf(signal) !== -1; };
+    const highSignal = (has('risk_signal') && (has('check_gap') || has('repeat_signature') || has('command_result_failed') || has('file_changed'))) ||
+      (has('repeat_signature') && repeatCount >= 3) ||
+      (has('command_result_failed') && (has('check_gap') || has('repeat_signature')));
+    drafts.push({ schema_version: 'autoarmory/candidate-case-draft/v1', id: changeId, change_id: changeId, session_id: list[0].session_id, turn_id: list[0].turn_id || null, source_message_id: list[0].source && (list[0].source.event_id || list[0].source.call_id || list[0].source.line) || null, signals: signals, signal_score: score, repeat_count: repeatCount, status: score >= 2 ? 'candidate' : 'suppressed', candidate: score >= 2, notify: highSignal, high_signal: highSignal, change_record_ids: list.map(function (r) { return r.id; }), verifier_resolution: resolution, expected_transition: null, requires_agent_decision: true, closure: false });
   }
   return drafts;
 }

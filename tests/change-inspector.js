@@ -19,6 +19,18 @@ must(first.metrics.exec_record_gap_count === 1 && first.metrics.transcript_field
 const second = inspector.inspect(events, state, { verifier_ids: ['pytest'] });
 must(second.records.length === 0, 'incremental rerun must be idempotent');
 must(first.candidate_cases.some(function (d) { return d.status === 'candidate'; }), 'high-signal change must produce a candidate draft');
+function signalRecord(signal, id, turn, detail) { return { id:id, session_id:'s1', turn_id:turn, signal:signal, source:{ event_id:id, turn_id:turn, call_id:detail && detail.call_id || null, line:1 }, detail:detail || {} }; }
+const riskAlone = inspector.candidateCases([signalRecord('risk_signal','r1','t-risk',{})], {});
+must(riskAlone[0].candidate === true && riskAlone[0].high_signal === false, 'risk alone is candidate but not high_signal');
+const riskGap = inspector.candidateCases([signalRecord('risk_signal','r2','t-gap',{}), signalRecord('check_gap','g2','t-gap',{})], {});
+must(riskGap[0].high_signal === true, 'risk plus check gap is high_signal');
+const repeat2 = inspector.candidateCases([signalRecord('repeat_signature','p1','t-rep2',{}), signalRecord('repeat_signature','p2','t-rep2',{})], {});
+must(repeat2[0].candidate === true && repeat2[0].high_signal === false, 'repeat count two is candidate but not high_signal');
+const repeat3 = inspector.candidateCases([signalRecord('repeat_signature','p3','t-rep3',{}), signalRecord('repeat_signature','p4','t-rep3',{}), signalRecord('repeat_signature','p5','t-rep3',{})], {});
+must(repeat3[0].high_signal === true, 'repeat count three is high_signal');
+const failedAlone = inspector.candidateCases([signalRecord('command_result_failed','f1','t-fail',{})], {});
+must(failedAlone[0].candidate === true && failedAlone[0].high_signal === false, 'failed command alone is not high_signal');
+must(riskAlone[0].change_id && riskAlone[0].id === riskAlone[0].change_id, 'change_id is the primary key');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-change-inspector-'));
 const session = path.join(temp, 'session.jsonl');
 fs.writeFileSync(session, events.map(function (event) { return JSON.stringify({ payload: event }); }).join('\n') + '\n', 'utf8');

@@ -15,7 +15,7 @@ Stop
 
 The `session-*` files are the fixed session-shadow resolver output over the bytes newly scanned on this Stop. They are candidate drafts, not a verifier binding, run, close or verdict.
 
-`candidate-cases.jsonl` is the canonical source of truth. `case-drafts.jsonl` is a derived projection rebuilt from canonical each Stop; it is not an append-only ledger. The current event may fill a missing `session_id` / `turn_id`, but it must never overwrite provenance that already exists. A polluted bare-UUID row is marked `provenance_status=attribution_lost`, not guessed back to a session. Projection dedupe uses `session_id|id`.
+`candidate-cases.jsonl` is the canonical source of truth; Change Inspector writes `new-drafts.jsonl` for the current increment. Stop Shadow rebuilds the projection only when that increment contains candidates; a no-new Stop only updates `last-stop.json`. `case-drafts.jsonl` is a derived projection rebuilt from canonical each Stop; it is not an append-only ledger. The current event may fill a missing `session_id` / `turn_id`, but it must never overwrite provenance that already exists. A polluted bare-UUID row is marked `provenance_status=attribution_lost`, not guessed back to a session. Projection dedupe uses `session_id|id`.
 
 It only records observations:
 

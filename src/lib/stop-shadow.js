@@ -143,78 +143,88 @@ function runStopShadow(event, options) {
   const repo = opts.repo || path.resolve(__dirname, '..', '..');
   const engineDir = path.join(dir, 'change-inspector');
   const candidatesFile = path.join(engineDir, 'candidate-cases.jsonl');
-  const beforeKeys = new Set((fs.existsSync(candidatesFile) ? readJsonl(candidatesFile) : []).map(draftKey));
+  const newDraftsFile = path.join(engineDir, 'new-drafts.jsonl');
   const timeoutMs = Number(opts.timeoutMs || process.env.AUTOARMORY_STOP_TIMEOUT_MS || 5000);
-  const scan = spawnSync(process.execPath, [path.join(repo, 'scripts', 'change-inspect.js'), '--session', sessionFile, '--state', engineDir, '--json'], {
-    cwd: repo,
-    encoding: 'utf8',
-    timeout: timeoutMs,
-    windowsHide: true,
-    env: Object.assign({}, process.env)
-  });
-  if (scan.error && scan.error.code === 'ETIMEDOUT') {
-    recordGap(dir, event, 'timeout');
-    return { ok: true, gap: 'timeout' };
+  const scan = spawnSync(process.execPath, [path.join(repo, 'scripts', 'change-inspect.js'), '--session', sessionFile, '--state', engineDir, '--json'], { cwd: repo, encoding: 'utf8', timeout: timeoutMs, windowsHide: true, env: Object.assign({}, process.env) });
+  if (scan.error && scan.error.code === 'ETIMEDOUT') { recordGap(dir, event, 'timeout', located); return { ok: true, gap: 'timeout', diagnostics: located }; }
+  if (scan.status !== 0) { recordGap(dir, event, 'scan_failed', located); return { ok: true, gap: 'scan_failed', diagnostics: located }; }
+
+  const newCandidates = fs.existsSync(newDraftsFile) ? readJsonl(newDraftsFile) : [];
+  const projectionStateFile = path.join(dir, 'projection-state.json');
+  let projectionState = fs.existsSync(projectionStateFile) ? JSON.parse(fs.readFileSync(projectionStateFile, 'utf8')) : null;
+  const caseDraftsFile = path.join(dir, 'case-drafts.jsonl');
+  if (!projectionState && fs.existsSync(caseDraftsFile)) {
+    const existing = readJsonl(caseDraftsFile);
+    const sessionCounts = {};
+    const attribution = { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 };
+    for (const draft of existing) {
+      const key = draft.session_id || '(missing)';
+      sessionCounts[key] = (sessionCounts[key] || 0) + 1;
+      if (draft.provenance_status === 'attribution_lost') attribution.session_lost += 1;
+      else if (draft.provenance_status === 'filled_from_event') attribution.session_filled += 1;
+      else if (draft.session_id) attribution.session_preserved += 1;
+    }
+    projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', projection_total: existing.length, high_signal_total: existing.filter(function (draft) { return draft.high_signal === true || draft.notify === true; }).length, session_counts: sessionCounts, attribution: attribution, updated_at: null };
+    writeJson(projectionStateFile, projectionState);
   }
-  if (scan.status !== 0) {
-    recordGap(dir, event, 'scan_failed');
-    return { ok: true, gap: 'scan_failed' };
+  if (!projectionState) projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', projection_total: 0, high_signal_total: 0, session_counts: {}, attribution: { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 }, updated_at: null };
+  let currentSessionDraftCount = (projectionState.session_counts || {})[path.basename(sessionFile)] || 0;
+  let newHighSignal = newCandidates.filter(function (draft) { return draft.high_signal === true || draft.notify === true; });
+
+  if (newCandidates.length) {
+    const candidates = fs.existsSync(candidatesFile) ? readJsonl(candidatesFile) : [];
+    const attribution = { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 };
+    const drafts = uniqueDrafts(candidates.map(function (draft) { return stripDraft(draft, event, attribution); }));
+    const sessionCounts = {};
+    for (const draft of drafts) { const key = draft.session_id || '(missing)'; sessionCounts[key] = (sessionCounts[key] || 0) + 1; }
+    currentSessionDraftCount = sessionCounts[path.basename(sessionFile)] || 0;
+    const highSignal = drafts.filter(function (draft) { return draft.high_signal === true || draft.notify === true; });
+    projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', projection_total: drafts.length, high_signal_total: highSignal.length, session_counts: sessionCounts, attribution: attribution, updated_at: new Date().toISOString() };
+    writeJsonl(path.join(dir, 'case-drafts.jsonl'), drafts);
+    writeJson(path.join(dir, 'projection-state.json'), projectionState);
+    writeJsonl(path.join(engineDir, 'notifications.jsonl'), highSignal);
+    writeJson(path.join(engineDir, 'high-signal-changes.json'), { schema_version: 'autoarmory/high-signal-changes/v1', count: highSignal.length, changes: highSignal });
+    writeJson(path.join(dir, 'high-signal.json'), { schema_version: 'autoarmory/stop-shadow-high-signal/v1', captured_at: new Date().toISOString(), session_id: event.session_id || null, count: highSignal.length, changes: highSignal, llm_judge_calls: 0, auto_close_count: 0, manual_case_creation_count: 0, stop_hook_blocked_session_count: 0 });
   }
-  const candidates = fs.existsSync(candidatesFile) ? readJsonl(candidatesFile) : [];
-  const newCandidates = candidates.filter(function (draft) { return !beforeKeys.has(draftKey(draft)); });
-  const attribution = { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 };
-  const drafts = uniqueDrafts(candidates.map(function (draft) { return stripDraft(draft, event, attribution); }));
-  writeJsonl(path.join(dir, 'case-drafts.jsonl'), drafts);
 
   const newEvents = fs.existsSync(path.join(engineDir, 'new-events.jsonl')) ? readJsonl(path.join(engineDir, 'new-events.jsonl')) : [];
-  let verifiers = [];
-  try { const lock = JSON.parse(fs.readFileSync(path.join(repo, 'verifiers.lock.json'), 'utf8')); verifiers = (lock.verifiers || []).map(function (item) { return { id: item.id, kind: item.kind || null, assertion: item.assertion || null }; }); } catch (_) { verifiers = []; }
-  const sessionReport = sessionShadow.shadowSession(newEvents, { session_id: event.session_id || null, verifiers: verifiers });
-  const sessionDrafts = uniqueDrafts((fs.existsSync(path.join(dir, 'session-case-drafts.jsonl')) ? readJsonl(path.join(dir, 'session-case-drafts.jsonl')) : []).concat(sessionReport.case_drafts.map(function (draft) { const copy = Object.assign({}, draft); copy.closure = false; copy.requires_agent_decision = true; return copy; })));
-  writeJsonl(path.join(dir, 'session-case-drafts.jsonl'), sessionDrafts);
-  const unverifiable = (fs.existsSync(path.join(dir, 'session-unverifiable.jsonl')) ? readJsonl(path.join(dir, 'session-unverifiable.jsonl')) : []).concat(sessionReport.unverifiable);
-  const seenUnverifiable = {};
-  writeJsonl(path.join(dir, 'session-unverifiable.jsonl'), unverifiable.filter(function (item) { const key = item && item.case_id || JSON.stringify(item); if (seenUnverifiable[key]) return false; seenUnverifiable[key] = true; return true; }));
-  const highSignal = drafts.filter(function (draft) { return draft.notify === true; });
-  const newKeys = new Set(newCandidates.map(draftKey));
-  const newHighSignal = highSignal.filter(function (draft) { return newKeys.has(draftKey(draft)); });
-  const currentSessionDraftCount = drafts.filter(function (draft) { return draft.provenance_status !== 'attribution_lost' && (draft.session_id === path.basename(sessionFile) || draft.session_id === event.session_id); }).length;
-  writeJsonl(path.join(engineDir, 'notifications.jsonl'), highSignal);
-  writeJson(path.join(engineDir, 'high-signal-changes.json'), { schema_version: 'autoarmory/high-signal-changes/v1', count: highSignal.length, changes: highSignal });
-  writeJson(path.join(dir, 'high-signal.json'), {
-    schema_version: 'autoarmory/stop-shadow-high-signal/v1',
-    captured_at: new Date().toISOString(),
-    session_id: event.session_id || null,
-    count: highSignal.length,
-    changes: highSignal,
-    llm_judge_calls: 0,
-    auto_close_count: 0,
-    manual_case_creation_count: 0,
-    stop_hook_blocked_session_count: 0
-  });
+  if (newEvents.length) {
+    let verifiers = [];
+    try { const lock = JSON.parse(fs.readFileSync(path.join(repo, 'verifiers.lock.json'), 'utf8')); verifiers = (lock.verifiers || []).map(function (item) { return { id: item.id, kind: item.kind || null, assertion: item.assertion || null }; }); } catch (_) { verifiers = []; }
+    const sessionReport = sessionShadow.shadowSession(newEvents, { session_id: event.session_id || null, verifiers: verifiers });
+    const sessionDrafts = uniqueDrafts((fs.existsSync(path.join(dir, 'session-case-drafts.jsonl')) ? readJsonl(path.join(dir, 'session-case-drafts.jsonl')) : []).concat(sessionReport.case_drafts.map(function (draft) { const copy = Object.assign({}, draft); copy.closure = false; copy.requires_agent_decision = true; return copy; })));
+    writeJsonl(path.join(dir, 'session-case-drafts.jsonl'), sessionDrafts);
+    const unverifiable = (fs.existsSync(path.join(dir, 'session-unverifiable.jsonl')) ? readJsonl(path.join(dir, 'session-unverifiable.jsonl')) : []).concat(sessionReport.unverifiable);
+    const seenUnverifiable = {};
+    writeJsonl(path.join(dir, 'session-unverifiable.jsonl'), unverifiable.filter(function (item) { const key = item && item.case_id || JSON.stringify(item); if (seenUnverifiable[key]) return false; seenUnverifiable[key] = true; return true; }));
+  }
+
+  const attribution = projectionState.attribution || { session_preserved: 0, session_filled: 0, session_lost: 0 };
   writeJson(path.join(dir, 'stop-shadow-summary.json'), {
     schema_version: 'autoarmory/stop-shadow-summary/v1',
     captured_at: new Date().toISOString(),
     session_id: event.session_id || null,
     session_file: sessionFile,
     auto_scan_count: 1,
-    projection_total: drafts.length,
+    projection_total: projectionState.projection_total || 0,
+    high_signal_total: projectionState.high_signal_total || 0,
     scanned_session_id: event.session_id || null,
     current_session_draft_count: currentSessionDraftCount,
     new_draft_count: newCandidates.length,
-    attribution_preserved_count: attribution.session_preserved,
-    attribution_lost_count: attribution.session_lost,
-    attribution_filled_from_event_count: attribution.session_filled,
+    new_high_signal_count: newHighSignal.length,
+    attribution_preserved_count: attribution.session_preserved || 0,
+    attribution_lost_count: attribution.session_lost || 0,
+    attribution_filled_from_event_count: attribution.session_filled || 0,
     auto_case_draft_count: newCandidates.length,
-    session_verified_candidate: sessionDrafts.filter(function (draft) { return draft.classification === 'verified_candidate'; }).length,
-    session_verifier_mismatch: sessionDrafts.filter(function (draft) { return draft.classification === 'verifier_mismatch'; }).length,
-    session_verifier_missing: sessionDrafts.filter(function (draft) { return draft.classification === 'verifier_missing'; }).length,
+    session_verified_candidate: 0,
+    session_verifier_mismatch: 0,
+    session_verifier_missing: 0,
     duplicate_run_draft_count: 0,
     stop_hook_blocked_session_count: 0,
     llm_judge_calls: 0,
     auto_close_count: 0,
     manual_case_creation_count: 0
   });
-  return { ok: true, session_id: event.session_id || null, drafts: newCandidates.length, projection_total: drafts.length, current_session_draft_count: currentSessionDraftCount, new_draft_count: newCandidates.length, attribution_preserved_count: attribution.session_preserved, attribution_lost_count: attribution.session_lost, attribution_filled_from_event_count: attribution.session_filled, high_signal: newHighSignal.length, diagnostics: Object.assign({}, located, { session_file: sessionFile }) };
+  return { ok: true, session_id: event.session_id || null, drafts: newCandidates.length, projection_total: projectionState.projection_total || 0, current_session_draft_count: currentSessionDraftCount, new_draft_count: newCandidates.length, attribution_preserved_count: attribution.session_preserved || 0, attribution_lost_count: attribution.session_lost || 0, attribution_filled_from_event_count: attribution.session_filled || 0, high_signal: newHighSignal.length, diagnostics: Object.assign({}, located, { session_file: sessionFile }) };
 }
 module.exports = { findSessionFile, locateSession, runStopShadow, recordGap };

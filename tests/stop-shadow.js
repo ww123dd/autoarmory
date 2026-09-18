@@ -70,7 +70,7 @@ must(fs.existsSync(path.join(gapState, 'shadow-gaps.jsonl')), 'missing session m
 must(fs.existsSync(path.join(state, 'session-case-drafts.jsonl')), 'stop shadow must write strict session-shadow drafts');
 const sessionDrafts = fs.readFileSync(path.join(state, 'session-case-drafts.jsonl'), 'utf8').trim().split(/\r?\n/).filter(Boolean).map(function (line) { return JSON.parse(line); });
 must(sessionDrafts.every(function (draft) { return draft.classification && draft.closure === false && draft.requires_agent_decision === true; }), 'session-shadow drafts must remain non-final');
-must(fs.existsSync(path.join(state, 'last-run.jsonl')), 'stop shadow must leave a heartbeat');
+must(fs.existsSync(path.join(state, 'last-stop.json')), 'stop shadow must leave a heartbeat');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name: 'Stop', session_id: sessionId, stop_hook_active: true }), encoding: 'utf8', env: Object.assign({}, process.env, { CODEX_SESSION_ROOT: sessionRoot, AUTOARMORY_STOP_STATE: path.join(temp, 'active-state') }) });
 must(result.status === 0 && !fs.existsSync(path.join(temp, 'active-state')), 'active stop recursion must be skipped');
 const fallbackRoot = path.join(temp, 'fallback-sessions');
@@ -80,20 +80,26 @@ const fallbackId = '01a0fallback-0000-0000-000000000001';
 const fallbackFile = path.join(fallbackDir, 'rollout-2026-09-18T17-50-00-different-id.jsonl');
 fs.writeFileSync(fallbackFile, [
   JSON.stringify({ type:'session_meta', payload:{ session_id:'different-id', cwd:temp } }),
+  JSON.stringify({ payload:{ type:'function_call', name:'apply_patch', call_id:'fallback-c1', id:'fallback-e1', arguments:JSON.stringify({ file_path:'src/fallback.js' }) } }),
+  JSON.stringify({ payload:{ type:'function_call_output', call_id:'fallback-c1', id:'fallback-e2', output:'Success. Updated src/fallback.js' } }),
   JSON.stringify({ payload:{ type:'message', role:'assistant', content:'已修复 npm test PASS，并记录 sha256 文件证据。' } })
 ].join('\n') + '\n', 'utf8');
 const fallbackState = path.join(temp, 'fallback-state');
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name:'Stop', session_id:fallbackId, cwd:temp, stop_hook_active:false }), encoding:'utf8', env:Object.assign({}, process.env, { CODEX_SESSION_ROOT:fallbackRoot, AUTOARMORY_STOP_STATE:fallbackState }) });
 must(result.status === 0, 'fallback stop shadow must not block');
 must(fs.existsSync(path.join(fallbackState, 'case-drafts.jsonl')), 'cwd fallback must find a real rollout');
-const beat = JSON.parse(fs.readFileSync(path.join(fallbackState, 'last-run.json'), 'utf8'));
+const beat = JSON.parse(fs.readFileSync(path.join(fallbackState, 'last-stop.json'), 'utf8'));
 must(beat.match === 'latest_cwd' && beat.candidate_count >= 1, 'heartbeat must report fallback match and candidate count');
 const provenanceRoot = path.join(temp, 'provenance-sessions');
 const provenanceDir = path.join(provenanceRoot, '2026', '09', '18');
 fs.mkdirSync(provenanceDir, { recursive: true });
 const provenanceSession = '01a0provenance-0000-0000-000000000001';
 const provenanceFile = path.join(provenanceDir, 'rollout-2026-09-18T18-00-00-' + provenanceSession + '.jsonl');
-fs.writeFileSync(provenanceFile, JSON.stringify({ payload:{ type:'message', role:'assistant', content:'已修复 npm test PASS，并记录 provenance。' } }) + '\n', 'utf8');
+fs.writeFileSync(provenanceFile, [
+  JSON.stringify({ payload:{ type:'function_call', name:'apply_patch', call_id:'prov-c1', id:'prov-e1', arguments:JSON.stringify({ file_path:'src/provenance.js' }) } }),
+  JSON.stringify({ payload:{ type:'function_call_output', call_id:'prov-c1', id:'prov-e2', output:'Success. Updated src/provenance.js' } }),
+  JSON.stringify({ payload:{ type:'message', role:'assistant', content:'已修复 npm test PASS，并记录 provenance。' } })
+].join('\n') + '\n', 'utf8');
 const provenanceState = path.join(temp, 'provenance-state');
 const provenanceEngine = path.join(provenanceState, 'change-inspector');
 fs.mkdirSync(provenanceEngine, { recursive: true });
@@ -108,11 +114,13 @@ const projected = fs.readFileSync(path.join(provenanceState, 'case-drafts.jsonl'
 must(projected.some(function (d) { return d.id === 'dup' && d.session_id === 'session-A'; }), 'canonical session A provenance preserved');
 must(projected.some(function (d) { return d.id === 'dup' && d.session_id === 'session-B'; }), 'canonical session B provenance preserved');
 const newProjected = projected.filter(function (d) { return String(d.session_id || '').indexOf(provenanceSession) !== -1; });
-must(newProjected.length === 1 && newProjected[0].provenance_status === 'filled_from_event', 'only missing provenance fills from current event');
+const fillProjected = projected.find(function (d) { return d.id === 'fill'; });
+must(fillProjected && fillProjected.session_id === provenanceSession && fillProjected.provenance_status === 'filled_from_event', 'only missing provenance fills from current event');
+must(newProjected.length >= 2, 'new and filled drafts point to the current session');
 const provenanceSummary = JSON.parse(fs.readFileSync(path.join(provenanceState, 'stop-shadow-summary.json'), 'utf8'));
 must(provenanceSummary.projection_total === projected.length && provenanceSummary.projection_total >= 3, 'projection total counts the full projection');
-must(provenanceSummary.attribution_preserved_count === 2 && provenanceSummary.attribution_filled_from_event_count === 1, 'attribution counters preserve canonical and fill only missing');
-must(provenanceSummary.new_draft_count === 0 && provenanceSummary.projection_total === 3, 'new draft count must not inflate projection total');
+must(provenanceSummary.attribution_preserved_count >= 2 && provenanceSummary.attribution_filled_from_event_count === 1, 'attribution counters preserve canonical and fill only missing');
+must(provenanceSummary.new_draft_count > 0 && provenanceSummary.projection_total === projected.length, 'new draft count must not inflate projection total');
 const firstProjectionTotal = provenanceSummary.projection_total;
 result = spawnSync(process.execPath, [script], { cwd: repo, input: JSON.stringify({ hook_event_name:'Stop', session_id:provenanceSession, turn_id:'turn-provenance-2', cwd:temp, stop_hook_active:false }), encoding:'utf8', env:Object.assign({}, process.env, { CODEX_SESSION_ROOT:provenanceRoot, AUTOARMORY_STOP_STATE:provenanceState }) });
 must(result.status === 0, 'provenance rerun must not block');

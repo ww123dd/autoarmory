@@ -133,6 +133,13 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
+## 2.22.0
+
+- [x] `candidate` and `high_signal` split; high signal only for bound high-risk/repeat/failed cases.
+- [x] `change_id` primary key; session/turn/source message are provenance.
+- [x] Stop consumes `new-drafts.jsonl`; no-new Stop only updates `last-stop.json`.
+- [x] real two-session high-signal rerun: 530 candidates -> 8 high signals.
+
 ## 2.21.4
 
 - [x] canonical `candidate-cases.jsonl` -> derived `case-drafts.jsonl` projection.

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.22.0
+
+Separate candidate recording from user interruption and make change_id primary.
+
+- `candidate` means worth recording; `high_signal` means worth interrupting. Risk or failed-command alone is candidate-only.
+- High signal now requires risk + change/check/repeat/failure binding, repeat count >= 3, or failed command bound to check/repeat.
+- `change_id` is the primary key; `session_id` / `turn_id` are source attribution.
+- Change Inspector writes `new-drafts.jsonl`; Stop Shadow only rebuilds the projection when new drafts exist.
+- Real two-session rerun: 530 candidates -> 8 high signals (was 479 high signals).
+
 ## 2.21.4
 
 Preserve canonical provenance in the Stop Shadow projection.

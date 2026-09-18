@@ -18,7 +18,7 @@
   "no_verdict": true,
   "private_session_content_shipped": false,
   "hook_detached": true,
-  "heartbeat": "last-run.jsonl",
+  "heartbeat": "last-stop.json",
   "event_file_removed_after_read": true,
   "session_shadow_attached": true,
   "session_shadow_incremental": "new-events.jsonl",
@@ -42,7 +42,7 @@
   "append_only_case_drafts": false,
   "event_priority": false,
   "provenance_policy": "existing_wins_fill_missing_only",
-  "dedupe_key": "session_id|id",
+  "dedupe_key": "change_id",
   "projection_counts": {
     "projection_total": 26373,
     "current_session_draft_count": 10,
@@ -50,5 +50,9 @@
     "attribution_preserved_count": 10,
     "attribution_lost_count": 26363,
     "attribution_filled_from_event_count": 0
-  }
+  },
+  "last_stop_json": true,
+  "change_primary_key": "change_id",
+  "candidate_vs_high_signal": true,
+  "no_new_stop_full_projection": false
 }
