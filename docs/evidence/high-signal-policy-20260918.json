@@ -1,11 +1,11 @@
 {
   "schema_version": "autoarmory/high-signal-policy-evidence/v1",
-  "captured_at": "2026-09-18T09:50:54.048Z",
+  "captured_at": "2026-09-18T10:05:16.269Z",
   "source_sessions": 2,
   "metrics": {
-    "change_record_count": 8582,
+    "change_record_count": 8664,
     "candidate_case_draft_count": 530,
-    "high_signal_notification_count": 8,
+    "high_signal_notification_count": 0,
     "risk_signal_count": 490,
     "command_result_failed_count": 9,
     "repeat_signature_count": 8,
@@ -15,7 +15,8 @@
     "risk_alone_high_signal": false,
     "command_failed_alone_high_signal": false,
     "repeat_threshold": 3,
-    "risk_plus_check_gap_high_signal": true
+    "risk_plus_check_gap_high_signal": true,
+    "risk_plus_file_changed_high_signal": false
   },
   "no_llm_judge": true,
   "private_session_content_shipped": false

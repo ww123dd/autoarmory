@@ -170,6 +170,14 @@ function resolveVerifier(recordSet, verifierIds) {
   for (const r of recordSet) if (r.detail && r.detail.file_path) files.push({ path: r.detail.file_path });
   return resolver.resolveVerifier({ command: command, files: files, source_text: JSON.stringify(recordSet.map(function (r) { return r.detail || {}; })) }, { verifier_ids: verifierIds });
 }
+function isHighSignal(signals, repeatCount) {
+  const list = Array.isArray(signals) ? signals : [];
+  const has = function (signal) { return list.indexOf(signal) !== -1; };
+  const repeats = Number(repeatCount || 0);
+  return (has('risk_signal') && (has('check_gap') || has('repeat_signature') || has('command_result_failed'))) ||
+    (has('repeat_signature') && repeats >= 3) ||
+    (has('command_result_failed') && (has('check_gap') || has('repeat_signature')));
+}
 function candidateCases(records, options) {
   const opts = options || {};
   const groups = {};
@@ -186,10 +194,7 @@ function candidateCases(records, options) {
     const resolution = resolveVerifier(list, opts.verifier_ids || []);
     const changeId = 'change-' + sha256(list.map(function (r) { return r.id; }).sort().join('|')).slice(0, 16);
     const repeatCount = list.filter(function (r) { return r.signal === 'repeat_signature'; }).length;
-    const has = function (signal) { return signals.indexOf(signal) !== -1; };
-    const highSignal = (has('risk_signal') && (has('check_gap') || has('repeat_signature') || has('command_result_failed') || has('file_changed'))) ||
-      (has('repeat_signature') && repeatCount >= 3) ||
-      (has('command_result_failed') && (has('check_gap') || has('repeat_signature')));
+    const highSignal = isHighSignal(signals, repeatCount);
     drafts.push({ schema_version: 'autoarmory/candidate-case-draft/v1', id: changeId, change_id: changeId, session_id: list[0].session_id, turn_id: list[0].turn_id || null, source_message_id: list[0].source && (list[0].source.event_id || list[0].source.call_id || list[0].source.line) || null, signals: signals, signal_score: score, repeat_count: repeatCount, status: score >= 2 ? 'candidate' : 'suppressed', candidate: score >= 2, notify: highSignal, high_signal: highSignal, change_record_ids: list.map(function (r) { return r.id; }), verifier_resolution: resolution, expected_transition: null, requires_agent_decision: true, closure: false });
   }
   return drafts;
@@ -237,4 +242,4 @@ function inspect(events, state, options) {
     metrics: metrics
   };
 }
-module.exports = { inspectEvents, inspect, summarize, buildChanges, candidateCases, resolveVerifier, resultStatus, commandOf, isCheckCommand };
+module.exports = { inspectEvents, inspect, summarize, buildChanges, candidateCases, resolveVerifier, resultStatus, commandOf, isCheckCommand, isHighSignal };

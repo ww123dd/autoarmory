@@ -25,8 +25,8 @@
   "real_stop_verified": true,
   "real_session_id": "01a0b3a1-8b86-7003-bb0a-5938d73ad79e",
   "real_stop_match": "exact",
-  "real_stop_draft_count": 25918,
-  "real_stop_high_signal_count": 3213,
+  "real_stop_draft_count": 26598,
+  "real_stop_high_signal_count": 0,
   "last_run_json": true,
   "cwd_fallback": true,
   "gap_diagnostics": [
@@ -44,10 +44,10 @@
   "provenance_policy": "existing_wins_fill_missing_only",
   "dedupe_key": "change_id",
   "projection_counts": {
-    "projection_total": 26373,
+    "projection_total": 26598,
     "current_session_draft_count": 10,
-    "new_draft_count": 10,
-    "attribution_preserved_count": 10,
+    "new_draft_count": 0,
+    "attribution_preserved_count": 235,
     "attribution_lost_count": 26363,
     "attribution_filled_from_event_count": 0
   },

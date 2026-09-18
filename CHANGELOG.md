@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.22.1
+
+Narrow high signal once more: risk plus file change is not enough.
+
+- High signal now requires risk + check gap/repeat/failure, repeat count >= 3, or failure bound to check/repeat.
+- Same real two-session replay: 530 candidates -> 0 high signals. Zero interruptions is the correct result for that dataset.
+- Legacy `notify` values are no longer trusted; projection recomputes `high_signal` from `signals` + `repeat_count`.
+
 ## 2.22.0
 
 Separate candidate recording from user interruption and make change_id primary.
@@ -8,7 +16,7 @@ Separate candidate recording from user interruption and make change_id primary.
 - High signal now requires risk + change/check/repeat/failure binding, repeat count >= 3, or failed command bound to check/repeat.
 - `change_id` is the primary key; `session_id` / `turn_id` are source attribution.
 - Change Inspector writes `new-drafts.jsonl`; Stop Shadow only rebuilds the projection when new drafts exist.
-- Real two-session rerun: 530 candidates -> 8 high signals (was 479 high signals).
+- Real two-session rerun: 530 candidates -> 8 candidate-only notifications under the first narrowed policy; 2.22.1 narrows further to 0 high signals on that dataset.
 
 ## 2.21.4
 

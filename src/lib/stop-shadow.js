@@ -6,6 +6,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { readJsonl, writeJson, writeJsonl } = require('./util');
 const sessionShadow = require('./session-shadow');
+const changeInspector = require('./change-inspector');
 
 function cleanPart(value) { return String(value || '').replace(/[^A-Za-z0-9._-]/g, '_'); }
 function sessionRoot(options) { return path.resolve((options && options.sessionRoot) || process.env.CODEX_SESSION_ROOT || path.join(os.homedir(), '.codex', 'sessions')); }
@@ -104,6 +105,7 @@ function stripDraft(draft, event, stats) {
     else if (copy.session_id) copy.provenance_status = 'filled_from_event';
     else copy.provenance_status = 'missing';
   }
+  if (copy.signals) { copy.high_signal = changeInspector.isHighSignal(copy.signals, copy.repeat_count); copy.notify = copy.high_signal; }
   delete copy.verifier_resolution;
   delete copy.verifier_ref;
   copy.verification_state = 'unresolved';
@@ -164,22 +166,23 @@ function runStopShadow(event, options) {
       else if (draft.provenance_status === 'filled_from_event') attribution.session_filled += 1;
       else if (draft.session_id) attribution.session_preserved += 1;
     }
-    projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', projection_total: existing.length, high_signal_total: existing.filter(function (draft) { return draft.high_signal === true || draft.notify === true; }).length, session_counts: sessionCounts, attribution: attribution, updated_at: null };
+    projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', projection_total: existing.length, high_signal_total: existing.filter(function (draft) { return draft.high_signal === true; }).length, session_counts: sessionCounts, attribution: attribution, updated_at: null };
     writeJson(projectionStateFile, projectionState);
   }
-  if (!projectionState) projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', projection_total: 0, high_signal_total: 0, session_counts: {}, attribution: { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 }, updated_at: null };
+  if (!projectionState) projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', policy_version: 0, projection_total: 0, high_signal_total: 0, session_counts: {}, attribution: { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 }, updated_at: null };
   let currentSessionDraftCount = (projectionState.session_counts || {})[path.basename(sessionFile)] || 0;
-  let newHighSignal = newCandidates.filter(function (draft) { return draft.high_signal === true || draft.notify === true; });
+  let newHighSignal = newCandidates.filter(function (draft) { return draft.high_signal === true; });
+  const forceProjection = projectionState.policy_version !== 3;
 
-  if (newCandidates.length) {
+  if (newCandidates.length || forceProjection) {
     const candidates = fs.existsSync(candidatesFile) ? readJsonl(candidatesFile) : [];
     const attribution = { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 };
     const drafts = uniqueDrafts(candidates.map(function (draft) { return stripDraft(draft, event, attribution); }));
     const sessionCounts = {};
     for (const draft of drafts) { const key = draft.session_id || '(missing)'; sessionCounts[key] = (sessionCounts[key] || 0) + 1; }
     currentSessionDraftCount = sessionCounts[path.basename(sessionFile)] || 0;
-    const highSignal = drafts.filter(function (draft) { return draft.high_signal === true || draft.notify === true; });
-    projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', projection_total: drafts.length, high_signal_total: highSignal.length, session_counts: sessionCounts, attribution: attribution, updated_at: new Date().toISOString() };
+    const highSignal = drafts.filter(function (draft) { return draft.high_signal === true; });
+    projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', policy_version: 3, projection_total: drafts.length, high_signal_total: highSignal.length, session_counts: sessionCounts, attribution: attribution, updated_at: new Date().toISOString() };
     writeJsonl(path.join(dir, 'case-drafts.jsonl'), drafts);
     writeJson(path.join(dir, 'projection-state.json'), projectionState);
     writeJsonl(path.join(engineDir, 'notifications.jsonl'), highSignal);
