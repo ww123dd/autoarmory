@@ -24,6 +24,15 @@ function resolveVerifier(job) {
   if (inferred) return { kind: 'project_test', ref: inferred, reason: 'recorded command matches project-test whitelist' };
   return { kind: 'unverifiable', ref: null, reason: 'no registered verifier or mechanically replayable command' };
 }
+function bindingProblem(job, verifier, repo) {
+  if (verifier.kind === 'registered') return null;
+  const binding = job && job.mechanical_binding;
+  if (!binding) return 'mechanical_binding_missing';
+  if (binding.kind !== verifier.kind) return 'mechanical_binding_kind_mismatch';
+  if (binding.command_sha256 && sha256(String(verifier.ref || '')) !== binding.command_sha256) return 'mechanical_binding_command_mismatch';
+  if (binding.repo_head) { const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8', windowsHide: true }); if (head.status !== 0 || String(head.stdout || '').trim() !== binding.repo_head) return 'mechanical_binding_repo_mismatch'; }
+  return null;
+}
 function writeReuse(dir, record) { const out = path.join(dir, 'reuse-records', record.change_id + '.json'); fs.mkdirSync(path.dirname(out), { recursive: true }); writeJson(out, record); return out; }
 function appendUnverifiable(dir, record) { const file = path.join(dir, 'unverifiable.jsonl'); writeJsonl(file, readJsonl(file).concat([record])); }
 function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
@@ -51,12 +60,14 @@ function drain(options) {
   for (const name of files) {
     const file = path.join(pendingDir, name); let job; try { job = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (error) { results.push({ change_id: null, status: 'failed', reason: 'pending job unreadable: ' + error.message }); continue; }
     const changeId = job.change_id; const reuseFile = path.join(dir, 'reuse-records', changeId + '.json'); if (fs.existsSync(reuseFile)) { try { fs.unlinkSync(file); } catch (_) {} results.push({ change_id: changeId, status: 'skipped', reason: 'reuse record exists' }); continue; }
-    const verifier = resolveVerifier(job); let record = null;
-    if (verifier.kind === 'registered') {
+    const verifier = resolveVerifier(job); const bindingError = verifier.kind === 'unverifiable' ? null : bindingProblem(job, verifier, repo); let record = null;
+    if (!job.expected_transition) { record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'unverifiable', reason: 'expected_transition_missing', resolved_at: new Date().toISOString() }; }
+    else if (bindingError) { record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'unverifiable', reason: bindingError, resolved_at: new Date().toISOString() }; }
+    else if (verifier.kind === 'registered') {
       const descDir = path.join(dir, 'history-runner-descriptors'); fs.mkdirSync(descDir, { recursive: true }); const descriptorPath = path.join(descDir, changeId + '.json'); const descriptor = descriptorFor(job, verifier.ref); writeJson(descriptorPath, descriptor);
       const declare = spawnSync(process.execPath, [path.join(repo, 'scripts', 'mechanism-declare.js'), '--descriptor', descriptorPath, '--state', dir, '--repo', repo, '--json'], { cwd: repo, encoding: 'utf8', windowsHide: true });
       if (declare.status !== 0) record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'failed', stage: 'declare', reason: (declare.stderr || declare.stdout || '').trim(), resolved_at: new Date().toISOString() };
-      else { const run = spawnSync(process.execPath, [path.join(repo, 'scripts', 'mechanism-record.js'), '--mechanism', descriptor.mechanism.id, '--case', descriptor.case.id, '--state', dir, '--repo', repo, '--close', '--json'], { cwd: repo, encoding: 'utf8', windowsHide: true, timeout: 90000 }); if (run.status === 0) { let parsed = {}; try { parsed = JSON.parse(run.stdout || '{}'); } catch (_) {} record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'closed', verifier: verifier.ref, run: parsed.run || null, closure: parsed.closure || null, resolved_at: new Date().toISOString() }; } else record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'failed', stage: 'run', reason: (run.stderr || run.stdout || '').trim(), resolved_at: new Date().toISOString() }; }
+      else { const run = spawnSync(process.execPath, [path.join(repo, 'scripts', 'mechanism-record.js'), '--mechanism', descriptor.mechanism.id, '--case', descriptor.case.id, '--state', dir, '--repo', repo, '--close', '--json'], { cwd: repo, encoding: 'utf8', windowsHide: true, timeout: 90000 }); if (run.status === 0) { let parsed = {}; try { parsed = JSON.parse(run.stdout || '{}'); } catch (_) {} record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'closed', verifier: verifier.ref, run: parsed.run || null, closure: parsed.closure || null, expires_at: descriptor.mechanism.expires_at || null, resolved_at: new Date().toISOString() }; } else record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'failed', stage: 'run', reason: (run.stderr || run.stdout || '').trim(), resolved_at: new Date().toISOString() }; }
     } else if (verifier.kind === 'unverifiable') {
       record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'unverifiable', reason: verifier.reason, resolved_at: new Date().toISOString() };
     } else {

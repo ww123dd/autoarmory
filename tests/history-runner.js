@@ -3,6 +3,7 @@ const fs=require('fs');
 const os=require('os');
 const path=require('path');
 const {spawnSync}=require('child_process');
+const {sha256}=require('../src/lib/util');
 function must(c,m){if(!c)throw new Error(m);}
 const repo=path.resolve(__dirname,'..');
 const script=path.join(repo,'scripts','history-runner.js');
@@ -29,7 +30,8 @@ r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--
 must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'missing verifier must become unverifiable');
 const unv=JSON.parse(fs.readFileSync(path.join(state,'reuse-records','change-no-verifier.json'),'utf8'));
 must(unv.status==='unverifiable','unverifiable reuse record must not close');
-fs.writeFileSync(path.join(pending,'change-project-test.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-project-test',session_id:'s3',signals:['check_gap'],verifier_candidate:{kind:'project_test',ref:'node tests/signal-recall.js'},commands:['node tests/signal-recall.js']}),'utf8');
+const repoHead=String(spawnSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).stdout||'').trim();
+fs.writeFileSync(path.join(pending,'change-project-test.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-project-test',session_id:'s3',signals:['check_gap'],expected_transition:'TEST->PASS',verifier_candidate:{kind:'project_test',ref:'node tests/signal-recall.js'},commands:['node tests/signal-recall.js'],mechanical_binding:{kind:'project_test',command_sha256:sha256('node tests/signal-recall.js'),cwd:repo,repo_head:repoHead}}),'utf8');
 r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
 must(r.status===0,'project test drain must succeed');
 const projectReuse=JSON.parse(fs.readFileSync(path.join(state,'reuse-records','change-project-test.json'),'utf8'));

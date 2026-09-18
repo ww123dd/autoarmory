@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseArgs, printJson, readJson, writeJson, writeJsonl, appendJsonl, dedupeJsonl, pruneBackups } = require('../src/lib/util');
+const stateLock = require('../src/lib/state-lock');
 const shadow = require('../src/lib/session-shadow');
 const inspector = require('../src/lib/change-inspector');
 
@@ -86,10 +87,18 @@ const runOnce = function () {
   writeJson(stateFile, state);
   if (args.json) printJson({ schema_version: 'autoarmory/change-inspector-run/v1', sessions: sessionArgs.length, records: records.length, metrics: metrics }); else process.stdout.write('change inspector: records=' + records.length + '\n');
 };
+const lock = stateLock.acquire(stateDir, { staleMs: 60000 });
+if (!lock.ok) {
+  if (args.json) printJson({ schema_version: 'autoarmory/change-inspector-run/v1', locked: true, reason: lock.reason, records: 0 });
+  else process.stdout.write('change inspector: locked (' + lock.reason + ')\n');
+  process.exit(0);
+}
 try {
   runOnce();
 } catch (error) {
   process.stderr.write(String(error.message || error) + '\n');
   process.exit(/SESSION_SHADOW_FAIL_CLOSED/.test(String(error.message || error)) ? 2 : 1);
+} finally {
+  lock.release();
 }
 if (args.watch) setInterval(function () { try { runOnce(); } catch (error) { process.stderr.write(String(error.message || error) + '\n'); process.exit(2); } }, 2000);

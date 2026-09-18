@@ -4,9 +4,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { readJsonl, writeJson, writeJsonl } = require('./util');
+const { readJsonl, writeJson, writeJsonl, sha256 } = require('./util');
 const sessionShadow = require('./session-shadow');
 const changeInspector = require('./change-inspector');
+const verdictView = require('./verdict-view');
 
 function cleanPart(value) { return String(value || '').replace(/[^A-Za-z0-9._-]/g, '_'); }
 function sessionRoot(options) { return path.resolve((options && options.sessionRoot) || process.env.CODEX_SESSION_ROOT || path.join(os.homedir(), '.codex', 'sessions')); }
@@ -132,6 +133,11 @@ function uniqueDrafts(rows) {
     return true;
   });
 }
+function repoIdentity(repo) {
+  const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8', windowsHide: true });
+  const remote = spawnSync('git', ['remote', 'get-url', 'origin'], { cwd: repo, encoding: 'utf8', windowsHide: true });
+  return { repo_head: head.status === 0 ? String(head.stdout || '').trim() : null, repo_remote: remote.status === 0 ? String(remote.stdout || '').trim() : null };
+}
 function writePendingJobs(dir, drafts) {
   if (!drafts || !drafts.length) return [];
   const pendingDir = path.join(dir, 'pending');
@@ -154,6 +160,7 @@ function writePendingJobs(dir, drafts) {
       verifier_id: resolution.kind === 'registered' ? resolution.ref : null,
       verifier_candidate: resolution.kind && resolution.kind !== 'registered' ? resolution : null
     };
+    if (resolution.kind === 'project_test' || resolution.kind === 'git_status' || resolution.kind === 'file_hash') { const identity = repoIdentity(repo); job.mechanical_binding = { kind: resolution.kind, command_sha256: resolution.ref ? sha256(String(resolution.ref)) : null, cwd: draft.cwd || null, repo_head: identity.repo_head, repo_remote: identity.repo_remote, timeout_ms: 30000, allowlist_class: resolution.kind }; }
     const file = path.join(pendingDir, changeId + '.json');
     writeJson(file, job);
     written.push(file);
@@ -199,21 +206,23 @@ function runStopShadow(event, options) {
     projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', projection_total: existing.length, high_signal_total: existing.filter(function (draft) { return draft.high_signal === true; }).length, session_counts: sessionCounts, attribution: attribution, updated_at: null };
     writeJson(projectionStateFile, projectionState);
   }
-  if (!projectionState) projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', policy_version: 0, projection_total: 0, high_signal_total: 0, session_counts: {}, attribution: { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 }, updated_at: null };
+  if (!projectionState) projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', policy_version: 0, reuse_record_count: 0, projection_total: 0, high_signal_total: 0, session_counts: {}, attribution: { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 }, updated_at: null };
   let currentSessionDraftCount = (projectionState.session_counts || {})[path.basename(sessionFile)] || 0;
   let newHighSignal = newCandidates.filter(function (draft) { return draft.high_signal === true; });
-  const forceProjection = projectionState.policy_version !== 3;
+  const reuseIndex = verdictView.readReuseIndex(dir);
+  const reuseRecordCount = Object.keys(reuseIndex).length;
+  const forceProjection = projectionState.policy_version !== 4 || projectionState.reuse_record_count !== reuseRecordCount;
 
   if (newCandidates.length || forceProjection) {
     const allRecords = fs.existsSync(path.join(engineDir, 'change-records.jsonl')) ? readJsonl(path.join(engineDir, 'change-records.jsonl')) : [];
     const candidates = changeInspector.candidateCases(allRecords, { verifier_ids: [] });
     const attribution = { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 };
-    const drafts = uniqueDrafts(candidates.map(function (draft) { return stripDraft(draft, event, attribution); }));
+    const drafts = uniqueDrafts(candidates.map(function (draft) { return verdictView.joinDraft(stripDraft(draft, event, attribution), reuseIndex); }));
     const sessionCounts = {};
     for (const draft of drafts) { const key = draft.session_id || '(missing)'; sessionCounts[key] = (sessionCounts[key] || 0) + 1; }
     currentSessionDraftCount = sessionCounts[path.basename(sessionFile)] || 0;
     const highSignal = drafts.filter(function (draft) { return draft.high_signal === true; });
-    projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', policy_version: 3, projection_total: drafts.length, high_signal_total: highSignal.length, session_counts: sessionCounts, attribution: attribution, updated_at: new Date().toISOString() };
+    projectionState = { schema_version: 'autoarmory/stop-shadow-projection-state/v1', policy_version: 4, reuse_record_count: reuseRecordCount, projection_total: drafts.length, high_signal_total: highSignal.length, session_counts: sessionCounts, attribution: attribution, updated_at: new Date().toISOString() };
     writeJsonl(path.join(dir, 'case-drafts.jsonl'), drafts);
     writeJson(path.join(dir, 'projection-state.json'), projectionState);
     writeJsonl(path.join(engineDir, 'notifications.jsonl'), highSignal);

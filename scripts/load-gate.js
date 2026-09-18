@@ -1,0 +1,3 @@
+#!/usr/bin/env node
+'use strict';
+const path=require('path');const {parseArgs,printJson}=require('../src/lib/util');const gate=require('../src/lib/load-gate');const args=parseArgs(process.argv.slice(2));const state=path.resolve(args.state||'.selfforge');const result=gate.consult(state,args['change-id'],{risk:args.risk||'low'});if(args.json)printJson(result);else process.stdout.write(result.decision+' '+result.change_id+' verdict='+result.verdict+'\n');process.exit(result.decision==='block'?2:0);

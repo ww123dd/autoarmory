@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.27.0
+
+Bind verdicts back to the projection and put locks and consumption gates at the boundaries.
+
+- `case-drafts.jsonl` joins `reuse-records` by `change_id`; missing verdicts are explicit `verdict_missing`, not fake unresolved/closed.
+- Added per-state-root O_EXCL lock with stale takeover for change-inspect and history-runner.
+- Mechanical pending jobs carry `mechanical_binding` (command hash, cwd, repo HEAD/remote, timeout, allowlist class); runner verifies it before execution.
+- Registered runner execution requires non-empty `expected_transition`.
+- Added `load-gate` with allow/degrade/block semantics and evidence-window expiry.
+- Phase #4 incremental projection remains deferred until Stop p95/p99 shows real tail latency pressure.
+
 ## 2.26.0
 
 Complete Phase A with a real release-package closure.

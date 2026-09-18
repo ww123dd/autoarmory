@@ -133,8 +133,15 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
-## 2.26.0
+## 2.27.0
 
+- [x] verdict join: `case-drafts = change-records ⨝ reuse-records` with explicit missing verdict states.
+- [x] single-writer lock for change-inspect and history-runner with stale-lock takeover.
+- [x] mechanical jobs are pinned at bind time and verified before replay.
+- [x] bind/declare requires non-empty expected_transition.
+- [x] load gate: allow / degrade / block; expired evidence degrades low-risk and blocks high-risk.
+
+## 2.26.0
 - [x] Phase A real closure: tableau release zip -> read-only verifier -> run -> close -> reuse-record.
 - [x] project_test runner rejects shell metacharacters and stays unverifiable.
 

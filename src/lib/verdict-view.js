@@ -1,0 +1,8 @@
+'use strict';
+const fs=require('fs');
+const path=require('path');
+const {readJsonlResult}=require('./util');
+function readReuseIndex(dir){const root=path.join(dir,'reuse-records');const index={};if(!fs.existsSync(root))return index;for(const name of fs.readdirSync(root).filter(function(x){return /\.json$/i.test(x);})){try{const record=JSON.parse(fs.readFileSync(path.join(root,name),'utf8'));if(record&&record.change_id)index[record.change_id]=record;}catch(_){}}return index;}
+function verdictFor(changeId,index){const record=index&&index[changeId];if(!record)return{verification_state:'verdict_missing',lifecycle_state:'missing',verdict:null,reason:'no reuse-record for change_id',link_status:'verdict_missing'};return{verification_state:record.status||'unverifiable',lifecycle_state:record.status||'unknown',verdict:record.status||'unknown',verifier:record.verifier||null,run:record.run||null,closure:record.closure||null,reason:record.reason||null,link_status:record.status==='closed'?'linked':'linked_non_closed'};}
+function joinDraft(draft,index){const copy=Object.assign({},draft);const verdict=verdictFor(copy.change_id||copy.id,index);copy.verification_state=verdict.verification_state;copy.lifecycle_state=verdict.lifecycle_state;copy.verdict=verdict.verdict;copy.verifier=verdict.verifier;copy.run=verdict.run;copy.closure = verdict.closure !== undefined && verdict.closure !== null ? verdict.closure : (Object.prototype.hasOwnProperty.call(copy, 'closure') ? copy.closure : null);copy.verdict_reason=verdict.reason;copy.link_status=verdict.link_status;return copy;}
+module.exports={readReuseIndex,verdictFor,joinDraft};
