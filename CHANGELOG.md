@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.28.1
+
+Fix a crash that took down the Stop observation layer after every 2.28.0 deploy.
+
+- `candidateCases` read the repeat crossing state unconditionally; the stop-shadow projection rebuild calls it without caller state, so the first qualifying repeat signature threw `TypeError` and Stops recorded `status: error` instead of scanning.
+- Without caller state the threshold is now evaluated as pure projection truth (crossing dedupe stays the stateful scan path's job); with caller state behavior is unchanged.
+- Regression test covers the rebuild path: no state + repeat count 3 must not crash and must mark high signal.
+
 ## 2.28.0
 
 Harden the approval boundary and capture reliability.

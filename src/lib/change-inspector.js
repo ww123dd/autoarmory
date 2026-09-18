@@ -206,10 +206,13 @@ function candidateCases(records, options) {
     const repeatRecords = list.filter(function (r) { return r.signal === 'repeat_signature'; });
     const repeatCount = repeatRecords.reduce(function (max, record) { return Math.max(max, Number(record.detail && record.detail.count || 1)); }, 0);
     const repeatSignature = repeatRecords.length ? String(repeatRecords[0].detail && repeatRecords[0].detail.signature || 'unknown') : null;
-    const highState = opts.state && (opts.state.high_signal_crossed = opts.state.high_signal_crossed || {});
+    const highState = opts.state ? (opts.state.high_signal_crossed = opts.state.high_signal_crossed || {}) : null;
     const crossKey = repeatSignature ? list[0].session_id + '|' + repeatSignature : null;
-    const crossesRepeatThreshold = !!(repeatCount >= 3 && crossKey && !highState[crossKey]);
-    if (crossesRepeatThreshold) highState[crossKey] = true;
+    // Without caller state (projection rebuild) the crossing mark cannot be
+    // persisted, so the threshold is evaluated as pure truth; pending-write
+    // dedupe stays the job of the stateful scan path.
+    const crossesRepeatThreshold = !!(repeatCount >= 3 && crossKey && (!highState || !highState[crossKey]));
+    if (crossesRepeatThreshold && highState) highState[crossKey] = true;
     const riskBound = signals.indexOf('risk_signal') !== -1 && (signals.indexOf('check_gap') !== -1 || signals.indexOf('command_result_failed') !== -1);
     const failedBound = signals.indexOf('command_result_failed') !== -1 && (signals.indexOf('check_gap') !== -1 || signals.indexOf('repeat_signature') !== -1);
     const highSignal = riskBound || failedBound || crossesRepeatThreshold;

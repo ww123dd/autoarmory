@@ -33,6 +33,8 @@ const repeat3 = inspector.candidateCases([signalRecord('repeat_signature','p3','
 must(repeat3[0].high_signal === true, 'repeat count three is high_signal');
 const repeat4 = inspector.candidateCases([signalRecord('repeat_signature','p6','t-rep3',{ count:4, signature:'sig-rep-3' })], { state: thresholdState });
 must(repeat4[0].candidate === true && repeat4[0].high_signal === false && repeat4[0].dedupe_reason === 'repeat_threshold_already_crossed', 'repeat threshold crossing notifies once');
+const rebuildNoState = inspector.candidateCases([signalRecord('repeat_signature','p7','t-rep3',{ count:3, signature:'sig-rep-3' })], {});
+must(rebuildNoState[0].high_signal === true && !rebuildNoState[0].dedupe_reason, 'projection rebuild without caller state must compute threshold truth without crashing');
 const failedAlone = inspector.candidateCases([signalRecord('command_result_failed','f1','t-fail',{})], {});
 must(failedAlone[0].candidate === true && failedAlone[0].high_signal === false, 'failed command alone is not high_signal');
 must(riskAlone[0].change_id && riskAlone[0].id === riskAlone[0].change_id, 'change_id is the primary key');
