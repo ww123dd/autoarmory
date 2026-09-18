@@ -14,7 +14,7 @@ Stop
   -> stop-shadow-summary.json
 ```
 
-Stop never runs a verifier. A detached `history-runner --drain` consumes pending jobs after Stop, resolves the registered verifier, runs it, and writes `reuse-records/<change_id>.json`.
+Stop never runs a verifier. A detached `history-runner --drain` consumes pending jobs after Stop, resolves the registered verifier or a mechanical project_test/git_status/file_hash bridge, runs it, and writes `reuse-records/<change_id>.json`. A Windows scheduled task (`AutoArmoryHistoryRunnerDrain`) drains pending jobs every 5 minutes as a backstop.
 
 The `session-*` files are the fixed session-shadow resolver output over the bytes newly scanned on this Stop. They are candidate drafts, not a verifier binding, run, close or verdict.
 

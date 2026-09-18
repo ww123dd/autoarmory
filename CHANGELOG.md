@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.25.0
+
+Fix repeat starvation and let the runner mechanically replay safe verification commands.
+
+- Repeat pressure now uses `max(detail.count)`, not the number of repeat records.
+- Repeat threshold notification is deduped per session + signature: first crossing at count >= 3 only; later counts remain candidate-only.
+- Added starvation metrics and real evidence: risk=3138, risk_without_check_gap=3138, repeat_max=15, structured_result_ratio=0.0014, high-signal 68 -> 24 after dedupe.
+- History runner now accepts `project_test`, `git_status` and `file_hash`; non-whitelisted commands and missing paths stay unverifiable.
+- Added a Windows scheduled task wrapper for periodic `history-runner --drain`.
+
 ## 2.24.0
 
 Audit the signal layer, make canonical writes append-only, and fail closed on uncertain session attribution.

@@ -29,4 +29,15 @@ r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--
 must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'missing verifier must become unverifiable');
 const unv=JSON.parse(fs.readFileSync(path.join(state,'reuse-records','change-no-verifier.json'),'utf8'));
 must(unv.status==='unverifiable','unverifiable reuse record must not close');
+fs.writeFileSync(path.join(pending,'change-project-test.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-project-test',session_id:'s3',signals:['check_gap'],verifier_candidate:{kind:'project_test',ref:'node tests/signal-recall.js'},commands:['node tests/signal-recall.js']}),'utf8');
+r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
+must(r.status===0,'project test drain must succeed');
+const projectReuse=JSON.parse(fs.readFileSync(path.join(state,'reuse-records','change-project-test.json'),'utf8'));
+must(projectReuse.status==='closed' && projectReuse.run.exit_code===0,'whitelisted project test must close');
+fs.writeFileSync(path.join(pending,'change-non-whitelist.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-non-whitelist',session_id:'s4',signals:['risk_signal'],verifier_candidate:{kind:'project_test',ref:'rm -rf production'},commands:['rm -rf production']}),'utf8');
+r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
+must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'non-whitelisted command must be unverifiable');
+fs.writeFileSync(path.join(pending,'change-missing-file.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-missing-file',session_id:'s5',signals:['file_changed'],verifier_candidate:{kind:'file_hash',ref:'missing-file.txt'}}),'utf8');
+r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
+must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'missing file hash target must be unverifiable');
 console.log('history runner tests passed: pending -> real run -> close -> reuse, idempotent, unverifiable stays open');

@@ -133,8 +133,15 @@
 - [x] generic JSON assertion verifier: `json-assert` reads an external evaluator report and checks a dot/array path against a bounded assertion; missing files/paths fail closed.
 - [x] real external evidence path: the local `skill-up` release-gate case `c1-ppr-caliber` produced `result.json`, and its `case_results[0].grading.summary.failed == 0` fact can now be re-derived by AutoArmory.
 
-## 2.24.0
+## 2.25.0
 
+- [x] repeat count uses global `detail.count`; first threshold crossing is the only notification.
+- [x] starvation metrics show risk=3138, risk_without_check_gap=3138, repeat_max=15, structured_ratio=0.0014.
+- [x] historical high-signal replay: 68 without threshold dedupe -> 24 with dedupe.
+- [x] runner accepts mechanical project_test/git_status/file_hash; unsafe or missing facts remain unverifiable.
+- [x] periodic drain wrapper installed as a Windows scheduled task.
+
+## 2.24.0
 - [x] CHECK/RISK recall audit: recall=1, curated false-positive rate=0.
 - [x] append-only canonical change-records with duplicate-ID repair.
 - [x] `latest_cwd` fallback diagnostic-only; no false session attribution.

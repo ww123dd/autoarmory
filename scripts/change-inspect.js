@@ -28,9 +28,9 @@ function scan(sessions, state, options) {
     const inc = readIncrement(session, cursor);
     if (!inc.audit.ok) throw new Error('SESSION_SHADOW_FAIL_CLOSED ' + JSON.stringify(inc.audit));
     if (!inc.events.length) { state.sessions[session] = inc; continue; }
-    const sessionState = { session_id: path.basename(session), seen_ids: state.seen_ids || {}, signatures: state.signatures || {}, line: 0 };
+    const sessionState = { session_id: path.basename(session), seen_ids: state.seen_ids || {}, signatures: state.signatures || {}, high_signal_crossed: state.high_signal_crossed || {}, line: 0 };
     const report = inspector.inspect(inc.events, sessionState, { verifier_ids: options.verifier_ids || [], execRecords: options.exec_records || [] });
-    state.seen_ids = sessionState.seen_ids; state.signatures = sessionState.signatures; state.sessions[session] = inc;
+    state.seen_ids = sessionState.seen_ids; state.signatures = sessionState.signatures; state.high_signal_crossed = sessionState.high_signal_crossed; state.sessions[session] = inc;
     all.push.apply(all, report.records);
     events.push.apply(events, inc.events);
   }

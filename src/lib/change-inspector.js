@@ -7,7 +7,7 @@ const CHECK_RE = /(pytest|npm test|npm run build|tsc|node tests|verify_all|curl|
 const RISK_RE = /(production|prod|deploy|publish|permission|授权|权限|删除|drop\s|truncate|write\s|写入|外部|webhook|oauth|token|secret|凭据)/i;
 const CHANGE_TOOLS = new Set(['apply_patch','write','write_file','edit','multiedit','notebookedit']);
 const CHANGE_COMMAND_RE = /(set-content|add-content|out-file|sed\s+-i|tee\s|truncate|rm\s|del\s|move-item|copy-item)/i;
-const STRUCTURED_EXIT_RE = /"exit_code"\s*:\s*(-?\d+)/;
+const STRUCTURED_EXIT_RE = /(?:"exit_code"\s*:\s*|exit_code[=:]\s*|exit code\s*:?\s*|exited with code\s*)(-?\d+)/i;
 const ERROR_RE = /(error|exception|failed|failure|not found|traceback|fatal|exit code [1-9])/i;
 
 function auditSignalClassifier() {
@@ -202,15 +202,44 @@ function candidateCases(records, options) {
     if (signals.indexOf('file_changed') !== -1) score += 1;
     const resolution = resolveVerifier(list, opts.verifier_ids || []);
     const changeId = 'change-' + sha256(list.map(function (r) { return r.id; }).sort().join('|')).slice(0, 16);
-    const repeatCount = list.filter(function (r) { return r.signal === 'repeat_signature'; }).length;
-    const highSignal = isHighSignal(signals, repeatCount);
-    drafts.push({ schema_version: 'autoarmory/candidate-case-draft/v1', id: changeId, change_id: changeId, session_id: list[0].session_id, turn_id: list[0].turn_id || null, source_message_id: list[0].source && (list[0].source.event_id || list[0].source.call_id || list[0].source.line) || null, signals: signals, signal_score: score, repeat_count: repeatCount, status: score >= 2 ? 'candidate' : 'suppressed', candidate: score >= 2, notify: highSignal, high_signal: highSignal, change_record_ids: list.map(function (r) { return r.id; }), verifier_resolution: resolution, expected_transition: null, requires_agent_decision: true, closure: false });
+    const repeatRecords = list.filter(function (r) { return r.signal === 'repeat_signature'; });
+    const repeatCount = repeatRecords.reduce(function (max, record) { return Math.max(max, Number(record.detail && record.detail.count || 1)); }, 0);
+    const repeatSignature = repeatRecords.length ? String(repeatRecords[0].detail && repeatRecords[0].detail.signature || 'unknown') : null;
+    const highState = opts.state && (opts.state.high_signal_crossed = opts.state.high_signal_crossed || {});
+    const crossKey = repeatSignature ? list[0].session_id + '|' + repeatSignature : null;
+    const crossesRepeatThreshold = !!(repeatCount >= 3 && crossKey && !highState[crossKey]);
+    if (crossesRepeatThreshold) highState[crossKey] = true;
+    const riskBound = signals.indexOf('risk_signal') !== -1 && (signals.indexOf('check_gap') !== -1 || signals.indexOf('command_result_failed') !== -1);
+    const failedBound = signals.indexOf('command_result_failed') !== -1 && (signals.indexOf('check_gap') !== -1 || signals.indexOf('repeat_signature') !== -1);
+    const highSignal = riskBound || failedBound || crossesRepeatThreshold;
+    const commandList = list.filter(function (r) { return r.detail && r.detail.command; }).map(function (r) { return r.detail.command; });
+    const changedFiles = [];
+    for (const record of list) { for (const file of (record.detail && record.detail.file_paths) || []) if (file && changedFiles.indexOf(file) === -1) changedFiles.push(file); }
+    drafts.push({ schema_version: 'autoarmory/candidate-case-draft/v1', id: changeId, change_id: changeId, session_id: list[0].session_id, turn_id: list[0].turn_id || null, commands: commandList, changed_files: changedFiles, check_status: signals.indexOf('check_gap') !== -1 ? 'check_gap' : (signals.indexOf('check_seen') !== -1 ? 'check_seen' : null), source_message_id: list[0].source && (list[0].source.event_id || list[0].source.call_id || list[0].source.line) || null, signals: signals, signal_score: score, repeat_count: repeatCount, repeat_signature: repeatSignature, dedupe_reason: repeatCount >= 3 && !crossesRepeatThreshold ? 'repeat_threshold_already_crossed' : null, status: score >= 2 ? 'candidate' : 'suppressed', candidate: score >= 2, notify: highSignal, high_signal: highSignal, change_record_ids: list.map(function (r) { return r.id; }), verifier_resolution: resolution, expected_transition: null, requires_agent_decision: true, closure: false });
   }
   return drafts;
+}
+function starvationMetrics(records, drafts) {
+  const groups = {};
+  for (const item of records) { const key = item.session_id + ':' + (item.turn_id || item.source.turn_id || item.source.event_id || item.source.line || ''); (groups[key] = groups[key] || []).push(item); }
+  let riskWithoutCheck = 0;
+  let groupsWithRisk = 0;
+  let groupsWithRiskAndCheck = 0;
+  for (const list of Object.values(groups)) {
+    const hasRisk = list.some(function (r) { return r.signal === 'risk_signal'; });
+    const hasGap = list.some(function (r) { return r.signal === 'check_gap'; });
+    if (hasRisk) { groupsWithRisk += 1; if (hasGap) groupsWithRiskAndCheck += 1; }
+    if (hasRisk && !hasGap) riskWithoutCheck += list.filter(function (r) { return r.signal === 'risk_signal'; }).length;
+  }
+  const repeatMax = records.filter(function (r) { return r.signal === 'repeat_signature'; }).reduce(function (max, r) { return Math.max(max, Number(r.detail && r.detail.count || 1)); }, 0);
+  const resultLike = records.filter(function (r) { return ['command_result_passed','command_result_failed','result_text_unstructured'].indexOf(r.signal) !== -1; });
+  const structured = resultLike.filter(function (r) { return r.signal === 'command_result_passed' || r.signal === 'command_result_failed'; }).length;
+  return { risk_signal_count: records.filter(function (r) { return r.signal === 'risk_signal'; }).length, risk_without_check_gap_count: riskWithoutCheck, groups_with_risk: groupsWithRisk, groups_with_risk_and_check_gap: groupsWithRiskAndCheck, repeat_max_count: repeatMax, structured_result_count: structured, result_like_count: resultLike.length, structured_result_ratio: resultLike.length ? Number((structured / resultLike.length).toFixed(4)) : 0, high_signal_count: (drafts || []).filter(function (d) { return d.high_signal === true; }).length, repeat_threshold_suppressed_count: (drafts || []).filter(function (d) { return d.dedupe_reason === 'repeat_threshold_already_crossed'; }).length };
 }
 function summarize(records, drafts) {
   const count = function (signal) { return (records || []).filter(function (r) { return r.signal === signal; }).length; };
   const unverifiable = (drafts || []).filter(function (d) { return d.verifier_resolution.kind === 'verifier_candidate' || d.verifier_resolution.kind === 'verifier_missing'; }).length;
+  const starvation = starvationMetrics(records, drafts);
   return {
     change_record_count: (records || []).length,
     file_changed_count: count('file_changed'),
@@ -226,6 +255,7 @@ function summarize(records, drafts) {
     candidate_case_draft_count: (drafts || []).filter(function (d) { return d.status === 'candidate'; }).length,
     high_signal_notification_count: (drafts || []).filter(function (d) { return d.notify === true; }).length,
     suppressed_count: (drafts || []).filter(function (d) { return d.status === 'suppressed'; }).length,
+    starvation: starvation,
     correctly_reported_unverifiable_count: count('check_gap') + unverifiable,
     transcript_field_fabrication_count: 0,
     close_without_verifier_count: 0,
@@ -235,7 +265,7 @@ function summarize(records, drafts) {
 }
 function inspect(events, state, options) {
   const records = inspectEvents(events, state, options);
-  const drafts = candidateCases(records, options);
+  const drafts = candidateCases(records, Object.assign({}, options, { state: state }));
   const changes = buildChanges(records);
   const metrics = summarize(records, drafts);
   const gaps = changes.filter(function (c) { return c.check_status === 'check_gap'; });

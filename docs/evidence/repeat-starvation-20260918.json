@@ -1,0 +1,19 @@
+{
+  "schema_version": "autoarmory/repeat-starvation-evidence/v1",
+  "captured_at": "2026-09-18T15:30:00.000Z",
+  "source": "real change-records.jsonl",
+  "change_record_count": 36649,
+  "risk_signal_count": 3138,
+  "risk_without_check_gap_count": 3138,
+  "groups_with_risk_and_check_gap": 0,
+  "repeat_max_count": 15,
+  "structured_result_count": 17,
+  "result_like_count": 12518,
+  "structured_result_ratio": 0.0014,
+  "high_signal_count_with_dedupe": 24,
+  "repeat_threshold_suppressed_count": 44,
+  "high_signal_count_without_dedupe": 68,
+  "llm_judge_calls": 0,
+  "synthetic_record_count": 0,
+  "private_session_content_shipped": false
+}
