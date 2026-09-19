@@ -22,9 +22,9 @@ const closure = fixtureHelper.closeRun(fixture, run);
 const record = fixtureHelper.reuseRecord(fixture, 'change-valid', { run: run, closure: closure });
 const index = v.readReuseIndex(fixture.state);
 const closed = v.verdictFor('change-valid', index, { stateDir: fixture.state, repo: fixture.repo, decisionId: record.decision_id });
-must(closed.effective_state === 'closed' && closed.mechanism_status === 'closed', 'closed mechanism status must be the effective verdict');
+must(closed.effective_state === 'valid-pass' && closed.mechanism_status === 'closed', 'closed mechanism status must project to valid-pass');
 const joined = v.joinDraft({ change_id: 'change-valid', id: 'change-valid' }, index, { stateDir: fixture.state, repo: fixture.repo });
-must(joined.verification_state === 'closed' && joined.link_status === 'linked', 'closed verdict must join back');
+must(joined.verification_state === 'valid-pass' && joined.link_status === 'linked', 'valid-pass verdict must join back');
 
 // Legacy reuse-records do not carry current claim identity and must not stay closed.
 fs.writeFileSync(path.join(emptyState, 'reuse-records', 'change-legacy.json'), JSON.stringify({ change_id: 'change-legacy', status: 'closed', mechanism_id: 'mech-legacy', verifier: 'fixture', run: { result: 'pass' } }));

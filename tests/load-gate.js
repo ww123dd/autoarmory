@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const gate = require('../src/lib/load-gate');
+const verdictView = require('../src/lib/verdict-view');
 const fixtureHelper = require('./helpers/mechanism-fixture');
 
 function must(condition, message) { if (!condition) throw new Error(message); }
@@ -27,8 +28,22 @@ const run = fixtureHelper.recordRun(valid, 'run-valid');
 const closure = fixtureHelper.closeRun(valid, run);
 const validRecord = fixtureHelper.reuseRecord(valid, 'change-valid', { run: run, closure: closure });
 r = gate.consult(valid.state, 'change-valid', { risk: 'high', repo: valid.repo, decisionId: validRecord.decision_id });
-must(r.decision === 'allow' && r.verdict === 'closed', 'correct closed verdict must allow');
+must(r.decision === 'allow' && r.verdict === 'valid-pass', 'correct closed verdict must project to valid-pass and allow');
 
+// Negative control: a closed reuse-record whose mechanism status becomes
+// unverified must not project back to valid-pass/closed, and the gate must block.
+const unverified = fixtureHelper.createFixture(root, 'unverified');
+fixtureHelper.registerCaseAndMechanism(unverified);
+const unverifiedRun = fixtureHelper.recordRun(unverified, 'run-unverified');
+const unverifiedClosure = fixtureHelper.closeRun(unverified, unverifiedRun);
+const unverifiedRecord = fixtureHelper.reuseRecord(unverified, 'change-unverified', { run: unverifiedRun, closure: unverifiedClosure });
+fs.rmSync(unverified.adapter, { force: true });
+const unverifiedView = verdictView.verdictFor('change-unverified', verdictView.readReuseIndex(unverified.state), { stateDir: unverified.state, repo: unverified.repo, decisionId: unverifiedRecord.decision_id });
+must(unverifiedView.effective_state === 'unverified', 'mechanism unverified must project to unverified, got ' + unverifiedView.effective_state);
+r = gate.consult(unverified.state, 'change-unverified', { risk: 'low', repo: unverified.repo, decisionId: unverifiedRecord.decision_id });
+must(r.decision === 'block' && r.verdict === 'unverified', 'unverified mechanism must block, got ' + JSON.stringify(r));
+const actionResult = gate.consultAction(unverified.state, { actionClass: 'publish', changeId: 'change-unverified', repo: unverified.repo, decisionId: unverifiedRecord.decision_id });
+must(actionResult.behavior === 'block' && actionResult.verdict_state === 'unverified', 'unverified mechanism must block publish');
 // Legacy records without claim identity are historical only and must not allow.
 fs.writeFileSync(path.join(emptyState, 'reuse-records', 'legacy.json'), JSON.stringify({ change_id: 'legacy', status: 'closed', verifier: 'fixture', run: { result: 'pass' } }));
 r = gate.consult(emptyState, 'legacy', { risk: 'low', repo: valid.repo });
@@ -60,4 +75,4 @@ must(cli.status === 2 && /--repo/.test(cli.stderr), 'CLI without --repo must fai
 cli = spawnSync(process.execPath, [script, '--repo', valid.repo, '--change-id', 'change-valid', '--json'], { encoding: 'utf8' });
 must(cli.status === 2 && /--state/.test(cli.stderr), 'CLI without --state must fail closed');
 
-console.log('load gate tests passed: missing, explicit repo, correct-state allow, legacy supersession, expired block, CLI context');
+console.log('load gate tests passed: missing, explicit repo, valid-pass allow, unverified block, legacy supersession, expired block, CLI context');

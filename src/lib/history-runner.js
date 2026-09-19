@@ -75,6 +75,9 @@ function drain(options) {
     } else {
       const outcome = mechanicalRecord(job, verifier, repo); const identity = verifierIdentity(repo, verifier.ref, job); record = Object.assign({ schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: outcome.status, verifier: verifier.ref, run: outcome.run || null, reason: outcome.reason || null, resolved_at: new Date().toISOString() }, identity);
     }
+    record.session_id = job.session_id || null;
+    record.turn_id = job.turn_id || null;
+    record.source_message_id = job.source_message_id || null;
     writeReuse(dir, record); if (record.status === 'unverifiable') appendUnverifiable(dir, record); try { fs.unlinkSync(file); } catch (_) {} results.push({ change_id: changeId, status: record.status, reason: record.reason || null, verifier: verifier.ref });
   }
   return { schema_version: 'autoarmory/history-runner/v1', pending_dir: pendingDir, processed: results.length, history_derived_run_count: results.filter(function (x) { return x.status === 'closed'; }).length, unverifiable_count: results.filter(function (x) { return x.status === 'unverifiable'; }).length, failed_count: results.filter(function (x) { return x.status === 'failed'; }).length, results: results };

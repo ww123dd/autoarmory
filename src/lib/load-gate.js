@@ -27,11 +27,14 @@ function consult(stateDir, changeId, options) {
     decisionId: opts.decisionId
   });
   const state = effective.effective_state;
-  if (state === 'fresh' || state === 'closed') {
-    return { decision: 'allow', change_id: changeId, verdict: 'closed', verifier: effective.verifier || null, run: effective.run || null, mechanism_status: effective.mechanism_status || null, stale_verification: effective.stale_verification === true };
+  if (state === 'valid-pass' || state === 'fresh' || state === 'closed') {
+    return { decision: 'allow', change_id: changeId, verdict: 'valid-pass', verifier: effective.verifier || null, run: effective.run || null, mechanism_status: effective.mechanism_status || null, stale_verification: effective.stale_verification === true };
   }
-  if (state === 'verdict_missing' || state === 'missing' || state === 'unverified') {
-    return { decision: risk === 'high' ? 'block' : 'degrade', change_id: changeId, verdict: state === 'unverified' ? 'unverified' : 'verdict_missing', reason: effective.reason || 'no closed verdict', warning: 'capability has no closed verdict' };
+  if (state === 'unverified') {
+    return { decision: 'block', change_id: changeId, verdict: 'unverified', reason: effective.reason || 'mechanism status is unverified' };
+  }
+  if (state === 'verdict_missing' || state === 'missing') {
+    return { decision: risk === 'high' ? 'block' : 'degrade', change_id: changeId, verdict: 'verdict_missing', reason: effective.reason || 'no closed verdict', warning: 'capability has no closed verdict' };
   }
   if (state === 'expired') {
     return { decision: risk === 'high' ? 'block' : 'degrade', change_id: changeId, verdict: state, reason: effective.reason || state, warning: 'historical verdict retained but expired' };
@@ -112,7 +115,7 @@ function consultAction(stateDir, options) {
   if (policy.classes.indexOf(actionClass) === -1) return decide('unknown-action-class', 'enforce', {}, 'unknown_action_class');
   const mode = policy.mode[actionClass];
   const effective = verdictView.verdictFor(opts.changeId, verdictView.readReuseIndex(stateDir), { stateDir: stateDir, repo: opts.repo, decisionId: opts.decisionId });
-  const state = (effective.effective_state === 'fresh' || effective.effective_state === 'closed') ? 'valid-pass' : (effective.effective_state === 'missing' ? 'no-verdict' : effective.effective_state);
+  const state = (effective.effective_state === 'valid-pass' || effective.effective_state === 'fresh' || effective.effective_state === 'closed') ? 'valid-pass' : (effective.effective_state === 'missing' ? 'no-verdict' : effective.effective_state);
   if (mode !== 'observe' && mode !== 'enforce') return decide(state, 'enforce', { '*': 'block' });
   return decide(state, mode, policy.rules[actionClass] || {});
 }
@@ -147,7 +150,7 @@ function refresh(stateDir, now, options) {
       snapshot.push({ change_id: changeId, state: state, mechanism_status: effective.mechanism_status || null, verifier: effective.verifier || null, expires_at: effective.expires_at || null, reason: effective.reason || null });
       if (state === 'expired') expired += 1;
       else if (state === 'reopened') reopened += 1;
-      else if (state === 'fresh' || state === 'closed') validPass += 1;
+      else if (state === 'valid-pass' || state === 'fresh' || state === 'closed') validPass += 1;
       else if (state === 'valid-fail') validFail += 1;
       else if (state === 'retired') retired += 1;
       else if (state === 'superseded') superseded += 1;

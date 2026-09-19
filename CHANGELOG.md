@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.33.0
+
+Project mechanism status onto gate states and preserve session provenance in verdicts.
+
+- `verdictFor()` now emits decision-level states: `valid-pass`, `valid-fail`, `unverified`, `reopened`, `expired`, `superseded`, `missing`; a mechanism status of `unverified`, `expired` or `reopen_required` can no longer surface as `closed`.
+- `load-gate.consult()` blocks an `unverified` mechanism instead of degrading it, and a correct `valid-pass` returns `allow`.
+- `history-runner` writes `session_id`, `turn_id` and `source_message_id` onto every reuse-record, so a verdict is traceable back to the session turn that produced it.
+- Regression coverage adds a negative control (adapter disappears -> mechanism `unverified` -> verdict `unverified` -> gate block) and a positive control (fresh runner + reproduced fact + present lock + matching expected -> `valid-pass` -> `allow`).
 ## 2.32.0
 
 Make effective verdicts single-source: mechanism status, explicit repo, and pin-change reopening.

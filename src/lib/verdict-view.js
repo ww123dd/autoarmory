@@ -48,14 +48,13 @@ function result(record, state, reason, extra) {
     run: record && record.run || null,
     closure: record && record.closure || null,
     reason: reason || null,
-    link_status: state === 'fresh' || state === 'closed' ? 'linked' : (record ? 'linked_non_fresh' : 'verdict_missing')
+    link_status: state === 'valid-pass' || state === 'fresh' || state === 'closed' ? 'linked' : (record ? 'linked_non_fresh' : 'verdict_missing')
   }, extra || {});
   return value;
 }
 
 function mapMechanismStatus(status) {
-  if (status === 'closed') return 'closed';
-  if (status === 'verified') return 'fresh';
+  if (status === 'closed' || status === 'verified') return 'valid-pass';
   if (status === 'expired') return 'expired';
   if (status === 'reopen_required') return 'reopened';
   if (status === 'bypassed') return 'valid-fail';

@@ -68,7 +68,7 @@ for (const r of closed) {
   freshest = { change_id: r.change_id, effective_state: effective.effective_state, mechanism_status: effective.mechanism_status || null, expiry_status: effective.expiry_status || null, reason: effective.reason || null };
   verdictReason = effective.reason || null;
   const s = effective.effective_state;
-  if (s === 'fresh' || s === 'closed') freshness = effective.stale_verification ? 'stale' : 'fresh';
+  if (s === 'valid-pass' || s === 'fresh' || s === 'closed') freshness = effective.stale_verification ? 'stale' : 'fresh';
   else if (s === 'expired') freshness = 'expired';
   else if (s === 'missing' || s === 'unverified') freshness = 'missing';
   else freshness = 'stale';

@@ -19,6 +19,7 @@ must(report.history_derived_run_count===1 && report.unverifiable_count===0 && re
 const reuseFile=path.join(state,'reuse-records','change-win-service.json');
 const reuse=JSON.parse(fs.readFileSync(reuseFile,'utf8'));
 must(reuse.status==='closed' && reuse.verifier==='windows-service-state' && reuse.run.result==='pass','reuse record must bind the real verifier result');
+must(reuse.session_id==='s1'&&reuse.turn_id==='t1'&&reuse.source_message_id==='m1','reuse record must preserve session provenance');
 must(fs.readdirSync(pending).length===0,'pending job must be drained');
 const firstDecision=reuse.decision_id;
 fs.writeFileSync(path.join(pending,'change-win-service-new-claim.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-win-service',session_id:'s1',turn_id:'t2',source_message_id:'m2',changed_files:[],commands:[],check_status:'check_gap',signals:['risk_signal','check_gap'],verifier_id:'windows-service-state',expected_transition:'STATE->STOPPED'}),'utf8');
@@ -26,6 +27,7 @@ r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--
 must(r.status===0&&JSON.parse(r.stdout).history_derived_run_count===1,'new claim must produce a new verdict');
 const changedClaim=JSON.parse(fs.readFileSync(reuseFile,'utf8'));
 must(changedClaim.decision_id&&changedClaim.decision_id!==firstDecision,'claim change must produce a new decision_id');
+must(changedClaim.session_id==='s1'&&changedClaim.turn_id==='t2'&&changedClaim.source_message_id==='m2','claim change must carry its own session provenance');
 must(fs.readFileSync(path.join(state,'verdict-events.jsonl'),'utf8').indexOf('claim_changed')!==-1,'claim change must append a supersede event');
 const before=fs.readFileSync(reuseFile,'utf8');
 r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
@@ -37,12 +39,14 @@ r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--
 must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'missing verifier must become unverifiable');
 const unv=JSON.parse(fs.readFileSync(path.join(state,'reuse-records','change-no-verifier.json'),'utf8'));
 must(unv.status==='unverifiable','unverifiable reuse record must not close');
+must(unv.session_id==='s2'&&unv.turn_id===null&&unv.source_message_id===null,'unverifiable reuse record must keep available provenance');
 const repoHead=String(spawnSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).stdout||'').trim();
 fs.writeFileSync(path.join(pending,'change-project-test.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-project-test',session_id:'s3',signals:['check_gap'],expected_transition:'TEST->PASS',verifier_candidate:{kind:'project_test',ref:'node tests/signal-recall.js'},commands:['node tests/signal-recall.js'],mechanical_binding:{kind:'project_test',command_sha256:sha256('node tests/signal-recall.js'),cwd:repo,repo_head:repoHead}}),'utf8');
 r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
 must(r.status===0,'project test drain must succeed');
 const projectReuse=JSON.parse(fs.readFileSync(path.join(state,'reuse-records','change-project-test.json'),'utf8'));
 must(projectReuse.status==='closed' && projectReuse.run.exit_code===0,'whitelisted project test must close');
+must(projectReuse.session_id==='s3'&&projectReuse.turn_id===null&&projectReuse.source_message_id===null,'project-test reuse record must preserve session provenance');
 fs.writeFileSync(path.join(pending,'change-non-whitelist.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-non-whitelist',session_id:'s4',signals:['risk_signal'],verifier_candidate:{kind:'project_test',ref:'rm -rf production'},commands:['rm -rf production']}),'utf8');
 r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
 must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'non-whitelisted command must be unverifiable');
