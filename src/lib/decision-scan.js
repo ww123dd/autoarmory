@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readJsonl, writeJsonl, writeJson } = require('./util');
-const { resolveVerifier, resolveClaim } = require('./verifier-resolver');
+const { resolveClaim } = require('./verifier-resolver');
 const changeInspector = require('./change-inspector');
 
 function readRows(file) {
@@ -18,6 +18,12 @@ function readJsonFile(file) {
 function registeredIds(repo) {
   const lock = readJsonFile(path.join(repo, 'verifiers.lock.json'));
   return lock && Array.isArray(lock.verifiers) ? lock.verifiers.map(function (item) { return item.id; }).filter(Boolean) : [];
+}
+function transitionIndex(stateDir) {
+  const file = path.join(stateDir, 'decision-scan', 'transition-candidates.jsonl');
+  const index = {};
+  for (const row of readRows(file)) if (row && row.change_id) index[row.change_id] = row;
+  return index;
 }
 function declarationFor(changeId, stateDir) {
   if (!changeId) return null;
@@ -85,27 +91,43 @@ function resolverFor(draft, context) {
 }
 function classifyDraft(draft, context) {
   const ctx = context || {};
-  const declaration = declarationFor(draft.change_id || draft.id, ctx.stateDir);
-  const effectiveDraft = declaration ? Object.assign({}, draft, declaration) : draft;
+  const changeId = draft.change_id || draft.id || null;
+  const declaration = declarationFor(changeId, ctx.stateDir);
+  const candidate = ctx.transitionIndex && changeId ? ctx.transitionIndex[changeId] : null;
+  const effectiveDraft = Object.assign({}, draft, declaration || {});
+  if (declaration && declaration.expected_transition) effectiveDraft.transition_source_strength = 'declared';
+  if (!effectiveDraft.expected_transition && candidate) {
+    effectiveDraft.expected_transition = candidate.candidate_transition || null;
+    effectiveDraft.transition_source = candidate.transition_source || null;
+    effectiveDraft.transition_source_strength = candidate.source_strength || null;
+  }
   const owner = ownerFor(effectiveDraft, ctx.stateDir);
   const claim = claimShapeFor(effectiveDraft);
   const resolution = resolverFor(effectiveDraft, ctx);
+  const transitionPresent = !!effectiveDraft.expected_transition;
   const reasonCodes = [];
-  if (!owner.owner) reasonCodes.push('blocked_by_owner');
-  if (!effectiveDraft.expected_transition) reasonCodes.push('expected_transition_missing');
-  if (!claim.expected_provenance) reasonCodes.push('expected_provenance_missing');
-  if (resolution.kind === 'blocked_by_access') reasonCodes.push('blocked_by_access');
-  if (resolution.kind === 'no_capability') reasonCodes.push('no_capability');
-  if (resolution.kind === 'ambiguous_capability') reasonCodes.push('ambiguous_capability');
-  if (resolution.kind === 'verifier_missing') reasonCodes.push('verifier_missing');
   let disposition = 'unverifiable';
-  if (reasonCodes.indexOf('blocked_by_owner') !== -1 || reasonCodes.indexOf('blocked_by_access') !== -1) disposition = 'blocked';
-  else if (resolution.kind === 'registered' && reasonCodes.length === 0) disposition = 'ready_for_verifier';
-  else if (reasonCodes.indexOf('no_capability') !== -1) disposition = 'no_capability';
+  if (!transitionPresent) {
+    disposition = 'missing_transition';
+    reasonCodes.push('missing_transition');
+  } else if (resolution.kind === 'registered') {
+    if (!owner.owner) { disposition = 'blocked'; reasonCodes.push('blocked_by_owner'); }
+    else if (!claim.expected_provenance) { disposition = 'blocked'; reasonCodes.push('blocked_by_expected_provenance'); }
+    else if (effectiveDraft.transition_source_strength && ['declared', 'derived'].indexOf(effectiveDraft.transition_source_strength) === -1) { disposition = 'unverifiable'; reasonCodes.push('transition_source_candidate_only'); }
+    else disposition = 'ready_for_verifier';
+  } else if (resolution.kind === 'blocked_by_access') {
+    disposition = 'blocked'; reasonCodes.push('blocked_by_access');
+  } else if (resolution.kind === 'no_capability' || resolution.kind === 'verifier_missing') {
+    disposition = 'true_no_capability'; reasonCodes.push('true_no_capability');
+  } else if (resolution.kind === 'ambiguous_capability') {
+    disposition = 'unverifiable'; reasonCodes.push('ambiguous_capability');
+  } else {
+    disposition = 'unverifiable'; reasonCodes.push('verifier_missing');
+  }
   const uniqueReasonCodes = Array.from(new Set(reasonCodes));
   return {
     schema_version: 'autoarmory/decision-draft/v1',
-    change_id: draft.change_id || draft.id || null,
+    change_id: changeId,
     session_id: draft.session_id || null,
     turn_id: draft.turn_id || null,
     source_message_id: draft.source_message_id || null,
@@ -116,6 +138,10 @@ function classifyDraft(draft, context) {
     commands: Array.isArray(draft.commands) ? draft.commands : [],
     changed_files: Array.isArray(draft.changed_files) ? draft.changed_files : [],
     expected_transition: effectiveDraft.expected_transition || null,
+    transition_present: transitionPresent,
+    transition_source: effectiveDraft.transition_source || (declaration && declaration.expected_transition ? 'owner_declared' : null),
+    transition_source_strength: effectiveDraft.transition_source_strength || (declaration && declaration.expected_transition ? 'declared' : null),
+    transition_candidate: candidate || null,
     expected_provenance: claim.expected_provenance,
     expected_value: Object.prototype.hasOwnProperty.call(effectiveDraft, 'expected_value') ? effectiveDraft.expected_value : null,
     claim_instance: claim.inputs || null,
@@ -132,7 +158,7 @@ function classifyDraft(draft, context) {
 }
 function scanDrafts(draftRows, options) {
   const opts = options || {};
-  const context = { stateDir: opts.stateDir || opts.state || '.', repo: opts.repo || '.' };
+  const context = { stateDir: opts.stateDir || opts.state || '.', repo: opts.repo || '.', transitionIndex: opts.transitionIndex || {} };
   return (Array.isArray(draftRows) ? draftRows : []).map(function (draft) { return classifyDraft(draft, context); });
 }
 function scan(stateDir, options) {
@@ -154,12 +180,16 @@ function scan(stateDir, options) {
     return (Number(b.signal_score) || 0) - (Number(a.signal_score) || 0) || String(a.change_id).localeCompare(String(b.change_id));
   });
   if (Number.isFinite(limit) && limit > 0) candidates = candidates.slice(0, limit);
-  const drafts = scanDrafts(candidates, { stateDir: root, repo: repo });
+  const drafts = scanDrafts(candidates, { stateDir: root, repo: repo, transitionIndex: transitionIndex(root) });
+  const missingTransition = drafts.filter(function (item) { return item.disposition === 'missing_transition'; });
+  const trueNoCapability = drafts.filter(function (item) { return item.disposition === 'true_no_capability'; });
   const ready = drafts.filter(function (item) { return item.disposition === 'ready_for_verifier'; });
   const unverifiable = drafts.filter(function (item) { return item.disposition === 'unverifiable'; });
   const blockedAccess = drafts.filter(function (item) { return item.reason_codes.indexOf('blocked_by_access') !== -1; });
   const blockedOwner = drafts.filter(function (item) { return item.reason_codes.indexOf('blocked_by_owner') !== -1; });
-  const noCapability = drafts.filter(function (item) { return item.reason_codes.indexOf('no_capability') !== -1; });
+  const blockedExpected = drafts.filter(function (item) { return item.reason_codes.indexOf('blocked_by_expected_provenance') !== -1; });
+  const transitionPresent = drafts.filter(function (item) { return item.transition_present === true; });
+  const transitionTrusted = transitionPresent.filter(function (item) { return item.transition_source_strength === 'declared' || item.transition_source_strength === 'derived'; });
   const report = {
     schema_version: 'autoarmory/decision-scan/v1',
     state_root: root,
@@ -167,12 +197,20 @@ function scan(stateDir, options) {
     source_file: recordsFile,
     source_records: records.length,
     candidate_count: candidates.length,
+    inventory_draft_count: drafts.length,
     draft_count: drafts.length,
+    missing_transition_count: missingTransition.length,
+    transition_present_count: transitionPresent.length,
+    transition_present_rate: drafts.length ? Number((transitionPresent.length / drafts.length).toFixed(6)) : 0,
+    transition_source_rate: transitionPresent.length ? Number((transitionTrusted.length / transitionPresent.length).toFixed(6)) : 0,
+    transition_derived_rate: transitionPresent.length ? Number((transitionPresent.filter(function (item) { return item.transition_source_strength === 'derived'; }).length / transitionPresent.length).toFixed(6)) : 0,
     ready_for_verifier_count: ready.length,
-    unverifiable_count: unverifiable.length,
-    blocked_by_access_count: blockedAccess.length,
+    true_no_capability_count: trueNoCapability.length,
+    no_capability_count: trueNoCapability.length,
     blocked_by_owner_count: blockedOwner.length,
-    no_capability_count: noCapability.length,
+    blocked_by_expected_provenance_count: blockedExpected.length,
+    blocked_by_access_count: blockedAccess.length,
+    unverifiable_count: unverifiable.length,
     insufficient_real_stream: insufficient,
     pipeline_stage: 'nomination_only',
     drafts: drafts
@@ -182,10 +220,13 @@ function scan(stateDir, options) {
     fs.mkdirSync(out, { recursive: true });
     writeJsonl(path.join(out, 'decision-drafts.jsonl'), drafts);
     writeJsonl(path.join(out, 'ready-for-verifier.jsonl'), ready);
+    writeJsonl(path.join(out, 'missing-transition.jsonl'), missingTransition);
+    writeJsonl(path.join(out, 'true-no-capability.jsonl'), trueNoCapability);
+    writeJsonl(path.join(out, 'no-capability.jsonl'), trueNoCapability);
     writeJsonl(path.join(out, 'unverifiable.jsonl'), unverifiable);
     writeJsonl(path.join(out, 'blocked-by-access.jsonl'), blockedAccess);
     writeJsonl(path.join(out, 'blocked-by-owner.jsonl'), blockedOwner);
-    writeJsonl(path.join(out, 'no-capability.jsonl'), noCapability);
+    writeJsonl(path.join(out, 'blocked-by-expected-provenance.jsonl'), blockedExpected);
     writeJson(path.join(out, 'summary.json'), Object.assign({}, report, { drafts: undefined, generated_at: new Date().toISOString() }));
   }
   return report;

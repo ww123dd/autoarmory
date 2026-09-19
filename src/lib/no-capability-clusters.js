@@ -61,7 +61,8 @@ function feasibility(f) {
   return 'low';
 }
 function cluster(stateDir) {
-  const file = path.join(stateDir, 'decision-scan', 'no-capability.jsonl');
+  const trueFile = path.join(stateDir, 'decision-scan', 'true-no-capability.jsonl');
+  const file = fs.existsSync(trueFile) ? trueFile : path.join(stateDir, 'decision-scan', 'no-capability.jsonl');
   const drafts = readJsonlStrict(file);
   const groups = {};
   for (const draft of drafts) {

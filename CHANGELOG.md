@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.39.1
+
+Separate missing transitions from true no_capability and propose transitions from command shape.
+
+- `decision-scan` now emits `missing_transition`, `true_no_capability`, `blocked_by_owner`, `blocked_by_expected_provenance`, `blocked_by_access` and `ready_for_verifier` as separate buckets. `missing_transition` is no longer counted as no_capability.
+- Added `scripts/transition-propose.js` / `src/lib/transition-proposer.js`: command normalization skips meta commands (`cd`, encoding setup, file writes, search/read commands) and proposes transitions only for real verifier command families.
+- Transition candidates carry `transition_source`, `source_strength`, `evidence_refs` and `observed_facts`; declared/derived may feed ready candidates, candidate stays draft-only.
+- Real state after proposal: missing_transition 10349 -> 6285; transition_present 4064; trusted transitions 338; true_no_capability 3763; ready_for_verifier 1. The no_capability_rate is no longer the improvement metric; missing_transition_count is.
 ## 2.39.0
 
 Turn no_capability into a ranked registry-supply queue.

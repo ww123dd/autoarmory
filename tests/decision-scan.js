@@ -25,8 +25,8 @@ const classified = decisionScan.scanDrafts([
 must(classified[0].disposition === 'ready_for_verifier', 'capability match + owner + transition + provenance must be ready, got ' + JSON.stringify(classified[0]));
 must(classified[1].reason_codes.indexOf('blocked_by_owner') !== -1, 'missing owner must block by owner');
 must(classified[2].disposition === 'blocked' && classified[2].reason_codes.indexOf('blocked_by_access') !== -1, 'access-required claim must block by access');
-must(classified[3].reason_codes.indexOf('expected_transition_missing') !== -1, 'missing transition must stay explicit');
-must(classified[4].disposition === 'no_capability' && classified[4].reason_codes.indexOf('no_capability') !== -1, 'unknown transition must be no_capability, not not_a_case');
+must(classified[3].disposition === 'missing_transition' && classified[3].reason_codes.indexOf('missing_transition') !== -1, 'missing transition must stay explicit and out of no_capability');
+must(classified[4].disposition === 'true_no_capability' && classified[4].reason_codes.indexOf('true_no_capability') !== -1, 'transition present without capability must be true_no_capability');
 
 const empty = decisionScan.scan(path.join(root, 'empty'), { repo: repo, apply: true });
 must(empty.insufficient_real_stream === true && empty.draft_count === 0, 'empty stream must not invent drafts');
@@ -34,8 +34,8 @@ must(!fs.existsSync(path.join(root, 'empty', 'decision-scan')), 'insufficient st
 
 write(path.join(state, 'change-inspector', 'change-records.jsonl'), JSON.stringify({ id: 'r1', session_id: 's1', turn_id: 't1', signal: 'risk_signal', source: { event_id: 'm1', line: 1 }, detail: { command: 'node tests/run.js', file_paths: ['a.js'] } }) + '\n');
 const report = decisionScan.scan(state, { repo: repo, apply: true, limit: 10 });
-must(report.candidate_count === 1 && report.draft_count === 1 && report.blocked_by_owner_count === 1 && report.unverifiable_count === 0, 'real change record without owner must produce one blocked_by_owner draft');
-must(report.drafts[0].expected_transition === null && report.drafts[0].reason_codes.indexOf('expected_transition_missing') !== -1, 'first pass must not fabricate expected_transition');
+must(report.candidate_count === 1 && report.inventory_draft_count === 1 && report.missing_transition_count === 1 && report.true_no_capability_count === 0, 'real change record without transition must be missing_transition, not no_capability');
+must(report.drafts[0].expected_transition === null && report.drafts[0].disposition === 'missing_transition' && report.drafts[0].reason_codes.indexOf('missing_transition') !== -1, 'first pass must not fabricate expected_transition');
 must(fs.existsSync(path.join(state, 'decision-scan', 'decision-drafts.jsonl')), 'apply must write the draft projection');
 must(!fs.existsSync(path.join(state, 'pending')), 'decision-scan must not activate pending jobs');
 const declaredState = path.join(root, 'declared-state');

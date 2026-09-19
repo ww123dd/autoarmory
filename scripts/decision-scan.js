@@ -18,6 +18,6 @@ const report = decisionScan.scan(path.resolve(args.state), {
 });
 if (args.json) printJson(args.full ? report : Object.assign({}, report, { drafts: undefined }));
 else {
-  process.stdout.write('decision-scan candidates=' + report.candidate_count + ' drafts=' + report.draft_count + ' ready=' + report.ready_for_verifier_count + ' unverifiable=' + report.unverifiable_count + ' blocked_access=' + report.blocked_by_access_count + ' blocked_owner=' + report.blocked_by_owner_count + ' no_capability=' + report.no_capability_count + (report.insufficient_real_stream ? ' insufficient_real_stream' : '') + (args.apply ? ' (applied)' : ' (dry-run)') + '\n');
+  process.stdout.write('decision-scan inventory=' + report.inventory_draft_count + ' missing_transition=' + report.missing_transition_count + ' transition_present=' + report.transition_present_count + ' ready=' + report.ready_for_verifier_count + ' true_no_capability=' + report.true_no_capability_count + ' blocked_owner=' + report.blocked_by_owner_count + ' blocked_expected=' + report.blocked_by_expected_provenance_count + (report.insufficient_real_stream ? ' insufficient_real_stream' : '') + (args.apply ? ' (applied)' : ' (dry-run)') + '\n');
 }
 process.exit(0);
