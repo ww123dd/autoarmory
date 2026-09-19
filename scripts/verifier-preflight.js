@@ -44,6 +44,19 @@ try { declaredVerifiers = JSON.parse(fs.readFileSync(lockFile, 'utf8')).verifier
 const localOnlyPins = [];
 for (const item of declaredVerifiers) {
   if (typeof item.version !== 'string' || !item.version) failures.push('verifier declares no human-readable version: ' + item.id);
+  const caps = item.capabilities;
+  if (!caps || typeof caps !== 'object') failures.push('verifier declares no capability schema: ' + item.id);
+  else {
+    if (!Array.isArray(caps.transition_types) || !caps.transition_types.length) failures.push('capability.transition_types missing: ' + item.id);
+    if (typeof caps.artifact_type !== 'string' || !caps.artifact_type) failures.push('capability.artifact_type missing: ' + item.id);
+    if (!Array.isArray(caps.required_inputs)) failures.push('capability.required_inputs missing: ' + item.id);
+    if (!Array.isArray(caps.optional_inputs)) failures.push('capability.optional_inputs missing: ' + item.id);
+    if (!Array.isArray(caps.expected_provenance) || !caps.expected_provenance.length) failures.push('capability.expected_provenance missing: ' + item.id);
+    if (!caps.assertion_schema || !Array.isArray(caps.assertion_schema.ops) || !caps.assertion_schema.ops.length) failures.push('capability.assertion_schema missing: ' + item.id);
+    if (!Array.isArray(caps.action_class) && typeof caps.action_class !== 'string') failures.push('capability.action_class missing: ' + item.id);
+    if (!caps.scope_schema || typeof caps.scope_schema !== 'object') failures.push('capability.scope_schema missing: ' + item.id);
+    if (typeof caps.owner !== 'string' || !caps.owner) failures.push('capability.owner missing: ' + item.id);
+  }
   if (item.invocation_contract_version !== verify.INVOCATION_CONTRACT) failures.push('verifier invocation contract mismatch: ' + item.id + ' declares ' + String(item.invocation_contract_version) + ', expected ' + verify.INVOCATION_CONTRACT);
   for (const relative of [item.adapter].concat(item.bridge && item.bridge.adapter ? [item.bridge.adapter] : [])) {
     const tracked = spawnSync('git', ['ls-files', '--error-unmatch', relative], { cwd: repo, encoding: 'utf8', windowsHide: true });

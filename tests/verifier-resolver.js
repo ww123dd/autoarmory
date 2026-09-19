@@ -1,5 +1,5 @@
 'use strict';
-const { resolveVerifier } = require('../src/lib/verifier-resolver');
+const { resolveVerifier, resolveClaim } = require('../src/lib/verifier-resolver');
 function must(condition, message) { if (!condition) throw new Error(message); }
 must(resolveVerifier({ command: 'run smoke-check-42' }, { verifier_ids: ['smoke-check-42'] }).kind === 'registered', 'registered verifier');
 must(resolveVerifier({ command: 'node tests/run.js' }).kind === 'project_test', 'project test command');
@@ -11,4 +11,12 @@ must(resolveVerifier({ command: 'Get-Process node' }).kind === 'verifier_candida
 must(resolveVerifier({ command: 'playwright test' }).kind === 'verifier_candidate', 'DOM must be a candidate');
 must(resolveVerifier({ command: 'npm run bundle' }).kind === 'verifier_candidate', 'build artifact must be a candidate');
 must(resolveVerifier({ command: 'echo hello' }).kind === 'verifier_missing', 'unknown must fail closed');
-console.log('verifier resolver tests passed: three mechanical classes, candidate HTTP/SQL/process/DOM/build, missing fail closed');
+const registry = [{ id: 'fixture-enumeration', capabilities: { transition_types: ['TRUNCATED->ENUMERATED'], artifact_type: 'repo-enumeration', required_inputs: ['root', 'pattern', 'expected_count'], optional_inputs: [], expected_provenance: ['baseline_manifest'], assertion_schema: { ops: ['eq'] }, action_class: ['load'], scope_schema: { required: ['repo'] }, owner: 'repo-owner' } }];
+const claim = { transition: 'TRUNCATED->ENUMERATED', artifact_type: 'repo-enumeration', inputs: { root: 'examples/adapters', pattern: 'bridge\\.js$', expected_count: 12 }, expected_provenance: 'baseline_manifest', action_class: 'load', scope: { repo: 'autoarmory' }, assertion: { op: 'eq' } };
+const matched = resolveClaim(claim, { verifiers: registry });
+must(matched.kind === 'matched' && matched.verifier_id === 'fixture-enumeration', 'capability resolver must match by schema, not id');
+const noCapability = resolveClaim({ transition: 'FOO->BAR', artifact_type: 'unknown', inputs: {}, expected_provenance: 'baseline_manifest' }, { verifiers: registry });
+must(noCapability.kind === 'no_capability' && noCapability.missing_verifier_kind === 'FOO->BAR', 'unmatched claim must be no_capability with a backlog shape');
+const blockedAccess = resolveClaim({ transition: 'HTTP->HEALTHY', artifact_type: 'http-endpoint', inputs: { url: 'https://example.com' }, expected_provenance: 'baseline_manifest', access_required: true }, { verifiers: registry });
+must(blockedAccess.kind === 'blocked_by_access', 'known claim without accessible capability must be blocked_by_access');
+console.log('verifier resolver tests passed: legacy command shapes + capability schema match/no_capability/blocked_by_access');

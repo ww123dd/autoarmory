@@ -25,6 +25,9 @@ function pendingJob(draft, repo) {
     commands: draft.commands || [],
     signals: draft.signals || [],
     expected_transition: draft.expected_transition,
+    claim_instance: draft.claim_instance || (draft.claim_shape && draft.claim_shape.inputs) || null,
+    expected_value: Object.prototype.hasOwnProperty.call(draft, 'expected_value') ? draft.expected_value : null,
+    expected_provenance: draft.expected_provenance || null,
     owner: draft.owner || null,
     action_class: draft.action_class || null
   };

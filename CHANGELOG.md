@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.36.0
+
+Match claims by capability schema and bind expected values to provenance.
+
+- Every registered verifier now declares `transition_types`, `artifact_type`, `required_inputs`, `optional_inputs`, `expected_provenance`, `assertion_schema`, `action_class`, `scope_schema` and `owner`; `verifier-preflight` refuses a verifier without the schema, and `verifiers.manifest.json` tracks it.
+- `verifier-resolver` now supports claim-to-capability matching. A claim without a matching capability becomes `no_capability` with `claim_shape`, `observed_facts`, `missing_verifier_kind`, `missing_input_schema`, `source_change_ids` and `session_id`; no_capability is a registry-backlog reason code, not a lifecycle state.
+- Claim instances and expected provenance now enter `claim_sha256`. `history-runner` writes `claim_instance`, `expected_value` and `expected_provenance` into reuse-records; expected provenance is restricted to `owner_approval | baseline_manifest | commit | pinned_verifier`, and `agent_inferred` fails closed.
+- `verdict-view` treats a closed record without claim instance/provenance as historical `superseded`, not current.
+- `decision-scan` emits `no-capability.jsonl` and metrics for ready, no-capability, blocked-by-access and blocked-by-owner claims.
+
 ## 2.35.0
 
 Expand the registry with two mechanical verifiers.

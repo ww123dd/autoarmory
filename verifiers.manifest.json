@@ -1,78 +1,440 @@
 {
   "schema_version": "autoarmory/verifier-manifest/v1",
-  "expected_lock_sha256": "dbca207ba4b3ee03287b8a1ebb0f7311ee6933e36758f0a6654525d51b709188",
+  "expected_lock_sha256": "85acead775f5682deb792f2dc6732d9286b3a0214a7c109db2574d007dbd1cc2",
   "verifiers": [
     {
       "id": "doris-readonly-count",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "8d9896c85b20a167dc15871061a35049af7629d861d024cc33f113f3e8f57bce",
-      "config_sha256": "8c9169d8d316d20bc0d8e10a201ef561ad141f0bb6371a61b5927f9615bdf1d8"
+      "config_sha256": "8c9169d8d316d20bc0d8e10a201ef561ad141f0bb6371a61b5927f9615bdf1d8",
+      "capabilities": {
+        "transition_types": [
+          "COUNT->0",
+          "COUNT->EXPECTED"
+        ],
+        "artifact_type": "doris-table",
+        "required_inputs": [
+          "table",
+          "where"
+        ],
+        "optional_inputs": [
+          "params"
+        ],
+        "expected_provenance": [
+          "owner_approval",
+          "baseline_manifest"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq",
+            "gte",
+            "lte"
+          ]
+        },
+        "action_class": [
+          "load",
+          "exploration"
+        ],
+        "scope_schema": {
+          "required": [
+            "project",
+            "environment"
+          ]
+        },
+        "owner": "datawarehouse"
+      }
     },
     {
       "id": "esc3-pid-file-live",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "632474517da4d0b9151fcfe9349c429ff6ca8bb9e7f29ff80006fae5af2861c0",
-      "config_sha256": "fceeba39b37ceb98cc71aec9f13ee60160dd71b764d5567e164bce073c911aaf"
+      "config_sha256": "fceeba39b37ceb98cc71aec9f13ee60160dd71b764d5567e164bce073c911aaf",
+      "capabilities": {
+        "transition_types": [
+          "STATE->RUNNING"
+        ],
+        "artifact_type": "pid-file",
+        "required_inputs": [
+          "path"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ]
+        },
+        "action_class": [
+          "load",
+          "exploration"
+        ],
+        "scope_schema": {
+          "required": [
+            "environment"
+          ]
+        },
+        "owner": "ops"
+      }
     },
     {
       "id": "file-sha256-license",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
-      "config_sha256": "28def98c491fc3ff2ebd898616b9d610d30803461e7445d6f2ce2847eb9c9b54"
+      "config_sha256": "28def98c491fc3ff2ebd898616b9d610d30803461e7445d6f2ce2847eb9c9b54",
+      "capabilities": {
+        "transition_types": [
+          "HASH->MATCH"
+        ],
+        "artifact_type": "file",
+        "required_inputs": [
+          "path",
+          "sha256"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest",
+          "commit",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ]
+        },
+        "action_class": [
+          "load",
+          "publish",
+          "exploration"
+        ],
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "repo-owner"
+      }
     },
     {
       "id": "git-commit-exists",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "836c570b08083519e82a6a230ae689d3ce21a2cebfd76abc6fcce361d57feefc",
-      "config_sha256": "83741b8283f3b4be47b2c9caccaa9687d1e146fc6c986960820e7c06ebff5862"
+      "config_sha256": "83741b8283f3b4be47b2c9caccaa9687d1e146fc6c986960820e7c06ebff5862",
+      "capabilities": {
+        "transition_types": [
+          "COMMIT->EXISTS"
+        ],
+        "artifact_type": "git-commit",
+        "required_inputs": [
+          "commit"
+        ],
+        "optional_inputs": [
+          "repo"
+        ],
+        "expected_provenance": [
+          "commit"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq",
+            "gte"
+          ]
+        },
+        "action_class": [
+          "deploy",
+          "publish",
+          "load"
+        ],
+        "scope_schema": {
+          "required": [
+            "repo"
+          ]
+        },
+        "owner": "repo-owner"
+      }
     },
     {
       "id": "local-http-health",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "343e118752be383141d2a30a90e2bb009676c8ebf785440124349e025386e982",
-      "config_sha256": "7a505cbcb6ea7e7bec46626769182907a447bbc78b9dd494edde874f75eeb223"
+      "config_sha256": "7a505cbcb6ea7e7bec46626769182907a447bbc78b9dd494edde874f75eeb223",
+      "capabilities": {
+        "transition_types": [
+          "HTTP->HEALTHY"
+        ],
+        "artifact_type": "http-endpoint",
+        "required_inputs": [
+          "url"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ]
+        },
+        "action_class": [
+          "load",
+          "deploy"
+        ],
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "service-owner"
+      }
     },
     {
       "id": "windows-registry-value",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "d6706e3bc50f246434976080f1d91412ebfef71cee6c8d6a0e22a0090238663f",
-      "config_sha256": "4e66957735b4aa38ebeb1954daeb4e05847d78d5ddf3b67f8aa493290c7637b7"
+      "config_sha256": "4e66957735b4aa38ebeb1954daeb4e05847d78d5ddf3b67f8aa493290c7637b7",
+      "capabilities": {
+        "transition_types": [
+          "REGISTRY->EXPECTED"
+        ],
+        "artifact_type": "windows-registry",
+        "required_inputs": [
+          "path",
+          "name"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ]
+        },
+        "action_class": [
+          "load",
+          "deploy"
+        ],
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "windows-owner"
+      }
     },
     {
       "id": "windows-service-state",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "faefd62b57601d92d35d2fa6922f23876e5da3362242594ba68feb02b61c7826",
-      "config_sha256": "4bc74e239a481fa6f241817764983f3e9afa9c07974242595d3caab4d581e636"
+      "config_sha256": "4bc74e239a481fa6f241817764983f3e9afa9c07974242595d3caab4d581e636",
+      "capabilities": {
+        "transition_types": [
+          "STATE->RUNNING"
+        ],
+        "artifact_type": "windows-service",
+        "required_inputs": [
+          "service"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ]
+        },
+        "action_class": [
+          "load",
+          "deploy"
+        ],
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "windows-owner"
+      }
     },
     {
       "id": "tls-peer-certificate",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "448e93d2653de69e5188c6225a9f11e9e7f0e42c6bb2dc063cb4093d59e44ec3",
-      "config_sha256": "12779c5beb4f3f3f0f23114768ba6fd9e50bb3fb59cb5f1d7e0ddd6201701096"
+      "config_sha256": "12779c5beb4f3f3f0f23114768ba6fd9e50bb3fb59cb5f1d7e0ddd6201701096",
+      "capabilities": {
+        "transition_types": [
+          "CERT->MATCH"
+        ],
+        "artifact_type": "tls-peer",
+        "required_inputs": [
+          "host",
+          "port"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ]
+        },
+        "action_class": [
+          "deploy",
+          "load"
+        ],
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "security"
+      }
     },
     {
       "id": "meta-skill-load-count",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "4605eed7ceaf213af2a2b32065ae62a992cf867ea79a78fd9d92a3648b883517",
-      "config_sha256": "22918e30a036b49386d45e093716820b59eda2cda7b917f31bb3cdd6ba8b40ee"
+      "config_sha256": "22918e30a036b49386d45e093716820b59eda2cda7b917f31bb3cdd6ba8b40ee",
+      "capabilities": {
+        "transition_types": [
+          "COUNT->GTE"
+        ],
+        "artifact_type": "transcript-corpus",
+        "required_inputs": [
+          "root",
+          "skill"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "gte"
+          ]
+        },
+        "action_class": [
+          "exploration"
+        ],
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "skill-owner"
+      }
     },
     {
       "id": "tableau-release-zip",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
-      "config_sha256": "be227064788b77c17bc9936f520548c572376d4bbe3adcb04414b10fc1f3c17e"
+      "config_sha256": "be227064788b77c17bc9936f520548c572376d4bbe3adcb04414b10fc1f3c17e",
+      "capabilities": {
+        "transition_types": [
+          "HASH->MATCH"
+        ],
+        "artifact_type": "file",
+        "required_inputs": [
+          "path",
+          "sha256"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "owner_approval",
+          "baseline_manifest"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ]
+        },
+        "action_class": [
+          "publish"
+        ],
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "tableau-owner"
+      }
     },
     {
       "id": "enumeration-completeness",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "644cad875dc53bbee7aa8ff5f549dfbb425fe2c54b3753a3032073d0c55e8308",
-      "config_sha256": "e451ea8f67c78b4a029ead8292b9e0b5a289fd7a3626c5855b3d102c9e5e00e2"
+      "config_sha256": "e451ea8f67c78b4a029ead8292b9e0b5a289fd7a3626c5855b3d102c9e5e00e2",
+      "capabilities": {
+        "transition_types": [
+          "TRUNCATED->ENUMERATED"
+        ],
+        "artifact_type": "repo-enumeration",
+        "required_inputs": [
+          "root",
+          "pattern",
+          "expected_count"
+        ],
+        "optional_inputs": [
+          "manifest",
+          "max_files"
+        ],
+        "expected_provenance": [
+          "baseline_manifest",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ],
+          "paths": [
+            "complete"
+          ]
+        },
+        "action_class": [
+          "load",
+          "publish",
+          "ddl"
+        ],
+        "scope_schema": {
+          "required": [
+            "repo"
+          ]
+        },
+        "owner": "repo-owner"
+      }
     },
     {
       "id": "verification-gap",
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "6aad5ef383107e13dad22b4926d45572db83b3d1565d960d93d2d334e1e686a0",
-      "config_sha256": "65fd54fee454e6144988d428c1cd0dd69146218c83a9472ebbf1bf6e876fb920"
+      "config_sha256": "65fd54fee454e6144988d428c1cd0dd69146218c83a9472ebbf1bf6e876fb920",
+      "capabilities": {
+        "transition_types": [
+          "UNVERIFIED->CHECKED"
+        ],
+        "artifact_type": "transcript-window",
+        "required_inputs": [
+          "transcript",
+          "transcript_sha256",
+          "boundary_line",
+          "window",
+          "check_pattern"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ],
+          "paths": [
+            "complete"
+          ]
+        },
+        "action_class": [
+          "load",
+          "publish"
+        ],
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "repo-owner"
+      }
     }
   ]
 }

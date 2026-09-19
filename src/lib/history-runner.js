@@ -34,7 +34,27 @@ function bindingProblem(job, verifier, repo) {
   return null;
 }
 function writeReuse(dir, record) { const root = path.join(dir, 'reuse-records'); fs.mkdirSync(root, { recursive: true }); const changeOut = path.join(root, record.change_id + '.json'); writeJson(changeOut, record); if (record.decision_id) writeJson(path.join(root, record.decision_id.replace(/[:]/g, '_') + '.json'), record); return changeOut; }
-function verifierIdentity(repo, verifierId, job) { const lockPath = path.join(repo, 'verifiers.lock.json'); let lockSha = null, entry = null; try { const text = fs.readFileSync(lockPath, 'utf8'); lockSha = sha256Text(text); const lock = JSON.parse(text); entry = (lock.verifiers || []).find(function (item) { return item.id === verifierId; }) || null; } catch (_) {} const expected = verifierId ? sha256Text(JSON.stringify({ id: verifierId, assertion: entry && entry.assertion || null, kind: entry && entry.kind || null })) : (job && job.mechanical_binding && job.mechanical_binding.command_sha256) || null; const claim = sha256Text(JSON.stringify({ change_id: job.change_id, expected_transition: job.expected_transition, expected_sha256: expected })); return { decision_id: job.change_id + ':' + claim, claim_sha256: claim, expected_sha256: expected, verifier_lock_sha256: lockSha, source_verifier_id: verifierId || null }; }
+function verifierIdentity(repo, verifierId, job) {
+  const lockPath = path.join(repo, 'verifiers.lock.json');
+  let lockSha = null, entry = null;
+  try { const text = fs.readFileSync(lockPath, 'utf8'); lockSha = sha256Text(text); const lock = JSON.parse(text); entry = (lock.verifiers || []).find(function (item) { return item.id === verifierId; }) || null; } catch (_) {}
+  const claimInstance = job && job.claim_instance || null;
+  const expectedProvenance = job && job.expected_provenance || (verifierId ? 'pinned_verifier' : null);
+  const expectedValue = job && Object.prototype.hasOwnProperty.call(job, 'expected_value') ? job.expected_value : (entry && entry.assertion ? entry.assertion.value : null);
+  const expected = verifierId
+    ? sha256Text(JSON.stringify({ id: verifierId, assertion: entry && entry.assertion || null, kind: entry && entry.kind || null, claim_instance: claimInstance, expected_value: expectedValue, expected_provenance: expectedProvenance }))
+    : (job && job.mechanical_binding && job.mechanical_binding.command_sha256) || null;
+  const claim = sha256Text(JSON.stringify({ change_id: job.change_id, expected_transition: job.expected_transition, expected_sha256: expected, claim_instance: claimInstance, expected_provenance: expectedProvenance }));
+  return { decision_id: job.change_id + ':' + claim, claim_sha256: claim, expected_sha256: expected, verifier_lock_sha256: lockSha, source_verifier_id: verifierId || null, claim_instance: claimInstance, expected_value: expectedValue, expected_provenance: expectedProvenance };
+}
+function provenanceProblem(job, verifier) {
+  if (!job || verifier.kind === 'unverifiable') return null;
+  if (verifier.kind === 'registered' && !job.expected_provenance) return null;
+  const allowed = ['pinned_verifier', 'owner_approval', 'baseline_manifest', 'commit'];
+  if (!job.expected_provenance) return 'expected_provenance_missing';
+  if (allowed.indexOf(job.expected_provenance) === -1) return 'expected_provenance_untrusted:' + job.expected_provenance;
+  return null;
+}
 function appendUnverifiable(dir, record) { const file = path.join(dir, 'unverifiable.jsonl'); writeJsonl(file, readJsonl(file).concat([record])); }
 function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 function descriptorFor(job, verifier, identity) { const now = new Date(); const expires = new Date(now.getTime() + 30 * 86400000).toISOString(); const changeId = job.change_id; const claim = identity && identity.claim_sha256 ? '-' + identity.claim_sha256.slice(0, 12) : ''; const caseId = 'case-' + changeId + claim; const mechanismId = 'mech-' + changeId + claim; return { case: { schema_version: 'autoarmory/case/v1', id: caseId, incident_id: 'inc-' + changeId, title: job.title || ('History-derived change ' + changeId), expected_transition: job.expected_transition || 'FAIL->PASS', failure_mode: 'history_derived_change', severity: job.severity || 'medium', evidence: job.evidence || job.signals || [], reproducible: true, owner: job.owner || 'codex', verifier: verifier, done_criteria: 'registered verifier ' + verifier + ' re-derives the recorded change fact' }, mechanism: { schema_version: 'autoarmory/mechanism/v1', id: mechanismId, name: 'History-derived guard ' + changeId, covered_failure_modes: ['history_derived_change'], trigger: 'A pending history change needs an external reuse verdict.', action: 'Replay the registered verifier and record the result.', verification: 'registered readonly ' + verifier + ' verifier', verifier_id: verifier, closure_criteria: 'registered verifier passes and the run closes', owner: 'codex', version: '1.0.0', verification_stale_days: 30, scope: { project: 'autoarmory', task_type: 'history-derived', environment: 'codex-local', artifact_type: 'change' }, expires_at: expires, reopen_trigger: [{ kind: 'runner_changed' }] } }; }
@@ -62,9 +82,10 @@ function drain(options) {
     const file = path.join(pendingDir, name); let job; try { job = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (error) { results.push({ change_id: null, status: 'failed', reason: 'pending job unreadable: ' + error.message }); continue; }
     const changeId = job.change_id; const reuseFile = path.join(dir, 'reuse-records', changeId + '.json'); let existing = null; try { existing = fs.existsSync(reuseFile) ? JSON.parse(fs.readFileSync(reuseFile, 'utf8')) : null; } catch (_) { existing = null; }
     const verifier = resolveVerifier(job); const identity = verifier.kind === 'registered' || verifier.kind === 'project_test' || verifier.kind === 'git_status' || verifier.kind === 'file_hash' ? verifierIdentity(repo, verifier.ref, job) : null; if (existing && (!identity || existing.decision_id === identity.decision_id)) { try { fs.unlinkSync(file); } catch (_) {} results.push({ change_id: changeId, status: 'skipped', reason: 'same claim already has a reuse record' }); continue; } if (existing && identity && existing.decision_id && existing.decision_id !== identity.decision_id) { try { fs.appendFileSync(path.join(dir, 'verdict-events.jsonl'), JSON.stringify({ schema_version: 'autoarmory/verdict-event/v1', at: new Date().toISOString(), change_id: changeId, from_decision_id: existing.decision_id, to_decision_id: identity.decision_id, reason: 'claim_changed' }) + '\n', 'utf8'); } catch (_) {} }
-    const bindingError = verifier.kind === 'unverifiable' ? null : bindingProblem(job, verifier, repo); let record = null;
+    const bindingError = verifier.kind === 'unverifiable' ? null : bindingProblem(job, verifier, repo); const provenanceError = provenanceProblem(job, verifier); let record = null;
     if (!job.expected_transition) { record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'unverifiable', reason: 'expected_transition_missing', resolved_at: new Date().toISOString() }; }
     else if (bindingError) { record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'unverifiable', reason: bindingError, resolved_at: new Date().toISOString() }; }
+    else if (provenanceError) { record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'unverifiable', reason: provenanceError, resolved_at: new Date().toISOString() }; }
     else if (verifier.kind === 'registered') {
       const descDir = path.join(dir, 'history-runner-descriptors'); fs.mkdirSync(descDir, { recursive: true }); const descriptorPath = path.join(descDir, changeId + '.json'); const descriptor = descriptorFor(job, verifier.ref, identity); writeJson(descriptorPath, descriptor);
       const declare = spawnSync(process.execPath, [path.join(repo, 'scripts', 'mechanism-declare.js'), '--descriptor', descriptorPath, '--state', dir, '--repo', repo, '--json'], { cwd: repo, encoding: 'utf8', windowsHide: true });
@@ -75,6 +96,9 @@ function drain(options) {
     } else {
       const outcome = mechanicalRecord(job, verifier, repo); const identity = verifierIdentity(repo, verifier.ref, job); record = Object.assign({ schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: outcome.status, verifier: verifier.ref, run: outcome.run || null, reason: outcome.reason || null, resolved_at: new Date().toISOString() }, identity);
     }
+    record.claim_instance = job.claim_instance || null;
+    record.expected_value = Object.prototype.hasOwnProperty.call(job, 'expected_value') ? job.expected_value : null;
+    record.expected_provenance = job.expected_provenance || (verifier.kind === 'registered' ? 'pinned_verifier' : null);
     record.session_id = job.session_id || null;
     record.turn_id = job.turn_id || null;
     record.source_message_id = job.source_message_id || null;

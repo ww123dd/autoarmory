@@ -35,7 +35,9 @@ function hasClaimIdentity(record) {
     && hasText(record.claim_sha256)
     && hasText(record.expected_sha256)
     && hasText(record.source_verifier_id)
-    && hasText(record.verifier_lock_sha256);
+    && hasText(record.verifier_lock_sha256)
+    && record.claim_instance !== undefined && record.claim_instance !== null
+    && hasText(record.expected_provenance);
 }
 
 function result(record, state, reason, extra) {
