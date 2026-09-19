@@ -1,0 +1,57 @@
+{
+  "case": {
+    "schema_version": "autoarmory/case/v1",
+    "id": "case-exec-retry-storm-stop",
+    "incident_id": "incident-exec-retry-storm-20260912",
+    "title": "Repeated exec failures with the same normalized error signature must stop retrying",
+    "expected_transition": "RETRY->STOP",
+    "failure_mode": "exec_retry_storm",
+    "severity": "high",
+    "evidence": [
+      "docs/evidence/exec-retry-storm-counterexample.jsonl",
+      "real change-records replay: positive sessions detected; count==2 signatures remain negative"
+    ],
+    "reproducible": true,
+    "owner": "global",
+    "verifier": "exec-retry-storm-checker",
+    "done_criteria": "should_have_stopped=true and occurrences>=3 with zero count==2 false positives"
+  },
+  "mechanism": {
+    "schema_version": "autoarmory/mechanism/v1",
+    "id": "mech-exec-retry-storm-stop",
+    "name": "Exec retry storm stop-loss",
+    "covered_failure_modes": [
+      "exec_retry_storm"
+    ],
+    "trigger": "same normalized exec error signature appears at least 3 times in consecutive failure outputs",
+    "action": "stop retrying immediately, report the environment fault, and wait for operator disposition",
+    "verification": "pinned deterministic counter over a normalized sequence",
+    "verifier_id": "exec-retry-storm-checker",
+    "closure_criteria": "counter reaches threshold 3 and reports first_stop_index and evidence_sha256",
+    "owner": "global",
+    "version": "1.0.0",
+    "verification_stale_days": 30,
+    "scope": {
+      "project": "global",
+      "task_type": "exec-retry-storm",
+      "environment": "codex-local",
+      "artifact_type": "session-sequence"
+    },
+    "expires_at": null,
+    "reopen_trigger": [
+      {
+        "kind": "runner_changed"
+      },
+      {
+        "kind": "case_changed"
+      }
+    ],
+    "enforcement": {
+      "point": "stop_hook",
+      "mode": "observe",
+      "coverage": "none",
+      "entry": "src/lib/hook-gate.js"
+    },
+    "status": "proposed"
+  }
+}

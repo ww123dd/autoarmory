@@ -1,3 +1,12 @@
+## 2.48.0
+
+Add the exec retry-storm stop-loss mechanism as a global observe candidate.
+
+- Added `src/lib/exec-retry-storm.js`: deterministic same-signature consecutive failure counter using the existing change-inspector normalization.
+- Added `scripts/exec-retry-storm-replay.js`: real `change-records.jsonl` replay, count==2 negatives and alternating-signature negative control.
+- Added pinned verifier bridge `examples/adapters/exec-retry-storm/bridge.js` and a 110-occurrence sanitized counterexample sequence.
+- Added global descriptor `examples/mechanisms/exec-retry-storm-stop.json` with `enforcement.mode=observe`; it must not be presented as active until Stop-hook coverage is complete.
+
 ## 2.47.0
 
 Fix the four defects the live funnel exposed; no new modules.

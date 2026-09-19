@@ -38,8 +38,11 @@ function resultStatus(text) {
   if (String(text || '').trim()) return { status: 'result_text_unstructured', structured: false, exit_code: null };
   return { status: 'result_text_unstructured', structured: false, exit_code: null };
 }
+function normalizedError(text) {
+  return String(text || '').toLowerCase().replace(/[0-9a-f]{8,}/g, '<id>').replace(/\d+/g, '<n>').replace(/\s+/g, ' ').trim().slice(0, 300);
+}
 function signature(text) {
-  const normalized = String(text || '').toLowerCase().replace(/[0-9a-f]{8,}/g, '<id>').replace(/\d+/g, '<n>').replace(/\s+/g, ' ').trim().slice(0, 300);
+  const normalized = normalizedError(text);
   return ERROR_RE.test(normalized) ? sha256(normalized).slice(0, 16) : null;
 }
 function extractFiles(event, command) {
@@ -285,4 +288,4 @@ function inspect(events, state, options) {
     metrics: metrics
   };
 }
-module.exports = { CHECK_RE, RISK_RE, inspectEvents, inspect, summarize, buildChanges, candidateCases, resolveVerifier, resultStatus, commandOf, isCheckCommand, isHighSignal, auditSignalClassifier };
+module.exports = { CHECK_RE, RISK_RE, inspectEvents, inspect, summarize, buildChanges, candidateCases, resolveVerifier, resultStatus, commandOf, isCheckCommand, isHighSignal, auditSignalClassifier, normalizedError, signature };
