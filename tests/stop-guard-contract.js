@@ -24,4 +24,5 @@ for (const selfReport of ['已核实', '已确认', '核实过', '核实完成',
   must(whitelist.indexOf(selfReport) === -1, 'bare self-report "' + selfReport + '" must not be whitelisted as evidence (提出者不自判)');
 }
 must(/risky&&looksLikeDelivery&&!verified/.test(source.replace(/\s+/g, '')), 'block condition must stay risky && looksLikeDelivery && !verified');
+must(source.includes('pep-shadow.js') && source.includes('AUTOARMORY_PEP_SHADOW_OFF'), 'deployed hook must spawn background PEP shadow without blocking');
 console.log('stop guard contract tests passed: mechanical evidence or honest hedge only, bare self-reports are not evidence');
