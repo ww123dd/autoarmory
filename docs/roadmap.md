@@ -1,5 +1,7 @@
 # Roadmap
 
+> Current version anchor: **2.38.0** (2026-09-19). Sections for 2.24–2.27 below are historical records, not current-version anchors.
+
 ## 0.1
 
 - [x] incident observation
@@ -140,34 +142,34 @@
 - [x] C1/C3 session registry pin; C2 bounded gap retry with give_up.
 - [x] C4 transcript_path contract documented as host-dependent.
 
-## 2.27.0
-- [x] verdict join: `case-drafts = change-records ⨝ reuse-records` with explicit missing verdict states.
-- [x] single-writer lock for change-inspect and history-runner with stale-lock takeover.
-- [x] mechanical jobs are pinned at bind time and verified before replay.
-- [x] bind/declare requires non-empty expected_transition.
-- [x] load gate: allow / degrade / block; expired evidence degrades low-risk and blocks high-risk.
+## 2.27.0 (historical; re-anchored to 2.38.0)
+- [x] 已完成: verdict join: `case-drafts = change-records ⨝ reuse-records` with explicit missing verdict states.
+- [x] 已完成: single-writer lock for change-inspect and history-runner with stale-lock takeover.
+- [x] 已完成: mechanical jobs are pinned at bind time and verified before replay.
+- [x] 已完成: bind/declare requires non-empty expected_transition.
+- [x] 已完成: load gate: allow / degrade / block; expired evidence degrades low-risk and blocks high-risk.
 
-## 2.26.0
-- [x] Phase A real closure: tableau release zip -> read-only verifier -> run -> close -> reuse-record.
-- [x] project_test runner rejects shell metacharacters and stays unverifiable.
+## 2.26.0 (historical; re-anchored to 2.38.0)
+- [x] 已完成: Phase A real closure: tableau release zip -> read-only verifier -> run -> close -> reuse-record.
+- [x] 已完成: project_test runner rejects shell metacharacters and stays unverifiable.
 
-## 2.25.1
+## 2.25.1 (historical; re-anchored to 2.38.0)
 
-- [x] `readJsonlResult()` distinguishes missing vs empty JSONL.
+- [x] 已完成: `readJsonlResult()` distinguishes missing vs empty JSONL.
 
-## 2.25.0
+## 2.25.0 (historical; re-anchored to 2.38.0)
 
-- [x] repeat count uses global `detail.count`; first threshold crossing is the only notification.
-- [x] starvation metrics show risk=3138, risk_without_check_gap=3138, repeat_max=15, structured_ratio=0.0014.
-- [x] historical high-signal replay: 68 without threshold dedupe -> 24 with dedupe.
-- [x] runner accepts mechanical project_test/git_status/file_hash; unsafe or missing facts remain unverifiable.
-- [x] periodic drain wrapper installed as a Windows scheduled task.
+- [x] 已完成: repeat count uses global `detail.count`; first threshold crossing is the only notification.
+- [x] 已完成: starvation metrics show risk=3138, risk_without_check_gap=3138, repeat_max=15, structured_ratio=0.0014.
+- [x] 已完成: historical high-signal replay: 68 without threshold dedupe -> 24 with dedupe.
+- [x] 已完成: runner accepts mechanical project_test/git_status/file_hash; unsafe or missing facts remain unverifiable.
+- [x] 已完成: periodic drain wrapper installed as a Windows scheduled task.
 
-## 2.24.0
-- [x] CHECK/RISK recall audit: recall=1, curated false-positive rate=0.
-- [x] append-only canonical change-records with duplicate-ID repair.
-- [x] `latest_cwd` fallback diagnostic-only; no false session attribution.
-- [x] `.bak` retention and policy-invariant telemetry cleanup.
+## 2.24.0 (historical; re-anchored to 2.38.0)
+- [x] 已完成: CHECK/RISK recall audit: recall=1, curated false-positive rate=0.
+- [x] 已完成: append-only canonical change-records with duplicate-ID repair.
+- [x] 已完成: `latest_cwd` fallback diagnostic-only; no false session attribution.
+- [x] 已完成: `.bak` retention and policy-invariant telemetry cleanup.
 
 ## 2.23.0
 

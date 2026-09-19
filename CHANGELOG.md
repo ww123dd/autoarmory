@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.38.1
+
+Re-anchor the old plan and add strict JSONL reading.
+
+- Roadmap is anchored to 2.38.0; sections 2.24–2.27 are explicitly historical and each task is marked completed/partial/not done.
+- Added `readJsonlStrict`: missing file throws, empty file returns `[]`, partial/invalid JSONL throws. It does not fall back to `.bak`.
+- Added positive/negative coverage in `tests/jsonl-strict.js`.
 ## 2.38.0
 
 Add automatic mechanism recheck and the Claude Stop hook.
