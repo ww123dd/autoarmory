@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { readJsonlStrict, writeJsonl } = require('./util');
 const sessionShadow = require('./session-shadow');
+const { normalizeCommand } = require('./command-normalizer');
 
 function parseText(text) {
   const value = String(text || '');
@@ -41,6 +42,41 @@ function fromTranscript(file) {
   }
   return out;
 }
+function deriveTransitionCandidates(stateDir) {
+  const resultsFile = path.join(stateDir, 'structured-results.jsonl');
+  if (!fs.existsSync(resultsFile)) return [];
+  const results = readJsonlStrict(resultsFile);
+  const records = fs.existsSync(path.join(stateDir, 'change-inspector', 'change-records.jsonl')) ? readJsonlStrict(path.join(stateDir, 'change-inspector', 'change-records.jsonl')) : [];
+  const drafts = fs.existsSync(path.join(stateDir, 'decision-scan', 'decision-drafts.jsonl')) ? readJsonlStrict(path.join(stateDir, 'decision-scan', 'decision-drafts.jsonl')) : [];
+  const recordByRef = {};
+  for (const record of records) {
+    if (record.source && record.source.call_id) recordByRef[record.source.call_id] = record;
+    if (record.source && record.source.event_id) recordByRef[record.source.event_id] = record;
+    if (record.id) recordByRef[record.id] = record;
+  }
+  const draftByRecord = {};
+  for (const draft of drafts) for (const id of draft.source_refs || draft.change_record_ids || []) draftByRecord[id] = draft;
+  const out = [];
+  for (const result of results) {
+    if (result.result !== 'pass' && result.result !== 'fail') continue;
+    const record = recordByRef[result.source_ref];
+    const draft = record ? draftByRecord[record.id] : null;
+    if (!draft || !Array.isArray(draft.commands) || !draft.commands.length) continue;
+    const normalized = normalizeCommand(draft.commands[0]);
+    if (!normalized.candidate_transition) continue;
+    const transition = normalized.command_family === 'test' && result.result === 'fail' ? 'TEST->FAIL' : normalized.candidate_transition;
+    out.push({
+      schema_version: 'autoarmory/transition-candidate/v1',
+      change_id: draft.change_id,
+      observed_facts: { source_ref: result.source_ref, exit_code: result.exit_code, result: result.result, command_family: normalized.command_family, stdout_sha256: result.stdout_sha256 || null, stderr_sha256: result.stderr_sha256 || null },
+      candidate_transition: transition,
+      transition_source: 'structured_result',
+      source_strength: 'derived',
+      evidence_refs: [result.source_ref].concat(record ? [record.id] : [])
+    });
+  }
+  return out;
+}
 function extract(stateDir, options) {
   const opts = options || {};
   const rows = fromExecRecords(stateDir);
@@ -50,4 +86,4 @@ function extract(stateDir, options) {
   for (const row of rows) bySource[row.result_parse_source] = (bySource[row.result_parse_source] || 0) + 1;
   return { schema_version: 'autoarmory/result-extraction/v1', generated_at: new Date().toISOString(), count: rows.length, by_source: bySource, rows: rows };
 }
-module.exports = { parseText, fromExecRecords, fromTranscript, extract };
+module.exports = { parseText, fromExecRecords, fromTranscript, extract, deriveTransitionCandidates };

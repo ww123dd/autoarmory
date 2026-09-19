@@ -5,6 +5,7 @@ const { readJsonlStrict, writeJsonl } = require('./util');
 const { normalizeCommand: normalizeVerifierCommand } = require('./command-normalizer');
 const execRecordFlow = require('./exec-record-flow');
 const historicalDerived = require('./historical-derived');
+const resultExtractor = require('./result-extractor');
 
 const FAMILIES = [
   { id: 'project_test', transition: 'TEST->PASS', pattern: /(pytest|npm test|node tests|tsc|verify_all|npm run build)/i },
@@ -83,6 +84,7 @@ function proposeFile(stateDir, options) {
   };
   if (opts.includeExec !== false) for (const candidate of execRecordFlow.fromExecRecords(stateDir).candidates) merge(candidate);
   if (opts.includeHistory !== false) for (const candidate of historicalDerived.fromHistory(stateDir).candidates) merge(candidate);
+  if (opts.includeStructured !== false) for (const candidate of resultExtractor.deriveTransitionCandidates(stateDir)) merge(candidate);
   if (opts.apply === true) writeJsonl(existingFile, rows);
   const byFamily = {};
   const byStrength = {};

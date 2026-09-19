@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.40.5
+
+Convert extracted structured results into derived transitions.
+
+- `result-extractor.deriveTransitionCandidates()` maps structured results back to change drafts via `source_ref -> change record -> change_id`, normalizes the command family, and emits derived TEST->PASS / TEST->FAIL or the matching family transition.
+- `transition-propose` merges structured-result transitions with command/exec/history candidates; derived wins over candidate for the same change.
+- Real current state after processing all available session transcripts: 30369 structured results extracted, transition_derived_count=1114, ready_for_verifier_count=138, invalid_provenance_count=801 (all missing_expected_provenance), true_no_capability_count=1700.
 ## 2.40.4
 
 Make decision-scan reports self-identifying.
