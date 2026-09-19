@@ -35,6 +35,7 @@ function usage() {
     '  autoarmory record [decision.json] [--candidate id] [--action name] [--reward n] [--verified true|false] [--gate gate.json] [--evidence evidence.json] [--dir project]',
     '  autoarmory close --case <case-id> --run <run-id> [--state <root>] [--json]',
     '  autoarmory inbox [--state <root>] [--json]',
+    '  autoarmory digest [--days N] [--limit N] [--json]',
     '  autoarmory result <case|run|artifact-id> [--state <root>] [--json]',
     '  autoarmory approve --candidate <id> --quote "<operator words>" [--state <root>] [--json]',
     '  autoarmory status [--state <root>] [--json]',
@@ -70,7 +71,7 @@ function main(argv) {
   const rest = argv.slice(1);
   if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') { usage(); process.exit(0); }
   if (cmd === 'version' || cmd === '--version' || cmd === '-v') { process.stdout.write(require('../package.json').version + '\n'); process.exit(0); }
-  const commands = { init, observe, propose, gate, learn, doctor, report, environment, experiment, policy, acquire, evolve, record, transition, capability, canary, "self-eval": selfEval, demo, bench, integrate, admit, scenario, close, inbox: doctor.inbox, result: doctor.result, approve: doctor.approve, status: doctor.status, intake: doctor.intake, bind: doctor.bind, run: doctor.run };
+  const commands = { init, observe, propose, gate, learn, doctor, report, environment, experiment, policy, acquire, evolve, record, transition, capability, canary, "self-eval": selfEval, demo, bench, integrate, admit, scenario, close, inbox: doctor.inbox, digest: doctor.digest, result: doctor.result, approve: doctor.approve, status: doctor.status, intake: doctor.intake, bind: doctor.bind, run: doctor.run };
   const fn = commands[cmd];
   if (!fn) { process.stderr.write('Unknown command: ' + cmd + '\n\n'); usage(); process.exit(2); }
   Promise.resolve().then(function () { return fn(rest); }).then(function (code) { process.exit(typeof code === 'number' ? code : 0); }).catch(function (err) { process.stderr.write((err && err.stack) ? err.stack : String(err)); process.stderr.write('\n'); process.exit(2); });

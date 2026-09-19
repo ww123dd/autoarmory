@@ -168,11 +168,17 @@ function runArtifact(argv) {
   return report.status.status === 'verified' || report.status.status === 'closed' ? 0 : 1;
 }
 
+function digest(argv) {
+  const child = spawnSync(process.execPath, [path.join(__dirname, '..', '..', 'scripts', 'session-digest.js')].concat(argv), { stdio: 'inherit' });
+  return child.status === null ? 2 : child.status;
+}
+
 module.exports = run;
 module.exports.inbox = inbox;
 module.exports.result = result;
 module.exports.status = status;
 module.exports.approve = approve;
+module.exports.digest = digest;
 module.exports.intake = intake;
 module.exports.bind = bind;
 module.exports.run = runArtifact;

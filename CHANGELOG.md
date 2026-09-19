@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.30.0
+
+All real chains verified running end to end on live history.
+
+- Full history backfill: all 330 session files (7 weeks, 926MB) are ingested - 86953 records across 334 sessions, zero normalization errors. Coverage is measured, not claimed.
+- Projection rebuilt over the full history: 55961 candidate drafts, 862 high-signal patterns.
+- The first real verdict was refreshed on the current artifact: the approved release zip changed on disk twice after the closure (cb4a48d9 -> 86cba6ad -> ae2585de), the gate refused the stale verdict both times, and the re-pin under operator delegation re-closed with fresh evidence.
+- New reading surface: autoarmory digest produces factual per-session summaries straight from records (316 sessions today).
+- New one-shot verifier: node scripts/chain-check.js prints PASS/FAIL per chain (capture, history, signals, verdict, gate, reading) with evidence - the answer to whether all real chains are running, without trusting any summary.
+- Known boundary: verdict freshness depends on artifact stability; while the plugin is actively rebuilt, the card flips to unverified by design.
+- `chain-check` accepts `--root/--repo/--json`, outputs commit/version/source evidence, treats `high_signal_total=0` as healthy, and separates chain liveness from verdict freshness and gate decision.
+- `backfill-sessions` now heartbeats its state lock and carries `high_signal_crossed` through full-history backfill.
+- `autoarmory digest` now has CLI integration coverage for `--limit` and `--days`.
+
+
 ## 2.29.1
 
 One state root for both legs, so the first real verdict reaches the operator surface.

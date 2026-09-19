@@ -1,0 +1,10 @@
+# Chain Check
+
+`node scripts/chain-check.js --root <state-root> --repo <repo> --json` is a **local operational verifier**, not a clone-only release gate. It reports:
+
+- `state_root`, `repo`, `commit`, `version`
+- per-chain `pass`, `evidence`, source counts, sample sources, and `failed_reason`
+- separate `verdict_freshness` (`fresh` / `stale` / `expired` / `missing`) and `gate_decision` (`allow` / `degrade` / `block`)
+- explicit `local_only_dependencies`
+
+A zero `high_signal_total` is valid when the projection policy has run and the candidate/starvation metrics are present. Chain liveness and verdict freshness are separate outputs: a stale verdict does not make the capture/history/reading chains fail.
