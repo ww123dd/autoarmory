@@ -4,6 +4,7 @@ Bind verification-gap to live Stop events and freeze the lifecycle vocabulary.
 
 - Added `src/lib/verification-gap-input.js`: derive a forward verification window from a Stop event transcript and its last user turn.
 - Added `tests/verification-gap-stop-event.js`: positive check window, no-check gap negative, and registered verifier re-derivation.
+- Added `src/lib/pep-shadow.js` / `scripts/pep-shadow.js`: observe-only PEP decisions (`would-block` / `would-allow`) persisted to `pep-shadow.jsonl` without blocking Stop.
 - Documented canonical lifecycle storage (`proposed -> shadow -> promoted -> retired`); `active` and lifecycle counts are projections, not stored fields.
 - Documented `outcome-records.jsonl`, object-shaped `enforcement`, and the global-PEP / skill-declaration split.
 

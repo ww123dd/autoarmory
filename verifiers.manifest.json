@@ -1,6 +1,6 @@
 {
   "schema_version": "autoarmory/verifier-manifest/v1",
-  "expected_lock_sha256": "112f0b384f9bfc3094c848136689c9e61e54d570e5f637e807832a5d456451e7",
+  "expected_lock_sha256": "1bb16fbca296ce9d2acda07c6340d93d7d7f7c5f11649704b8f0be3ff880304c",
   "verifiers": [
     {
       "id": "doris-readonly-count",
@@ -398,7 +398,7 @@
     },
     {
       "id": "verification-gap",
-      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "adapter_sha256": "97a1b29d8ae836e7fa261a6f5a893e2646437912c40149dfc057a9b9852f2756",
       "bridge_sha256": "6aad5ef383107e13dad22b4926d45572db83b3d1565d960d93d2d334e1e686a0",
       "config_sha256": "65fd54fee454e6144988d428c1cd0dd69146218c83a9472ebbf1bf6e876fb920",
       "capabilities": {
