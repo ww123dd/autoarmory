@@ -6,6 +6,7 @@ Migrate the 数仓开发 column-verification delivery rule from Stop-hook regex 
 - Added `examples/adapters/column-verify/bridge.js` and sanitized vectors in `docs/evidence/column-verify-vectors.jsonl`.
 - Added `scripts/column-verify-replay.js`: 73 historical blocks separate into 44 current true positives, 60 SQL deliveries, 29 alias-only/non-delivery exclusions, and zero false positives over the SQL negative corpus.
 - Registered the mechanism as `skill: 数仓开发` with observe-only enforcement.
+- Wired `shuzang-column-verify-checker` into PEP shadow for live Stop events; shadow records `would-block` / `would-allow` without enforcing.
 
 ## 2.49.0
 

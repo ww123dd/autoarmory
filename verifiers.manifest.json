@@ -1,6 +1,6 @@
 {
   "schema_version": "autoarmory/verifier-manifest/v1",
-  "expected_lock_sha256": "9030b8c2c5351aa6aea79aa7830ff0acb3fc2f968dc2ba496343a629bc91448b",
+  "expected_lock_sha256": "aee72f6cf1049f0516407b8f0cfb73442e4b61dbb50d3df53fb625d34a34ebab",
   "verifiers": [
     {
       "id": "doris-readonly-count",
@@ -519,8 +519,8 @@
     },
     {
       "id": "shuzang-column-verify-checker",
-      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
-      "bridge_sha256": "9c67c9b9549a3946222f33683198dea436a783328df471e894184882de6bc737",
+      "adapter_sha256": "97a1b29d8ae836e7fa261a6f5a893e2646437912c40149dfc057a9b9852f2756",
+      "bridge_sha256": "2e7631c80a2bc03c6d18197abd0b7e3b30ca61d6d88e9854d24659a2e8d9a3d9",
       "config_sha256": "02a2bbe912ace31d231bc9650edc89fae725aef56edcf459804db378c9409c12",
       "capabilities": {
         "transition_types": [

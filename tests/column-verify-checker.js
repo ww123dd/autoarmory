@@ -21,4 +21,9 @@ const bridge=path.resolve(__dirname,'..','examples','adapters','column-verify','
 const run=spawnSync(process.execPath,[bridge],{input:JSON.stringify({statement:JSON.stringify({kind:'column-verify',vectors_file:vectors,vectors_sha256:hash}),server:{readonly:true,name:'column-verify'}}),encoding:'utf8'});
 must(run.status===0,'column verifier bridge must accept vectors'); const observed=JSON.parse(run.stdout).observed;
 must(observed.passed===true&&observed.positive_passed===2&&observed.false_positive_count===0,'bridge must count positives and negatives deterministically');
+const live=spawnSync(process.execPath,[bridge],{input:JSON.stringify({statement:JSON.stringify({kind:'column-verify',delivery_text:'SELECT etl_date FROM t;'}),server:{readonly:true,name:'column-verify'}}),encoding:'utf8'});
+const liveObserved=JSON.parse(live.stdout).observed;
+must(live.status===0&&liveObserved.should_block===true,'live bridge must re-derive one Stop event verdict');
+const liveOk=spawnSync(process.execPath,[bridge],{input:JSON.stringify({statement:JSON.stringify({kind:'column-verify',delivery_text:'SELECT etl_date FROM t;',has_verification:true}),server:{readonly:true,name:'column-verify'}}),encoding:'utf8'});
+must(JSON.parse(liveOk.stdout).observed.should_block===false,'live bridge must allow a verified delivery');
 console.log('column verify checker tests passed: positive SQL blocks, verification/hedge/no-token/alias negatives allow, bridge vector replay');
