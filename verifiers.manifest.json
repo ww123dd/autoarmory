@@ -1,6 +1,6 @@
 {
   "schema_version": "autoarmory/verifier-manifest/v1",
-  "expected_lock_sha256": "4db13c85da3602cc64c5df5922fb3b1f46fce3edc09bd9ebe30ef6935c0d2231",
+  "expected_lock_sha256": "dbca207ba4b3ee03287b8a1ebb0f7311ee6933e36758f0a6654525d51b709188",
   "verifiers": [
     {
       "id": "doris-readonly-count",
@@ -61,6 +61,18 @@
       "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
       "bridge_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
       "config_sha256": "be227064788b77c17bc9936f520548c572376d4bbe3adcb04414b10fc1f3c17e"
+    },
+    {
+      "id": "enumeration-completeness",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "644cad875dc53bbee7aa8ff5f549dfbb425fe2c54b3753a3032073d0c55e8308",
+      "config_sha256": "e451ea8f67c78b4a029ead8292b9e0b5a289fd7a3626c5855b3d102c9e5e00e2"
+    },
+    {
+      "id": "verification-gap",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "6aad5ef383107e13dad22b4926d45572db83b3d1565d960d93d2d334e1e686a0",
+      "config_sha256": "65fd54fee454e6144988d428c1cd0dd69146218c83a9472ebbf1bf6e876fb920"
     }
   ]
 }

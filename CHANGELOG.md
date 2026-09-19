@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.35.0
+
+Expand the registry with two mechanical verifiers.
+
+- Added `enumeration-completeness`: recursive enumeration against a pinned count/manifest. It reports `files_scanned`, `candidate_count`, `missing_count`, `truncated`, and only passes when `missing_count=0` and `truncated=false`.
+- Added `verification-gap`: scans a pinned transcript window after a change boundary and reports `independent_check_count` / `verification_gap_count`; the assertion passes only when the gap is 0.
+- Both are thin pinned bridges over the existing `state-query` adapter; the registry now has 12 verifiers and `tests/registry-expansion.js` reproduces both facts.
+- The local profile remains machine-local: `verification-gap` pins a real local Codex transcript by SHA-256, so it is intentionally not portable.
 ## 2.34.0
 
 Add the nomination layer: recover only unique session links, classify claims, and hand ready drafts to the existing runner.

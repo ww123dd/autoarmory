@@ -4,21 +4,24 @@ The verifier core is intentionally thin. Each new source should add a small brid
 
 Every profile entry declares a human-readable `version` and an `invocation_contract_version` next to its pinned digests. The digests and the contract version form `runner_sha256`; the human-readable `version` is compatibility metadata and is deliberately excluded from it, so bumping it never invalidates a verdict on its own.
 
-Current local profile contains ten heterogeneous fact sources:
+Current local profile contains twelve heterogeneous fact sources:
 
 | verifier | fact source | bridge lines |
 |---|---|---:|
 | `doris-readonly-count` | database row count through a pinned readonly MCP bridge | 139 |
 | `esc3-pid-file-live` | PID file parsing and process liveness | 16 |
 | `file-sha256-license` | file existence and SHA-256 | 14 |
-| `git-commit-exists` | git object existence | 10 |`n| `json-assert` | JSON report assertion over an external evaluator output | 39 |
+| `git-commit-exists` | git object existence | 10 |
+| `json-assert` | JSON report assertion over an external evaluator output | 39 |
 | `local-http-health` | local HTTP service fingerprint | 28 |
 | `local-transcript` | local transcript observation registry | 93 |
 | `windows-registry-value` | Windows registry value (OS configuration store) | 26 |
 | `windows-service-state` | Windows Service Control Manager state | 23 |
 | `tls-peer-certificate` | X.509 certificate fingerprint presented by a TLS peer | 50 |
+| `enumeration-completeness` | recursive file enumeration against a pinned count/manifest | 57 |
+| `verification-gap` | independent check count inside a pinned transcript window | 43 |
 
-Seven of the nine are thin bridges over the same `state-query` adapter. Two are heavy: the MCP transport bridge speaks the MCP stdio protocol on behalf of a registered server, and `local-transcript` is a multi-kind local observability registry rather than a one-off instrument. That ratio is the engine test:
+Ten of the twelve are thin bridges over the same `state-query` adapter. Two are heavy: the MCP transport bridge speaks the MCP stdio protocol on behalf of a registered server, and `local-transcript` is a multi-kind local observability registry rather than a one-off instrument. That ratio is the engine test:
 
 - if each source needs a small bridge, the core is reusable;
 - if each source needs a new 100+ line adapter, the implementation is still a one-off instrument.
