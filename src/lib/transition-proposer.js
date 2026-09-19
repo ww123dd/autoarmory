@@ -62,9 +62,19 @@ function propose(draft, options) {
 }
 function proposeFile(stateDir, options) {
   const opts = options || {};
-  const input = path.join(stateDir, 'decision-scan', 'missing-transition.jsonl');
-  const drafts = readJsonlStrict(input);
+  const projected = path.join(stateDir, 'decision-scan', 'decision-drafts.jsonl');
+  const missing = path.join(stateDir, 'decision-scan', 'missing-transition.jsonl');
+  const input = fs.existsSync(projected) ? projected : missing;
+  const drafts = readJsonlStrict(input).map(function (draft) { return Object.assign({}, draft, { expected_transition: null, transition_source: null, transition_source_strength: null, transition_candidate: null }); });
   const rows = drafts.map(function (draft) { return propose(draft, opts); }).filter(Boolean);
+  const existingFile = path.join(stateDir, 'decision-scan', 'transition-candidates.jsonl');
+  const existing = fs.existsSync(existingFile) ? readJsonlStrict(existingFile) : [];
+  const rank = { candidate: 0, derived: 1, declared: 2 };
+  for (const row of existing) {
+    const index = rows.findIndex(function (item) { return item.change_id === row.change_id; });
+    if (index === -1) rows.push(row);
+    else if (rank[row.source_strength] > rank[rows[index].source_strength]) rows[index] = row;
+  }
   const merge = function (candidate) {
     const rank = { candidate: 0, derived: 1, declared: 2 };
     const index = rows.findIndex(function (row) { return row.change_id === candidate.change_id; });
@@ -73,7 +83,7 @@ function proposeFile(stateDir, options) {
   };
   if (opts.includeExec !== false) for (const candidate of execRecordFlow.fromExecRecords(stateDir).candidates) merge(candidate);
   if (opts.includeHistory !== false) for (const candidate of historicalDerived.fromHistory(stateDir).candidates) merge(candidate);
-  if (opts.apply === true) writeJsonl(path.join(stateDir, 'decision-scan', 'transition-candidates.jsonl'), rows);
+  if (opts.apply === true) writeJsonl(existingFile, rows);
   const byFamily = {};
   const byStrength = {};
   const byFamilyStrength = {};

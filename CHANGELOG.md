@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.40.1
+
+Keep transition candidates cumulative across proposal runs.
+
+- `transition-propose` now reads the full current draft projection, strips prior transition projections, and merges new command/exec/history candidates with the existing `transition-candidates.jsonl` instead of overwriting it with only the current missing subset.
+- Derived candidates win over command-shaped candidates for the same change; declared claims stay authoritative.
+- Real state after the fix: transition_present=2639, derived=158, ready_for_verifier=99, missing_transition=7711.
 ## 2.40.0
 
 Add the first registry supply from the transition queue: `project-test-result`.
