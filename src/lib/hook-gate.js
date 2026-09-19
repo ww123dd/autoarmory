@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { writeJsonl, readJsonl } = require('./util');
+const verify = require('./verify');
 
 const BLOCK_TIERS = ['irreversible_write', 'external_side_effect'];
 const EDIT_TOOLS = ['write', 'edit', 'multiedit', 'apply_patch', 'notebookedit'];
@@ -26,9 +27,25 @@ function decide(event) {
   }
   return { decision: 'allow', reason: 'no blocking rule matched', action: 'record' };
 }
+
+function enforceMechanism(event, mechanism, options) {
+  const value = event || {};
+  const record = mechanism || {};
+  const enforcement = record.enforcement && typeof record.enforcement === 'object' ? record.enforcement : {};
+  if (enforcement.mode !== 'block' || enforcement.coverage !== 'complete') {
+    return { ok: true, decision: 'allow', reason: 'mechanism enforcement is advisory or incomplete', action: 'record' };
+  }
+  const refs = Array.isArray(value.evidence_refs) ? value.evidence_refs : [];
+  if (!refs.length) return { ok: false, decision: 'block', reason: 'no evidence refs for enforced mechanism ' + (record.id || record.verifier_id || 'unknown'), action: 'verify' };
+  const opts = options || {};
+  const verified = verify.verifyRefs(refs, { repo: opts.repo || process.cwd(), trials: opts.trials || 1 });
+  if (verified.status !== 'verified') return { ok: false, decision: 'block', reason: 'verification failed: ' + verified.status + ' - ' + verified.reason, action: 'verify' };
+  if (verified.result !== 'pass' || verified.exit_code !== 0) return { ok: false, decision: 'block', reason: 'verification failed: observed result is ' + (verified.result || 'unknown'), action: 'verify' };
+  return { ok: true, decision: 'allow', reason: 'mechanism verification passed for ' + (record.id || record.verifier_id || 'unknown'), action: 'continue' };
+}
 function gate(event, options) {
   const opts = options || {};
-  const result = decide(event);
+  const result = opts.mechanism ? enforceMechanism(event, opts.mechanism, opts) : decide(event);
   const record = { schema_version: 'autoarmory/hook-decision/v1', at: new Date().toISOString(), event: event || {}, decision: result.decision, reason: result.reason, action: result.action };
   if (opts.state) {
     const file = path.join(opts.state, 'hook-decisions.jsonl');
@@ -39,4 +56,4 @@ function gate(event, options) {
   }
   return { ok: result.decision !== 'block', decision: result.decision, reason: result.reason, action: result.action, record: record };
 }
-module.exports = { EDIT_TOOLS, BLOCK_TIERS, decide, gate };
+module.exports = { EDIT_TOOLS, BLOCK_TIERS, decide, enforceMechanism, gate };

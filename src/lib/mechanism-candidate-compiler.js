@@ -14,7 +14,7 @@ function compile(sediments) {
       expected_transition: mixed ? 'UNVERIFIED->CHECKED' : 'UNKNOWN->CHECKED',
       required_action: mixed ? 'run an independent mixed-state verification before claiming completion' : 'review the sediment before activation',
       verifier_id: mixed ? 'verification-gap' : null,
-      enforcement: { point: mixed ? 'stop_hook' : null, mode: mixed ? 'advisory' : 'advisory', coverage: 'none' },
+      enforcement: { point: mixed ? 'stop_hook' : null, entry: mixed ? 'src/lib/hook-gate.js' : null, mode: mixed ? 'advisory' : 'advisory', coverage: 'none' },
       scope: { project: 'autoarmory', task_type: 'skill-optimization', environment: 'codex-local', artifact_type: 'skill' },
       expires_at: null,
       reopen_trigger: [{ kind: 'case_changed' }],

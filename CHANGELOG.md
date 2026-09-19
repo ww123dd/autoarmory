@@ -1,3 +1,12 @@
+## 2.45.0
+
+Add mechanism activation, enforcement contract and lifecycle metrics.
+
+- Added `src/lib/mechanism-activation.js` / `scripts/mechanism-activation.js`: a candidate becomes active only when its verifier is registered, evidence/scope exist, enforcement mode is `block`, coverage is `complete`, and the entry exports `enforceMechanism`.
+- Added `enforceMechanism` to `src/lib/hook-gate.js`: complete blocking enforcement re-derives evidence refs; missing or failing evidence returns `block`; advisory/partial enforcement does not overclaim.
+- Added `src/lib/mechanism-lifecycle-metrics.js` / `scripts/mechanism-metrics.js`: reuse, success, overturn, reopen and lifecycle state are projected from real state records.
+- First AutoArmory mechanism candidate remains `candidate`: `verification-gap` is registered, but stop-hook coverage is still `none`, so it is not marked active.
+
 # Changelog
 
 ## 2.44.0
