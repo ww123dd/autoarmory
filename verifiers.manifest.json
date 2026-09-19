@@ -1,6 +1,6 @@
 {
   "schema_version": "autoarmory/verifier-manifest/v1",
-  "expected_lock_sha256": "1bb16fbca296ce9d2acda07c6340d93d7d7f7c5f11649704b8f0be3ff880304c",
+  "expected_lock_sha256": "9030b8c2c5351aa6aea79aa7830ff0acb3fc2f968dc2ba496343a629bc91448b",
   "verifiers": [
     {
       "id": "doris-readonly-count",
@@ -515,6 +515,74 @@
           "required": []
         },
         "owner": "global"
+      }
+    },
+    {
+      "id": "shuzang-column-verify-checker",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "9c67c9b9549a3946222f33683198dea436a783328df471e894184882de6bc737",
+      "config_sha256": "02a2bbe912ace31d231bc9650edc89fae725aef56edcf459804db378c9409c12",
+      "capabilities": {
+        "transition_types": [
+          "UNVERIFIED->CHECKED"
+        ],
+        "artifact_type": "column-delivery",
+        "required_inputs": [
+          "delivery_text",
+          "has_verification",
+          "has_hedge"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ],
+          "paths": [
+            "passed"
+          ]
+        },
+        "action_class": [
+          "publish"
+        ],
+        "scope_schema": {
+          "required": [
+            "project"
+          ]
+        },
+        "owner": "数仓开发"
+      }
+    },
+    {
+      "id": "admission-proof-checker",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "457f0cf9471862916ea7ba381b6533b82371ddcea1a801ac28ac13c6809fd14d",
+      "config_sha256": "ea5141d39a7b84b8c96ac29082cd8132708cd0f174e6d3730ce88467015c9b52",
+      "capabilities": {
+        "transition_types": [
+          "PROOF_MISSING->0"
+        ],
+        "artifact_type": "admission-record",
+        "required_inputs": [],
+        "optional_inputs": [
+          "ledger_sha256"
+        ],
+        "expected_provenance": [
+          "gate_proof"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ]
+        },
+        "action_class": "admission",
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "repo-owner"
       }
     }
   ]

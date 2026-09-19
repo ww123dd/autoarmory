@@ -1,0 +1,59 @@
+{
+  "case": {
+    "schema_version": "autoarmory/case/v1",
+    "id": "case-shuzang-column-verify-delivery",
+    "incident_id": "incident-shuzang-column-verify-20260912",
+    "title": "数仓 SQL delivery must verify etl_date/vasen_year before delivery",
+    "expected_transition": "UNVERIFIED->CHECKED",
+    "failure_mode": "unverified_column_delivery",
+    "severity": "high",
+    "evidence": [
+      "~/.codex/hooks/guard.audit.jsonl#reason=未核实列名交付",
+      "scripts/column-verify-replay.js",
+      "docs/evidence/column-verify-vectors.jsonl"
+    ],
+    "reproducible": true,
+    "owner": "数仓开发",
+    "verifier": "shuzang-column-verify-checker",
+    "done_criteria": "new rule identifies 44 true positives, excludes 29 historical alias-only/non-delivery blocks, and has zero false positives across 4161 SQL negative samples"
+  },
+  "mechanism": {
+    "schema_version": "autoarmory/mechanism/v1",
+    "id": "mech-shuzang-column-verify-delivery",
+    "name": "数仓列名交付核实",
+    "covered_failure_modes": [
+      "unverified_column_delivery"
+    ],
+    "trigger": "SQL delivery contains etl_date/vasen_year without DESC/SHOW COLUMNS verification or an explicit pending marker",
+    "action": "require column verification before delivery; retire the hardcoded stopGuard regex after shadow and approval",
+    "verification": "pinned column-verify checker over real replay vectors",
+    "verifier_id": "shuzang-column-verify-checker",
+    "closure_criteria": "positive vectors pass and false_positive_count=0",
+    "owner": "数仓开发",
+    "version": "1.0.0",
+    "verification_stale_days": 30,
+    "scope": {
+      "project": "数仓开发",
+      "task_type": "sql-delivery",
+      "environment": "codex-local",
+      "artifact_type": "sql-delivery"
+    },
+    "expires_at": null,
+    "reopen_trigger": [
+      {
+        "kind": "runner_changed"
+      },
+      {
+        "kind": "case_changed"
+      }
+    ],
+    "enforcement": {
+      "point": "stop_hook",
+      "mode": "observe",
+      "coverage": "none",
+      "entry": "src/lib/hook-gate.js"
+    },
+    "skill_id": "数仓开发",
+    "status": "proposed"
+  }
+}
