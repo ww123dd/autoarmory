@@ -1,6 +1,6 @@
 {
   "schema_version": "autoarmory/verifier-manifest/v1",
-  "expected_lock_sha256": "87bbe86838a6c4ac2a4467255c1e73e3f9983d56d9109579c8c790677745ca20",
+  "expected_lock_sha256": "112f0b384f9bfc3094c848136689c9e61e54d570e5f637e807832a5d456451e7",
   "verifiers": [
     {
       "id": "doris-readonly-count",
@@ -477,6 +477,44 @@
           ]
         },
         "artifact_type": "test-command"
+      }
+    },
+    {
+      "id": "exec-retry-storm-checker",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "e41062ca78cbcfa08e0c11e7e5f9344f13c1e4df2cf4f37b91da5f610d75b400",
+      "config_sha256": "372a4ab20dcdab493af1681da6329b5769e679485873b8d3c2b9c65b16e0fe53",
+      "capabilities": {
+        "transition_types": [
+          "RETRY->STOP"
+        ],
+        "artifact_type": "session-sequence",
+        "required_inputs": [
+          "sequence_file",
+          "sequence_sha256",
+          "threshold"
+        ],
+        "optional_inputs": [],
+        "expected_provenance": [
+          "baseline_manifest",
+          "owner_approval"
+        ],
+        "assertion_schema": {
+          "ops": [
+            "eq"
+          ],
+          "paths": [
+            "should_have_stopped"
+          ]
+        },
+        "action_class": [
+          "load",
+          "exploration"
+        ],
+        "scope_schema": {
+          "required": []
+        },
+        "owner": "global"
       }
     }
   ]

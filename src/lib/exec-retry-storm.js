@@ -68,38 +68,53 @@ function fromChangeRecords(records, options) {
     const signature = detail.signature;
     const count = Number(detail.count || 0);
     if (!signature) continue;
-    if (!bySession.has(session)) bySession.set(session, new Map());
-    const bySignature = bySession.get(session);
-    const current = bySignature.get(signature) || { signature: signature, occurrences: 0, observed: detail.signature || detail.command || signature, first_line: Number(record.source && record.source.line || 0) };
+    if (!bySession.has(session)) bySession.set(session, { records: [], bySignature: new Map() });
+    const state = bySession.get(session);
+    state.records.push(record);
+    const current = state.bySignature.get(signature) || { signature: signature, occurrences: 0, observed: detail.signature || detail.command || signature };
     current.occurrences = Math.max(current.occurrences, count);
-    current.first_line = Math.min(current.first_line, Number(record.source && record.source.line || 0));
-    bySignature.set(signature, current);
+    state.bySignature.set(signature, current);
     maxBySignature.set(signature, Math.max(maxBySignature.get(signature) || 0, count));
   }
-  const countTwo = new Set(Array.from(maxBySignature.entries()).filter(function (entry) { return entry[1] === 2; }).map(function (entry) { return entry[0]; }));
   const sessions = [];
-  for (const [session, bySignature] of bySession.entries()) {
-    const rows = Array.from(bySignature.values()).sort(function (a, b) { return b.occurrences - a.occurrences || a.first_line - b.first_line; });
+  for (const [session, state] of bySession.entries()) {
+    const rows = Array.from(state.bySignature.values()).sort(function (a, b) { return b.occurrences - a.occurrences; });
     const selected = rows[0] || null;
-    const occurrences = selected ? selected.occurrences : 0;
+    const ordered = state.records.slice().sort(function (a, b) { return String(a.observed_at || '').localeCompare(String(b.observed_at || '')) || Number(a.source && a.source.line || 0) - Number(b.source && b.source.line || 0); });
+    let last = null;
+    let run = 0;
+    let maxRun = 0;
+    let maxRunSignature = null;
+    for (const record of ordered) {
+      const signature = record.detail && record.detail.signature;
+      if (signature === last) run += 1;
+      else { last = signature; run = 1; }
+      if (run > maxRun) { maxRun = run; maxRunSignature = signature; }
+    }
+    const cumulativeTrigger = !!(selected && selected.occurrences >= threshold);
+    const consecutiveTrigger = maxRun >= threshold;
     const evidence = {
       schema_version: 'autoarmory/exec-retry-storm-evidence/v1',
       threshold: threshold,
-      signature: selected && selected.signature || null,
+      signature: consecutiveTrigger ? maxRunSignature : selected && selected.signature || null,
       observed: selected && selected.observed || null,
-      occurrences: occurrences,
-      first_stop_index: occurrences >= threshold ? threshold - 1 : null,
-      failure_count: occurrences,
-      should_have_stopped: occurrences >= threshold
+      occurrences: consecutiveTrigger ? maxRun : selected && selected.occurrences || 0,
+      max_count: selected && selected.occurrences || 0,
+      max_run: maxRun,
+      first_stop_index: consecutiveTrigger ? threshold - 1 : null,
+      should_have_stopped: consecutiveTrigger,
+      cumulative_trigger: cumulativeTrigger
     };
     evidence.evidence_sha256 = sha256(JSON.stringify(evidence));
     sessions.push(Object.assign({ session_id: session }, evidence));
   }
+  const countTwo = new Set(Array.from(maxBySignature.entries()).filter(function (entry) { return entry[1] === 2; }).map(function (entry) { return entry[0]; }));
   return {
     schema_version: 'autoarmory/exec-retry-storm-replay/v1',
     threshold: threshold,
     sessions_scanned: sessions.length,
     positive_sessions: sessions.filter(function (row) { return row.should_have_stopped; }).length,
+    positive_sessions_by_max_count: sessions.filter(function (row) { return row.cumulative_trigger; }).length,
     count_two_signatures: countTwo.size,
     false_positive_on_count_two: Array.from(countTwo).filter(function (signature) { return sessions.some(function (row) { return row.should_have_stopped && row.signature === signature; }); }).length,
     sessions: sessions

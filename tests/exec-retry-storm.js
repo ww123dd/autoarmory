@@ -47,7 +47,8 @@ must(replayReport.positive_sessions === 1 && replayReport.count_two_signatures =
 console.log('exec retry storm tests passed: threshold=3, count==2 negative, alternating negative, JSONL replay, replay CLI');
 const replayProgressed = checker.fromChangeRecords([
   { session_id: 's3', signal: 'repeat_signature', source: { line: 1 }, detail: { signature: 'sig-c', count: 2 } },
-  { session_id: 's3', signal: 'repeat_signature', source: { line: 2 }, detail: { signature: 'sig-c', count: 4 } }
+  { session_id: 's3', signal: 'repeat_signature', source: { line: 2 }, detail: { signature: 'sig-c', count: 3 } },
+  { session_id: 's3', signal: 'repeat_signature', source: { line: 3 }, detail: { signature: 'sig-c', count: 4 } }
 ], { threshold: 3 });
 must(replayProgressed.count_two_signatures === 0 && replayProgressed.positive_sessions === 1, 'a signature that progresses past 2 must not count as a count==2 negative');
 const bridgeFile = path.resolve(__dirname, '..', 'examples', 'adapters', 'exec-retry-storm', 'bridge.js');
@@ -63,3 +64,9 @@ const tampered = JSON.parse(JSON.stringify(bridgePayload));
 tampered.statement = JSON.stringify(Object.assign(JSON.parse(bridgePayload.statement), { sequence_sha256: '0'.repeat(64) }));
 const tamperedRun = require('child_process').spawnSync(process.execPath, [bridgeFile], { input: JSON.stringify(tampered), encoding: 'utf8' });
 must(tamperedRun.status === 3 && /digest mismatch/.test(tamperedRun.stdout), 'bridge must reject a changed sequence digest');
+const cumulativeOnly = checker.fromChangeRecords([
+  { session_id: 's4', signal: 'repeat_signature', source: { line: 1 }, detail: { signature: 'sig-d', count: 2 } },
+  { session_id: 's4', signal: 'repeat_signature', source: { line: 2 }, detail: { signature: 'sig-e', count: 2 } },
+  { session_id: 's4', signal: 'repeat_signature', source: { line: 3 }, detail: { signature: 'sig-d', count: 3 } }
+], { threshold: 3 });
+must(cumulativeOnly.positive_sessions === 0 && cumulativeOnly.positive_sessions_by_max_count === 1, 'cumulative count and consecutive run must be reported separately');
