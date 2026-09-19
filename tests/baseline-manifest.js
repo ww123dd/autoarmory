@@ -1,0 +1,31 @@
+'use strict';
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
+const { spawnSync } = require('child_process');
+const manifest = require('../src/lib/baseline-manifest');
+function must(condition, message) { if (!condition) throw new Error(message); }
+function sha(file) { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'); }
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-baseline-'));
+const target = path.join(root, 'artifact.bin');
+fs.writeFileSync(target, 'approved', 'utf8');
+const state = path.join(root, 'state');
+fs.mkdirSync(state, { recursive: true });
+fs.writeFileSync(path.join(state, 'baseline-manifest.json'), JSON.stringify({ schema_version: 'autoarmory/baseline-manifest/v1', entries: { 'baseline-1': { id: 'baseline-1', kind: 'file-sha256', ref: target, sha256: sha(target), source: 'owner_approval', owner: 'owner-a', approved_at: '2026-09-19T00:00:00Z', evidence_ref: 'approval-1' } } }) + '\n', 'utf8');
+must(manifest.entry(state, 'baseline-1').ok === true, 'valid baseline entry must pass physical validation');
+fs.writeFileSync(target, 'changed', 'utf8');
+must(manifest.entry(state, 'baseline-1').ok === false, 'baseline hash mismatch must fail');
+const provenance = manifest.validateProvenance(state, { expected_provenance: 'baseline_manifest', baseline_id: 'baseline-1' }, { repo: process.cwd() });
+must(provenance.ok === false, 'baseline provenance must re-check the physical file');
+const pinned = manifest.validateProvenance(state, { expected_provenance: 'pinned_verifier' }, { repo: path.resolve(__dirname, '..'), verifier_id: 'enumeration-completeness' });
+must(pinned.ok === true, 'pinned verifier provenance must require a registered runner');
+const head = String(spawnSync('git', ['rev-parse', 'HEAD'], { cwd: path.resolve(__dirname, '..'), encoding: 'utf8' }).stdout || '').trim();
+const commit = manifest.validateProvenance(state, { expected_provenance: 'commit', inputs: { commit: head } }, { repo: path.resolve(__dirname, '..') });
+must(commit.ok === true, 'commit provenance must require a real commit');
+fs.mkdirSync(path.join(state, 'approvals'), { recursive: true });
+fs.writeFileSync(path.join(state, 'approvals', 'a.json'), JSON.stringify({ schema_version: 'selfforge/approval/v1', status: 'approved', approved_by: 'owner-a', candidate_id: 'change-a' }) + '\n', 'utf8');
+const approval = manifest.validateProvenance(state, { expected_provenance: 'owner_approval', owner: 'owner-a', change_id: 'change-a' }, { repo: process.cwd() });
+must(approval.ok === true, 'owner approval provenance must require an approval record');
+must(manifest.validateProvenance(state, { expected_provenance: 'agent_inferred' }, { repo: process.cwd() }).ok === false, 'unknown provenance must fail closed');
+console.log('baseline manifest tests passed: file hash, missing/changed file, pinned/commit/owner provenance fail closed');

@@ -1,6 +1,6 @@
 {
   "schema_version": "autoarmory/verifier-manifest/v1",
-  "expected_lock_sha256": "0bf021f0c339c2954e8b4de15f69ec3e0285358ad98873dedecc86c069e9f04d",
+  "expected_lock_sha256": "d8ad1675276533fe40ee517eb0f1e6ad93d585c954de6a1b6816dedaf6d4dc83",
   "verifiers": [
     {
       "id": "doris-readonly-count",
@@ -372,7 +372,8 @@
         ],
         "expected_provenance": [
           "baseline_manifest",
-          "owner_approval"
+          "owner_approval",
+          "pinned_verifier"
         ],
         "assertion_schema": {
           "ops": [

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.39.2
+
+Make expected provenance physical and normalize commands before transition proposal.
+
+- Added `baseline-manifest.json` validation: `baseline_manifest` claims must name a `baseline_id`, the referenced file must exist, and its SHA-256 must re-derive. Missing manifest, missing file or hash drift blocks the claim.
+- Added provenance checks for `pinned_verifier`, `commit` and `owner_approval`; unknown provenance fails closed.
+- Added `src/lib/command-normalizer.js` and `tests/command-normalizer.js`: meta/read/search/write/native/indirect commands are separated from verifier-bearing families (`test`, `hash`, `git`, `process`, `http`, `sql`, `file_enumeration`, `build`).
+- Added `src/lib/exec-record-flow.js`: future `exec-records.jsonl` records with `exit_code` become derived transitions; records without exit code stay unverifiable.
+- Added `src/lib/historical-derived.js`: passed mechanism runs + closures can feed derived transitions with run/closure evidence.
+- Added `tests/provenance-gate.js`, `tests/exec-record-flow.js`, `tests/historical-derived.js`, `tests/baseline-manifest.js`.
 ## 2.39.1
 
 Separate missing transitions from true no_capability and propose transitions from command shape.

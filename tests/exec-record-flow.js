@@ -1,0 +1,21 @@
+'use strict';
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawnSync } = require('child_process');
+const flow = require('../src/lib/exec-record-flow');
+function must(condition, message) { if (!condition) throw new Error(message); }
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-exec-flow-'));
+const tests = path.join(root, 'tests');
+fs.mkdirSync(tests, { recursive: true });
+fs.writeFileSync(path.join(tests, 'smoke.js'), "process.stdout.write('ok')\n", 'utf8');
+const state = path.join(root, 'state');
+const exec = path.resolve(__dirname, '..', 'scripts', 'exec-record.js');
+const run = spawnSync(process.execPath, [exec, '--state', state, '--link-decision', 'change-exec-flow', '--json', '--', process.execPath, 'tests/smoke.js'], { cwd: root, encoding: 'utf8' });
+must(run.status === 0, 'exec-record must succeed: ' + run.stderr);
+const report = flow.fromExecRecords(state);
+must(report.candidates.length === 1 && report.candidates[0].candidate_transition === 'TEST->PASS', 'exec-record must derive TEST->PASS');
+must(report.candidates[0].source_strength === 'derived' && report.candidates[0].evidence_refs.length === 1, 'exec-derived transition must be trusted and cite its record');
+const missing = flow.derive({ id: 'exec-missing', command: 'node', args: ['tests/smoke.js'], output: {} });
+must(missing.ok === false && missing.errors.indexOf('exit_code_missing') !== -1, 'exec-record without exit_code must be unverifiable');
+console.log('exec record flow tests passed: future command -> exec-record -> derived transition, missing exit_code fails closed');

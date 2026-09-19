@@ -2,6 +2,9 @@
 const fs = require('fs');
 const path = require('path');
 const { readJsonlStrict, writeJsonl } = require('./util');
+const { normalizeCommand: normalizeVerifierCommand } = require('./command-normalizer');
+const execRecordFlow = require('./exec-record-flow');
+const historicalDerived = require('./historical-derived');
 
 const FAMILIES = [
   { id: 'project_test', transition: 'TEST->PASS', pattern: /(pytest|npm test|node tests|tsc|verify_all|npm run build)/i },
@@ -21,6 +24,8 @@ const META = [
 ];
 
 function normalizeCommand(command) {
+  const normalized = normalizeVerifierCommand(command);
+  if (normalized) return { primary_command: normalized.primary_command, command_family: normalized.command_family, candidate_transition: normalized.candidate_transition, observed_facts: normalized.observed_facts };
   const text = String(command || '').trim();
   if (!text) return { primary_command: null, command_family: null, candidate_transition: null, observed_facts: {} };
   for (const family of FAMILIES) {
@@ -60,6 +65,14 @@ function proposeFile(stateDir, options) {
   const input = path.join(stateDir, 'decision-scan', 'missing-transition.jsonl');
   const drafts = readJsonlStrict(input);
   const rows = drafts.map(function (draft) { return propose(draft, opts); }).filter(Boolean);
+  const merge = function (candidate) {
+    const rank = { candidate: 0, derived: 1, declared: 2 };
+    const index = rows.findIndex(function (row) { return row.change_id === candidate.change_id; });
+    if (index === -1) rows.push(candidate);
+    else if (rank[candidate.source_strength] > rank[rows[index].source_strength]) rows[index] = candidate;
+  };
+  if (opts.includeExec !== false) for (const candidate of execRecordFlow.fromExecRecords(stateDir).candidates) merge(candidate);
+  if (opts.includeHistory !== false) for (const candidate of historicalDerived.fromHistory(stateDir).candidates) merge(candidate);
   if (opts.apply === true) writeJsonl(path.join(stateDir, 'decision-scan', 'transition-candidates.jsonl'), rows);
   const byFamily = {};
   const byStrength = {};

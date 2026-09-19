@@ -4,6 +4,7 @@ const path = require('path');
 const { readJsonl, writeJsonl, writeJson } = require('./util');
 const { resolveClaim } = require('./verifier-resolver');
 const changeInspector = require('./change-inspector');
+const baselineManifest = require('./baseline-manifest');
 
 function readRows(file) {
   if (!fs.existsSync(file)) return [];
@@ -72,6 +73,9 @@ function claimShapeFor(draft) {
     artifact_type: inferArtifactType(draft),
     inputs: inputs,
     expected_provenance: draft.expected_provenance || null,
+    baseline_id: draft.baseline_id || null,
+    owner: draft.owner || null,
+    verifier_id: draft.verifier_id || null,
     action_class: draft.action_class || null,
     scope: draft.scope || null,
     assertion: draft.assertion || null,
@@ -114,7 +118,12 @@ function classifyDraft(draft, context) {
     if (!owner.owner) { disposition = 'blocked'; reasonCodes.push('blocked_by_owner'); }
     else if (!claim.expected_provenance) { disposition = 'blocked'; reasonCodes.push('blocked_by_expected_provenance'); }
     else if (effectiveDraft.transition_source_strength && ['declared', 'derived'].indexOf(effectiveDraft.transition_source_strength) === -1) { disposition = 'unverifiable'; reasonCodes.push('transition_source_candidate_only'); }
-    else disposition = 'ready_for_verifier';
+    else {
+      const provenanceCheck = baselineManifest.validateProvenance(ctx.stateDir, Object.assign({}, claim, { change_id: changeId, owner: owner.owner }), { repo: ctx.repo, verifier_id: resolution.ref });
+      if (!provenanceCheck.ok) { disposition = 'blocked'; reasonCodes.push('blocked_by_expected_provenance'); }
+      else disposition = 'ready_for_verifier';
+      effectiveDraft.provenance_validation = provenanceCheck;
+    }
   } else if (resolution.kind === 'blocked_by_access') {
     disposition = 'blocked'; reasonCodes.push('blocked_by_access');
   } else if (resolution.kind === 'no_capability' || resolution.kind === 'verifier_missing') {
@@ -152,6 +161,7 @@ function classifyDraft(draft, context) {
     disposition: disposition,
     reason_codes: uniqueReasonCodes,
     no_capability: resolution.kind === 'no_capability' ? resolution.missing : null,
+    provenance_validation: effectiveDraft.provenance_validation || null,
     claim_declaration_source: declaration ? 'claims_manifest' : null,
     pipeline_stage: 'nomination_only'
   };
@@ -202,6 +212,9 @@ function scan(stateDir, options) {
     missing_transition_count: missingTransition.length,
     transition_present_count: transitionPresent.length,
     transition_present_rate: drafts.length ? Number((transitionPresent.length / drafts.length).toFixed(6)) : 0,
+    transition_declared_count: transitionPresent.filter(function (item) { return item.transition_source_strength === 'declared'; }).length,
+    transition_derived_count: transitionPresent.filter(function (item) { return item.transition_source_strength === 'derived'; }).length,
+    transition_candidate_count: transitionPresent.filter(function (item) { return item.transition_source_strength === 'candidate'; }).length,
     transition_source_rate: transitionPresent.length ? Number((transitionTrusted.length / transitionPresent.length).toFixed(6)) : 0,
     transition_derived_rate: transitionPresent.length ? Number((transitionPresent.filter(function (item) { return item.transition_source_strength === 'derived'; }).length / transitionPresent.length).toFixed(6)) : 0,
     ready_for_verifier_count: ready.length,
