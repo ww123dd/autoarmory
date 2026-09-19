@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.39.0
+
+Turn no_capability into a ranked registry-supply queue.
+
+- Added `scripts/no-capability-clusters.js` / `src/lib/no-capability-clusters.js`.
+- Mechanical clustering covers command family, script path, file extension/prefix, signals, claim shape, access requirement, provenance and session provenance.
+- Output is `decision-scan/no-capability-clusters.json` with size, coverage, exemplars, common files/commands, suggested verifier kind, required inputs, expected provenance, mechanical feasibility, access and owner requirements.
+- Real state result: 10307 no_capability drafts -> 159 clusters; top-10 coverage 0.849; no_capability_rate 0.999903.
+- No registry expansion in this version; the cluster report selects the next verifier kind.
 ## 2.38.1
 
 Re-anchor the old plan and add strict JSONL reading.
