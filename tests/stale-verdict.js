@@ -56,7 +56,7 @@ function writeLock(repo, options) {
       adapter: 'scripts/verify/fixture.js',
       adapter_sha256: options.adapter_sha256,
       statement: 'fixture statement',
-      assertion: { path: 'observed', op: 'eq', value: 0 },
+      assertion: { path: 'observed', op: 'eq', value: options.expected === undefined ? 0 : options.expected },
       timeout_ms: 10000
     }]
   }, null, 2) + '\n');
@@ -148,6 +148,16 @@ must(rebound.runner_sha256 !== before.runner_sha256, 'a changed runner must prod
 must(mechanism.closeCase(fixture.state, 'case-fixture', rebound.id, { repo: fixture.repo, trials: 3 }).ok, 're-bound runner must close the case again');
 must(statusOf(fixture).status === 'closed', 're-bound closure must be reported as closed');
 
+// 3b. expected pin change only: same runner and adapter bytes, but the pinned
+// fact changed. The old verdict must reopen, never remain closed.
+fixture = makeFixture('expected-pin-change');
+const pinned = recordRun(fixture, 'run-expected-pin');
+must(mechanism.closeCase(fixture.state, 'case-fixture', pinned.id, { repo: fixture.repo, trials: 3 }).ok, 'close before expected pin change');
+writeLock(fixture.repo, { version: '1.0.0', contract: CONTRACT, adapter_sha256: sha256File(fixture.adapter), expected: 1 });
+const pinStatus = escapeCheck(fixture, 'expected-pin-change');
+must(pinStatus.status === 'reopen_required', 'expected pin change must reopen the verdict, got ' + pinStatus.status);
+must(!mechanism.closeCase(fixture.state, 'case-fixture', pinned.id, { repo: fixture.repo, trials: 3 }).ok, 'close must be refused after the expected pin changed');
+
 // 4. version bump only: compatibility metadata is not a trust root.
 fixture = makeFixture('version-bump');
 const versioned = recordRun(fixture, 'run-version-bump');
@@ -178,4 +188,4 @@ must(mechanism.closeCase(fixture.state, 'case-fixture', caseRebound.id, { repo: 
 must(statusOf(fixture).status === 'closed', 're-bound case must be closed');
 
 must(escapes === 0, 'stale_verdict_escape_count must be 0, got ' + escapes);
-console.log('stale verdict tests passed: stale_verdict_escape_count=' + escapes + ' (baseline close, adapter tamper, runner change, version bump, contract bump, case change, re-bind close)');
+console.log('stale verdict tests passed: stale_verdict_escape_count=' + escapes + ' (baseline close, adapter tamper, runner change, expected pin change, version bump, contract bump, case change, re-bind close)');

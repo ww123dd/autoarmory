@@ -225,7 +225,7 @@ function runStopShadow(event, options) {
     const allRecords = fs.existsSync(path.join(engineDir, 'change-records.jsonl')) ? readJsonl(path.join(engineDir, 'change-records.jsonl')) : [];
     const candidates = changeInspector.candidateCases(allRecords, { verifier_ids: [] });
     const attribution = { session_preserved: 0, session_filled: 0, session_lost: 0, turn_preserved: 0, turn_filled: 0 };
-    const drafts = uniqueDrafts(candidates.map(function (draft) { return verdictView.joinDraft(stripDraft(draft, event, attribution), reuseIndex); }));
+    const drafts = uniqueDrafts(candidates.map(function (draft) { return verdictView.joinDraft(stripDraft(draft, event, attribution), reuseIndex, { stateDir: dir, repo: repo }); }));
     const sessionCounts = {};
     for (const draft of drafts) { const key = draft.session_id || '(missing)'; sessionCounts[key] = (sessionCounts[key] || 0) + 1; }
     currentSessionDraftCount = sessionCounts[path.basename(sessionFile)] || 0;

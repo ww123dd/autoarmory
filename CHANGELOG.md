@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.32.0
+
+Make effective verdicts single-source: mechanism status, explicit repo, and pin-change reopening.
+
+- `verdictFor()` no longer treats `reuse-record.status` as a current verdict. A closed record supplies immutable claim identity and provenance; the effective state is computed by `mechanism.status()` from the current runner, pinned expected value, case, scope and expiry.
+- Legacy reuse-records without `decision_id`, `claim_sha256`, `expected_sha256`, `source_verifier_id` and `verifier_lock_sha256` are reported as `superseded`, so an old `closed` string cannot pass the gate.
+- `mechanism.status()` now reports `reopen_required` when the latest or closure evidence is a mismatch (for example the expected pin changed while the runner bytes stayed the same), instead of collapsing that case into generic `unverified`.
+- `load-gate.consult()` and `consultAction()` require `{ repo, stateDir }`; `scripts/load-gate.js` requires explicit `--state` and `--repo` for refresh/action/consult paths.
+- `chain-check` uses the same `verdictFor()` projection and passes the explicit repo; chain liveness remains separate from verdict freshness.
+- Regression tests now include a negative expected-pin-change case and a positive control: a fresh runner, reproduced fact, present lock and matching expected must return `allow`.
 ## 2.31.0
 
 Bind verdict identity to the claim and recompute effective state from runs and trust.

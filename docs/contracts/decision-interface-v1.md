@@ -43,7 +43,7 @@ expires_at      min(stale_days, evidence-source availability)
 reason          why, verbatim, on anything not closed
 ```
 
-The effective state is always **computed, never stored**:
+A reuse-record is immutable historical claim identity, not current state. The effective state is computed by mechanism.status() from the current runner, pinned expected value, case, scope and expiry, never copied from euse-record.status.\n\nThat effective state is always **computed, never stored**:
 `no-verdict | valid-pass | valid-fail | expired | retired | reopened |
 unverifiable`. Time moves the answer; the record stays byte-identical.
 
@@ -52,7 +52,9 @@ unverifiable`. Time moves the answer; the record stays byte-identical.
 ```text
 action_class registry (versioned): publish | deploy | ddl | external-write | load | exploration
 
-gate.consultAction(state, {action_class, change_id?, consumer_ref?, artifact_ref?})
+gate.consultAction(stateDir, {action_class, change_id?, consumer_ref?, artifact_ref?, repo})
+# repo and stateDir are mandatory; the gate never assumes verifiers.lock.json
+# lives next to the state root.
   -> { behavior: allow|degrade|block|observe,
        would_behavior,            # what enforce would decide (observe classes)
        mode, verdict_state, reason_code, policy_version, at }

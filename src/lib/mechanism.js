@@ -243,10 +243,13 @@ function status(stateDir, mechanismId, options) {
       trials: opts.trials,
       require_record: true
     }) : null;
-    if (checkResult.status !== 'verified') { verdict = 'unverified'; reason = verificationFailure(checkResult); }
+    if (checkResult.status !== 'verified') {
+      verdict = checkResult.status === 'mismatch' ? 'reopen_required' : 'unverified';
+      reason = verificationFailure(checkResult);
+    }
     else if (latest.result !== 'pass' || latest.regression === true) { verdict = 'bypassed'; reason = 'latest run failed or regressed'; }
     else if (closure && (!closureCheck || closureCheck.status !== 'verified')) {
-      verdict = 'unverified';
+      verdict = closureCheck && closureCheck.status === 'mismatch' ? 'reopen_required' : 'unverified';
       reason = 'closure run is no longer fresh: ' + (closureCheck ? verificationFailure(closureCheck) : ('closure run missing: ' + closure.run_id));
     } else if (closure) { verdict = 'closed'; reason = 'latest verified run closed the case'; }
     else { verdict = 'verified'; reason = 'latest run verification passed and has not been closed'; }
