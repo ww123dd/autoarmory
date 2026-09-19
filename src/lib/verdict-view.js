@@ -88,17 +88,17 @@ function verdictFor(changeId, index, options) {
     return result(record, 'expired', 'evidence window expired');
   }
 
-  if (!hasClaimIdentity(record)) {
-    return result(record, 'superseded', 'reuse-record is missing claim identity; it is historical provenance only');
-  }
-
   if (!opts.stateDir || !opts.repo) {
     return result(record, 'unverified', 'stateDir and repo are required to recompute mechanism status');
+  }
+  const mechanismId = record.mechanism_id || (record.run && record.run.mechanism_id) || null;
+  if (!mechanismId) {
+    return result(record, 'superseded', 'reuse-record is missing mechanism_id; it is historical provenance only');
   }
 
   let current = null;
   try {
-    current = require('./mechanism').status(opts.stateDir, record.mechanism_id, { repo: opts.repo });
+    current = require('./mechanism').status(opts.stateDir, mechanismId, { repo: opts.repo });
   } catch (error) {
     return result(record, 'unverified', 'mechanism status failed: ' + error.message);
   }
@@ -107,6 +107,9 @@ function verdictFor(changeId, index, options) {
   }
 
   const state = mapMechanismStatus(current.status);
+  if ((state === 'valid-pass') && !hasClaimIdentity(record)) {
+    return result(record, 'superseded', 'mechanism is valid but reuse-record is missing claim identity; it is historical provenance only', { mechanism_status: current.status });
+  }
   return result(record, state, current.reason, {
     mechanism_status: current.status,
     mechanism_reason: current.reason,

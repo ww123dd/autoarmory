@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.36.1
+
+Make verdict-view honor mechanism.status even for legacy reuse-records.
+
+- `verdictFor()` now resolves `mechanism_id` from either the top level or `run.mechanism_id`, so old records with the mechanism pointer inside `run` are still recomputed instead of being short-circuited to `superseded`.
+- Mechanism status is the primary effective-state source: `unverified`, `expired` and `reopen_required` now project to `unverified`, `expired` and `reopened`. Missing claim identity only forces `superseded` when the mechanism itself is valid.
+- Real tableau record now gives the same answer on all three surfaces: `mechanism.status=reopen_required`, `verdict-view=reopened`, `load-gate=block`.
 ## 2.36.0
 
 Match claims by capability schema and bind expected values to provenance.
