@@ -15,7 +15,11 @@ write(path.join(state, 'decision-scan', 'ready-for-verifier.jsonl'), [
   JSON.stringify({ schema_version: 'autoarmory/decision-draft/v1', change_id: 'project-test-change', expected_transition: 'TEST->PASS', expected_provenance: 'baseline_manifest', claim_instance: { command: 'node tests/run.js' }, owner: 'team-a', disposition: 'ready_for_verifier', verifier_candidate: { kind: 'project_test', ref: 'node tests/run.js' }, changed_files: ['src/a.js'], commands: ['node tests/run.js'], session_id: 's2' })
 ].join('\n') + '\n');
 
-const dry = orchestrate(state, { repo: repo });
+write(path.join(state, 'decision-scan', 'decision-drafts.jsonl'), [
+  JSON.stringify({ change_id: 'blocked-owner', disposition: 'blocked', reason_codes: ['blocked_by_owner'] }),
+  JSON.stringify({ change_id: 'no-capability', disposition: 'no_capability', reason_codes: ['no_capability'] }),
+  JSON.stringify({ change_id: 'blocked-access', disposition: 'blocked', reason_codes: ['blocked_by_access'] })
+].join('\n') + '\n');const dry = orchestrate(state, { repo: repo });
 must(dry.ready_count === 2 && dry.written === 2 && !fs.existsSync(path.join(state, 'pending')), 'dry-run must not write pending jobs');
 const applied = orchestrate(state, { repo: repo, apply: true });
 must(applied.written === 2 && fs.existsSync(path.join(state, 'pending', 'registered-change.json')) && fs.existsSync(path.join(state, 'pending', 'project-test-change.json')), 'apply must write both pending jobs');
@@ -24,6 +28,7 @@ const project = JSON.parse(fs.readFileSync(path.join(state, 'pending', 'project-
 must(registered.verifier_id === 'fixture-verifier' && registered.session_id === 's1' && registered.source_message_id === 'm1' && registered.expected_provenance === 'pinned_verifier' && registered.claim_instance.verifier === 'fixture-verifier', 'registered pending job must preserve verifier, claim instance and provenance');
 must(project.verifier_candidate.kind === 'project_test' && project.mechanical_binding.kind === 'project_test' && project.expected_transition === 'TEST->PASS' && project.expected_provenance === 'baseline_manifest' && project.claim_instance.command === 'node tests/run.js', 'mechanical pending job must carry pinned binding, transition, instance and provenance');
 must(!fs.existsSync(path.join(state, 'reuse-records')) && !fs.existsSync(path.join(state, 'closures.jsonl')), 'orchestrator must not run or close');
+must(!fs.existsSync(path.join(state, 'pending', 'blocked-owner.json')) && !fs.existsSync(path.join(state, 'pending', 'no-capability.json')) && !fs.existsSync(path.join(state, 'pending', 'blocked-access.json')), 'blocked/no_capability drafts must never enter pending');
 const again = orchestrate(state, { repo: repo, apply: true });
 must(again.written === 0 && again.already_pending === 2, 'second orchestrate must be idempotent');
 console.log('decision orchestrator tests passed: ready -> pending only, provenance, pinned binding, idempotent');

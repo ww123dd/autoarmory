@@ -19,6 +19,13 @@ function registeredIds(repo) {
   const lock = readJsonFile(path.join(repo, 'verifiers.lock.json'));
   return lock && Array.isArray(lock.verifiers) ? lock.verifiers.map(function (item) { return item.id; }).filter(Boolean) : [];
 }
+function declarationFor(changeId, stateDir) {
+  if (!changeId) return null;
+  const manifest = readJsonFile(path.join(stateDir, 'claims.manifest.json'));
+  if (!manifest) return null;
+  const claims = manifest.claims && typeof manifest.claims === 'object' ? manifest.claims : manifest;
+  return claims[changeId] || null;
+}
 function ownerFor(draft, stateDir) {
   if (draft && draft.owner) return { owner: draft.owner, source: 'explicit' };
   const registry = readJsonFile(path.join(stateDir, 'owners.json')) || {};
@@ -78,12 +85,14 @@ function resolverFor(draft, context) {
 }
 function classifyDraft(draft, context) {
   const ctx = context || {};
-  const owner = ownerFor(draft, ctx.stateDir);
-  const claim = claimShapeFor(draft);
-  const resolution = resolverFor(draft, ctx);
+  const declaration = declarationFor(draft.change_id || draft.id, ctx.stateDir);
+  const effectiveDraft = declaration ? Object.assign({}, draft, declaration) : draft;
+  const owner = ownerFor(effectiveDraft, ctx.stateDir);
+  const claim = claimShapeFor(effectiveDraft);
+  const resolution = resolverFor(effectiveDraft, ctx);
   const reasonCodes = [];
   if (!owner.owner) reasonCodes.push('blocked_by_owner');
-  if (!draft.expected_transition) reasonCodes.push('expected_transition_missing');
+  if (!effectiveDraft.expected_transition) reasonCodes.push('expected_transition_missing');
   if (!claim.expected_provenance) reasonCodes.push('expected_provenance_missing');
   if (resolution.kind === 'blocked_by_access') reasonCodes.push('blocked_by_access');
   if (resolution.kind === 'no_capability') reasonCodes.push('no_capability');
@@ -106,9 +115,9 @@ function classifyDraft(draft, context) {
     signals: Array.isArray(draft.signals) ? draft.signals : [],
     commands: Array.isArray(draft.commands) ? draft.commands : [],
     changed_files: Array.isArray(draft.changed_files) ? draft.changed_files : [],
-    expected_transition: draft.expected_transition || null,
+    expected_transition: effectiveDraft.expected_transition || null,
     expected_provenance: claim.expected_provenance,
-    expected_value: Object.prototype.hasOwnProperty.call(draft, 'expected_value') ? draft.expected_value : null,
+    expected_value: Object.prototype.hasOwnProperty.call(effectiveDraft, 'expected_value') ? effectiveDraft.expected_value : null,
     claim_instance: claim.inputs || null,
     claim_shape: claim,
     owner: owner.owner,
@@ -117,6 +126,7 @@ function classifyDraft(draft, context) {
     disposition: disposition,
     reason_codes: uniqueReasonCodes,
     no_capability: resolution.kind === 'no_capability' ? resolution.missing : null,
+    claim_declaration_source: declaration ? 'claims_manifest' : null,
     pipeline_stage: 'nomination_only'
   };
 }

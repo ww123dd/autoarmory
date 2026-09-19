@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.37.0
+
+Add observation mode, labeled resolver benchmarking, and the first real unattended closed loop.
+
+- Added `scripts/observe-claim.js` / `src/lib/observation.js`: readonly verifier observations write `observation-records.jsonl` with `authority=none`, `activates_case=false`, `gate_effect=none`, and never write pending/runs/closures/reuse-records.
+- Added `docs/evidence/resolver-label-set-v1.jsonl` and `scripts/resolver-benchmark.js`: resolver_false_match_rate must be 0 before anything may proceed to automated execution.
+- `decision-scan` now reads a trusted `claims.manifest.json`; a declared claim can supply owner, transition, instance, expected value and provenance without selecting a verifier by id.
+- `decision-orchestrate` only turns `ready_for_verifier` drafts into pending jobs; `no_capability`, `blocked_by_owner`, `blocked_by_access` and unverifiable drafts never enter pending.
+- Real unattended run completed: `change-c63d6e2903645d4c` -> resolver selected `enumeration-completeness` -> pending -> run -> close -> reuse-record -> effective `valid-pass` -> load-gate `allow`; session link is `linked`.
 ## 2.36.1
 
 Make verdict-view honor mechanism.status even for legacy reuse-records.

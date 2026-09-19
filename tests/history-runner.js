@@ -19,7 +19,7 @@ must(report.history_derived_run_count===1 && report.unverifiable_count===0 && re
 const reuseFile=path.join(state,'reuse-records','change-win-service.json');
 const reuse=JSON.parse(fs.readFileSync(reuseFile,'utf8'));
 must(reuse.status==='closed' && reuse.verifier==='windows-service-state' && reuse.run.result==='pass','reuse record must bind the real verifier result');
-must(reuse.session_id==='s1'&&reuse.turn_id==='t1'&&reuse.source_message_id==='m1','reuse record must preserve session provenance');
+must(reuse.session_id==='s1'&&reuse.turn_id==='t1'&&reuse.source_message_id==='m1'&&reuse.session_link_status==='linked','reuse record must preserve linked session provenance');
 must(reuse.expected_provenance==='pinned_verifier'&&reuse.claim_instance&&reuse.claim_instance.service==='win-service','registered reuse record must preserve expected provenance and claim instance');
 must(fs.readdirSync(pending).length===0,'pending job must be drained');
 const firstDecision=reuse.decision_id;

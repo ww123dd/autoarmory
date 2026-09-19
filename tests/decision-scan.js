@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const decisionScan = require('../src/lib/decision-scan');
+const { sha256 } = require('../src/lib/util');
 
 function must(condition, message) { if (!condition) throw new Error(message); }
 function write(file, value) { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value, 'utf8'); }
@@ -37,4 +38,11 @@ must(report.candidate_count === 1 && report.draft_count === 1 && report.blocked_
 must(report.drafts[0].expected_transition === null && report.drafts[0].reason_codes.indexOf('expected_transition_missing') !== -1, 'first pass must not fabricate expected_transition');
 must(fs.existsSync(path.join(state, 'decision-scan', 'decision-drafts.jsonl')), 'apply must write the draft projection');
 must(!fs.existsSync(path.join(state, 'pending')), 'decision-scan must not activate pending jobs');
+const declaredState = path.join(root, 'declared-state');
+write(path.join(declaredState, 'change-inspector', 'change-records.jsonl'), JSON.stringify({ id: 'r1', session_id: 's1', turn_id: 't1', signal: 'risk_signal', source: { event_id: 'm1', line: 1 }, detail: { command: 'node tests/run.js', file_paths: ['a.js'] } }) + '\n');
+const declaredChangeId = 'change-' + sha256('r1').slice(0, 16);
+write(path.join(declaredState, 'owners.json'), JSON.stringify({ owners: {} }) + '\n');
+write(path.join(declaredState, 'claims.manifest.json'), JSON.stringify({ claims: { [declaredChangeId]: { expected_transition: 'TRUNCATED->ENUMERATED', artifact_type: 'repo-enumeration', claim_instance: { root: 'examples/adapters', pattern: 'bridge\\.js$', expected_count: 12 }, expected_value: true, expected_provenance: 'baseline_manifest', owner: 'team-a', action_class: 'load', scope: { repo: 'autoarmory' } } } }) + '\n');
+const declaredReport = decisionScan.scan(declaredState, { repo: repo, apply: false, limit: 10 });
+must(declaredReport.ready_for_verifier_count === 1 && declaredReport.drafts[0].claim_declaration_source === 'claims_manifest', 'trusted claims manifest must make a real change ready without manual verifier selection');
 console.log('decision scan tests passed: capability match, no_capability, blocked_by_access/owner, insufficient stream, no activation');

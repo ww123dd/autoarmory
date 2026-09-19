@@ -24,7 +24,7 @@ function firstJsonl(file) {
 }
 
 let result = run(['version']);
-must(result.code === 0 && result.out.trim() === '2.36.1', 'version');
+must(result.code === 0 && result.out.trim() === '2.37.0', 'version');
 must(pkg.name === 'autoarmory' && pkg.bin.autoarmory === 'bin/autoarmory.js' && pkg.bin.selfforge === 'bin/selfforge.js', 'AutoArmory package and legacy aliases');
 const legacyVersion = spawnSync(process.execPath, [legacyCli, 'version'], { cwd: root, encoding: 'utf8' });
 must(legacyVersion.status === 0 && legacyVersion.stdout.trim() === pkg.version, 'legacy selfforge CLI alias');
