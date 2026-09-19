@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.34.0
+
+Add the nomination layer: recover only unique session links, classify claims, and hand ready drafts to the existing runner.
+
+- Added `scripts/link-reuse-records.js` / `src/lib/reuse-linker.js`: a reuse-record is filled only when canonical change-record ids resolve to exactly one session; otherwise it is marked `session_link_status=link_lost`. The derived `case-drafts.jsonl` projection is not used as a provenance source.
+- Added `docs/contracts/claim-resolution-v1.md`: the mapping contract for `change_records -> claim_draft -> owner_source -> verifier_candidate -> resolver_result -> disposition`, with `blocked_by_access` / `blocked_by_owner` as reason codes, not lifecycle states.
+- Added `scripts/decision-scan.js` / `src/lib/decision-scan.js`: nomination-only drafts with `ready_for_verifier`, `unverifiable`, `blocked_by_access` and `blocked_by_owner` projections. It never writes pending jobs, runs verifiers or closes anything; an empty real stream returns `insufficient_real_stream`.
+- Added `scripts/decision-orchestrate.js` / `src/lib/decision-orchestrator.js`: only `ready_for_verifier` drafts become pending jobs, with verifier binding and provenance; the existing history-runner remains the execution layer.
+- Real state run: 20 nominations scanned; all 20 are `blocked_by_owner` until an owner registry exists, and zero were activated. Old reuse-records: 6/7 resolved to a unique canonical session; 1/7 is `link_lost`, not guessed.
 ## 2.33.0
 
 Project mechanism status onto gate states and preserve session provenance in verdicts.

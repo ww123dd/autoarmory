@@ -41,9 +41,16 @@ verifier        registered verifier id
 run             { id, result, exit_code, input_sha256, output_sha256, ... }
 expires_at      min(stale_days, evidence-source availability)
 reason          why, verbatim, on anything not closed
+claim_sha256    hash of change_id + expected_transition + expected_sha256
+expected_sha256 verifier-specific pinned expectation
+source_verifier_id  which registered verifier supplied the expectation
+mechanism_id/case_id/run_id  current mechanism evidence pointer
+session_id/turn_id/source_message_id  session provenance when uniquely recoverable
 ```
 
-A reuse-record is immutable historical claim identity, not current state. The effective state is computed by mechanism.status() from the current runner, pinned expected value, case, scope and expiry, never copied from euse-record.status.\n\nThat effective state is always **computed, never stored**:
+A reuse-record is immutable historical claim identity, not current state. The effective state is computed by mechanism.status() from the current runner, pinned expected value, case, scope and expiry; it is never copied from reuse-record.status.
+
+That effective state is always **computed, never stored**:
 `no-verdict | valid-pass | valid-fail | expired | retired | reopened |
 unverifiable`. Time moves the answer; the record stays byte-identical.
 
