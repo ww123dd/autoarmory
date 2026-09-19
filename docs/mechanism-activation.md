@@ -42,3 +42,5 @@ The executable entry point remains `scripts/hook-gate.js`. With
 `--mechanism <id>` it loads the mechanism from `<state>/mechanisms.jsonl` and
 applies the same `enforceMechanism` contract. Without that flag, existing hook
 behavior is unchanged.
+
+Canonical state words: the candidate state machine is `gated -> shadow -> canary -> promoted -> retired`; the current mechanism ledger stores `proposed -> promoted -> retired`. `active` is a projection, not a stored value. Lifecycle counts are projections from the real records, not ledger fields.

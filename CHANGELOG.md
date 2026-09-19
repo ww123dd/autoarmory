@@ -1,3 +1,12 @@
+## 2.49.0
+
+Bind verification-gap to live Stop events and freeze the lifecycle vocabulary.
+
+- Added `src/lib/verification-gap-input.js`: derive a forward verification window from a Stop event transcript and its last user turn.
+- Added `tests/verification-gap-stop-event.js`: positive check window, no-check gap negative, and registered verifier re-derivation.
+- Documented canonical lifecycle storage (`proposed -> shadow -> promoted -> retired`); `active` and lifecycle counts are projections, not stored fields.
+- Documented `outcome-records.jsonl`, object-shaped `enforcement`, and the global-PEP / skill-declaration split.
+
 ## 2.48.0
 
 Add the exec retry-storm stop-loss mechanism as a global observe candidate.

@@ -173,3 +173,56 @@ The three time/validity states are different outcomes:
 Trigger kinds are limited to computable predicates: `runner_changed`, `case_changed`, `scope_changed`, `file_changed`, `evidence_expired`, `environment_changed`. `file_changed` requires `target` and `expected_sha256`; free-text triggers are rejected. `promote` can be evaluated against a requested scope and rejects `out_of_scope`.
 
 Preflight reports `unscoped_promotion_count`, `out_of_scope_reuse_count`, `expired_mechanism_reuse_count`, `legacy_unscoped_promotion_count`, `reopen_trigger_invalid_count` and `reopen_required_escape_count`.
+
+
+## Canonical Lifecycle Vocabulary
+
+The candidate transition state machine implemented in `src/lib/state.js` is:
+
+```text
+gated -> shadow -> canary -> promoted -> retired
+```
+
+Do not use the word `probation`; it is not a state in the code.
+
+The mechanism lifecycle ledger implemented in `src/lib/mechanism.js` currently
+stores:
+
+```text
+proposed -> promoted -> retired
+```
+
+A mechanism that needs observation before promotion is represented today by
+`enforcement.mode=observe`; `shadow` is not a stored mechanism-ledger state yet.
+If the mechanism lifecycle is extended later, the new stored state must be
+introduced in code and tests first, then documented.
+
+`active` is not a stored field. It is a projection computed from the ledger:
+
+```text
+verifier registered
++ scope exists
++ enforcement.mode = block
++ enforcement.coverage = complete
+```
+
+`reuse_count`, `success_count`, `overturn_count`, and `reopen_count` are also
+projections. They are recomputed from `mechanism-runs.jsonl`,
+`closures.jsonl`, `lifecycle.jsonl`, and `outcome-records.jsonl`; they are not
+written back as ledger facts.
+
+`enforcement` is an object, not a string:
+
+```json
+{
+  "enforcement": {
+    "mode": "block",
+    "coverage": "complete"
+  }
+}
+```
+
+A skill owns declarations and domain context only. It may be the user/agent
+entry point, but it does not execute enforcement. The global PEP is the single
+enforcement point: it reads the ledger, filters by scope, and decides whether
+the mechanism applies.

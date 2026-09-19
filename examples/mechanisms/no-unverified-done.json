@@ -1,0 +1,57 @@
+{
+  "case": {
+    "schema_version": "autoarmory/case/v1",
+    "id": "case-no-unverified-done",
+    "incident_id": "incident-no-unverified-done-20260919",
+    "title": "Completion claims must carry an independently verified check after the last user turn",
+    "expected_transition": "UNVERIFIED->CHECKED",
+    "failure_mode": "unverified_done",
+    "severity": "high",
+    "evidence": [
+      "~/.codex/hooks/guard.audit.jsonl#reason=未核实列名交付",
+      "docs/evidence/exec-retry-storm-counterexample.jsonl"
+    ],
+    "reproducible": true,
+    "owner": "global",
+    "verifier": "verification-gap",
+    "done_criteria": "verification_gap_count=0 when an independent check is present; verification_gap_count=1 when absent"
+  },
+  "mechanism": {
+    "schema_version": "autoarmory/mechanism/v1",
+    "id": "mech-no-unverified-done",
+    "name": "No unverified completion",
+    "covered_failure_modes": [
+      "unverified_done"
+    ],
+    "trigger": "completion claim lacks an independent check in the current Stop event window",
+    "action": "record would-block in shadow; when promoted, block completion until the check is present",
+    "verification": "verification-gap derived from the Stop event transcript window",
+    "verifier_id": "verification-gap",
+    "closure_criteria": "gap=0 when a check is present; gap=1 when absent",
+    "owner": "global",
+    "version": "1.0.0",
+    "verification_stale_days": 30,
+    "scope": {
+      "project": "global",
+      "task_type": "completion-claim",
+      "environment": "codex-local",
+      "artifact_type": "stop-event"
+    },
+    "expires_at": null,
+    "reopen_trigger": [
+      {
+        "kind": "runner_changed"
+      },
+      {
+        "kind": "case_changed"
+      }
+    ],
+    "enforcement": {
+      "point": "stop_hook",
+      "mode": "observe",
+      "coverage": "none",
+      "entry": "src/lib/hook-gate.js"
+    },
+    "status": "proposed"
+  }
+}
