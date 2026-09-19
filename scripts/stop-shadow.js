@@ -56,6 +56,8 @@ function beat(stateDir, ev, status, reason, result) {
     };
     fs.writeFileSync(path.join(stateDir, 'last-stop.json'), JSON.stringify(row, null, 2) + '\n', 'utf8');
     fs.writeFileSync(path.join(stateDir, 'last-run.json'), JSON.stringify(row, null, 2) + '\n', 'utf8');
+    // Append-only heartbeat: the capture-rate metric reads this window.
+    fs.appendFileSync(path.join(stateDir, 'last-run.jsonl'), JSON.stringify(row) + '\n', 'utf8');
   } catch (_) {}
 }
 let ev = {};

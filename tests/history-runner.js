@@ -29,7 +29,7 @@ must(r.status===0&&JSON.parse(r.stdout).history_derived_run_count===1,'new claim
 const changedClaim=JSON.parse(fs.readFileSync(reuseFile,'utf8'));
 must(changedClaim.decision_id&&changedClaim.decision_id!==firstDecision,'claim change must produce a new decision_id');
 must(changedClaim.session_id==='s1'&&changedClaim.turn_id==='t2'&&changedClaim.source_message_id==='m2','claim change must carry its own session provenance');
-must(fs.readFileSync(path.join(state,'verdict-events.jsonl'),'utf8').indexOf('claim_changed')!==-1,'claim change must append a supersede event');
+must(fs.readFileSync(path.join(state,'claim-events.jsonl'),'utf8').indexOf('claim_changed')!==-1,'claim change must append a claim event to claim-events.jsonl (verdict-events.jsonl stays single-schema state transitions)');
 const before=fs.readFileSync(reuseFile,'utf8');
 r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
 must(r.status===0,'second drain must succeed');
@@ -63,4 +63,17 @@ must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'missing file h
 fs.writeFileSync(path.join(pending,'change-shell-meta.json'),JSON.stringify({schema_version:'autoarmory/pending-change/v1',change_id:'change-shell-meta',session_id:'s6',signals:['check_gap'],verifier_candidate:{kind:'project_test',ref:'node tests/signal-recall.js && rm -rf production'}}),'utf8');
 r=spawnSync(process.execPath,[script,'--drain','--state',state,'--repo',repo,'--json'],{encoding:'utf8'});
 must(r.status===0 && JSON.parse(r.stdout).unverifiable_count===1,'shell metacharacters must stay unverifiable');
+// Derived transition: a natural pending job carries no expected_transition; the
+// runner derives it mechanically from the command family (2.47.0).
+const sha256Text2 = require('../src/lib/util').sha256;
+const repoHead2 = String(spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).stdout || '').trim();
+fs.writeFileSync(path.join(pending, 'change-derived-transition.json'), JSON.stringify({ schema_version: 'autoarmory/pending-change/v1', change_id: 'change-derived-transition', session_id: 's7', signals: ['check_gap'], verifier_candidate: { kind: 'project_test', ref: 'node tests/command-family.js' }, commands: ['node tests/command-family.js'], mechanical_binding: { kind: 'project_test', command_sha256: sha256Text2('node tests/command-family.js'), cwd: repo, repo_head: repoHead2 } }), 'utf8');
+r = spawnSync(process.execPath, [script, '--drain', '--state', state, '--repo', repo, '--json'], { encoding: 'utf8' });
+must(r.status === 0, 'derived transition drain must succeed');
+const derivedReuse = JSON.parse(fs.readFileSync(path.join(state, 'reuse-records', 'change-derived-transition.json'), 'utf8'));
+must(derivedReuse.status === 'closed' && derivedReuse.expected_transition === 'TEST->PASS', 'command family must derive the transition mechanically and close');
+must(derivedReuse.transition_source === 'command_shape' && derivedReuse.expected_provenance === 'commit', 'derived transition must be labelled command_shape and mechanical binding implies commit provenance');
+fs.writeFileSync(path.join(pending, 'change-no-transition.json'), JSON.stringify({ schema_version: 'autoarmory/pending-change/v1', change_id: 'change-no-transition', session_id: 's8', signals: ['file_changed'], commands: ['node some-unknown-tool.js'], verifier_candidate: { kind: 'project_test', ref: 'node tests/command-family.js' }, mechanical_binding: { kind: 'project_test', command_sha256: sha256Text2('node tests/command-family.js'), cwd: repo, repo_head: repoHead2 } }), 'utf8');
+r = spawnSync(process.execPath, [script, '--drain', '--state', state, '--repo', repo, '--json'], { encoding: 'utf8' });
+must(r.status === 0 && JSON.parse(r.stdout).unverifiable_count === 1, 'undeducible transition must stay unverifiable');
 console.log('history runner tests passed: pending -> real run -> close -> reuse, idempotent, unverifiable stays open');

@@ -5,9 +5,22 @@ const os = require('os');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 const { writeJson, writeJsonl, readJsonl, sha256: sha256Text } = require('./util');
+const commandFamily = require('./command-family');
 const PROJECT_TEST_RE = /(pytest|npm test|node tests|tsc|npm run build)/i;
 const SAFE_COMMAND_RE = /^[^&|;<>`$]+$/;
 function stateDir(options) { return path.resolve((options && options.stateDir) || process.env.AUTOARMORY_STOP_STATE || path.join(os.homedir(), '.codex', 'autoarmory', 'stop-shadow')); }
+// Mechanical transition derivation, not a guess: the recorded command's family
+// carries a default transition (same command_shape derivation the
+// transition-proposer models; owner_declared still wins when present).
+function deriveTransition(job) {
+  if (job && job.expected_transition) return { transition: job.expected_transition, source: 'owner_declared' };
+  const commands = (job && job.commands) || [];
+  for (const command of commands) {
+    const classified = commandFamily.classify(command);
+    if (classified.transition) return { transition: classified.transition, source: 'command_shape' };
+  }
+  return { transition: null, source: null };
+}
 function resolveVerifier(job) {
   if (job && job.verifier_id) return { kind: 'registered', ref: job.verifier_id, reason: 'registered verifier id is present' };
   const candidate = job && job.verifier_candidate || {};
@@ -81,7 +94,9 @@ function drain(options) {
   for (const name of files) {
     const file = path.join(pendingDir, name); let job; try { job = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (error) { results.push({ change_id: null, status: 'failed', reason: 'pending job unreadable: ' + error.message }); continue; }
     const changeId = job.change_id; const reuseFile = path.join(dir, 'reuse-records', changeId + '.json'); let existing = null; try { existing = fs.existsSync(reuseFile) ? JSON.parse(fs.readFileSync(reuseFile, 'utf8')) : null; } catch (_) { existing = null; }
-    const verifier = resolveVerifier(job); const identity = verifier.kind === 'registered' || verifier.kind === 'project_test' || verifier.kind === 'git_status' || verifier.kind === 'file_hash' ? verifierIdentity(repo, verifier.ref, job) : null; if (existing && (!identity || existing.decision_id === identity.decision_id)) { try { fs.unlinkSync(file); } catch (_) {} results.push({ change_id: changeId, status: 'skipped', reason: 'same claim already has a reuse record' }); continue; } if (existing && identity && existing.decision_id && existing.decision_id !== identity.decision_id) { try { fs.appendFileSync(path.join(dir, 'verdict-events.jsonl'), JSON.stringify({ schema_version: 'autoarmory/verdict-event/v1', at: new Date().toISOString(), change_id: changeId, from_decision_id: existing.decision_id, to_decision_id: identity.decision_id, reason: 'claim_changed' }) + '\n', 'utf8'); } catch (_) {} }
+    const verifier = resolveVerifier(job); const identity = verifier.kind === 'registered' || verifier.kind === 'project_test' || verifier.kind === 'git_status' || verifier.kind === 'file_hash' ? verifierIdentity(repo, verifier.ref, job) : null; if (existing && (!identity || existing.decision_id === identity.decision_id)) { try { fs.unlinkSync(file); } catch (_) {} results.push({ change_id: changeId, status: 'skipped', reason: 'same claim already has a reuse record' }); continue; } if (existing && identity && existing.decision_id && existing.decision_id !== identity.decision_id) { try { fs.appendFileSync(path.join(dir, 'claim-events.jsonl'), JSON.stringify({ schema_version: 'autoarmory/claim-event/v1', at: new Date().toISOString(), change_id: changeId, from_decision_id: existing.decision_id, to_decision_id: identity.decision_id, reason: 'claim_changed' }) + '\n', 'utf8'); } catch (_) {} }
+    const derived = deriveTransition(job); job.expected_transition = derived.transition; job.transition_source = derived.source;
+    if (!job.expected_provenance && job && job.mechanical_binding && job.mechanical_binding.repo_head) job.expected_provenance = 'commit';
     const bindingError = verifier.kind === 'unverifiable' ? null : bindingProblem(job, verifier, repo); const provenanceError = provenanceProblem(job, verifier); let record = null;
     if (!job.expected_transition) { record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'unverifiable', reason: 'expected_transition_missing', resolved_at: new Date().toISOString() }; }
     else if (bindingError) { record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'unverifiable', reason: bindingError, resolved_at: new Date().toISOString() }; }
@@ -109,6 +124,7 @@ function drain(options) {
     }
     record.claim_instance = job.claim_instance || null;
     record.expected_transition = job.expected_transition || null;
+    record.transition_source = job.transition_source || null;
     record.expected_value = Object.prototype.hasOwnProperty.call(job, 'expected_value') ? job.expected_value : null;
     record.expected_provenance = job.expected_provenance || (verifier.kind === 'registered' ? 'pinned_verifier' : null);
     record.session_id = job.session_id || null;

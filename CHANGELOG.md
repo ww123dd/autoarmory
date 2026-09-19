@@ -1,3 +1,12 @@
+## 2.47.0
+
+Fix the four defects the live funnel exposed; no new modules.
+
+- Natural pending jobs no longer die as `expected_transition_missing`: the history runner derives the transition mechanically from the command family (`command_shape`) when the job does not declare one, and a `mechanical_binding` with a pinned repo head implies `commit` provenance. `transition_source` is recorded on the reuse record.
+- `verdict-events.jsonl` is single-schema again: claim identity changes move to `claim-events.jsonl`, `load-gate.refresh` skips rows without a state transition (the four real dirty rows were migrated, and had been read as `to: undefined`), and a test pins that refresh never writes an undefined transition state.
+- Stop shadow hardening: a corrupt or concurrently replaced `projection-state.json` falls back to `.bak` instead of surfacing as `internal_error`; gap rows carry a `classification` (`id_not_bound_cwd_only` / `id_not_in_recent_rollouts` / `no_recent_rollouts`); the heartbeat appends `last-run.jsonl` and the summary now tracks `capture_rate` - the gate was judging a biased minority of real sessions (132 session_not_found gaps vs 19 matches).
+- Deployed stopGuard contract (`~/.codex/hooks/stopGuard-codex.js`): bare self-reports ("已核实" etc.) are no longer whitelisted as evidence - only a check command (DESC / SHOW COLUMNS / information_schema) or an honest hedge (待验证/未验证/待确认) passes. `tests/stop-guard-contract.js` pins this against the deployed file.
+
 ## 2.46.0
 
 One command-family registry; three private classifier tables retired.

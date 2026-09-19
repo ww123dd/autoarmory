@@ -136,7 +136,11 @@ function refresh(stateDir, now, options) {
     const index = verdictView.readReuseIndex(stateDir);
     const eventsFile = path.join(stateDir, 'verdict-events.jsonl');
     const lastState = {};
-    for (const row of readJsonl(eventsFile)) if (row && row.change_id) lastState[row.change_id] = row.to;
+    // verdict-events.jsonl is the verdict STATE transition log; rows must carry
+    // a change_id and a string `to`. Other event kinds (claim identity changes)
+    // live in claim-events.jsonl and are skipped here, not misread as undefined
+    // states.
+    for (const row of readJsonl(eventsFile)) if (row && row.change_id && typeof row.to === 'string') lastState[row.change_id] = row.to;
     const snapshot = [];
     const pendingEvents = [];
     let expired = 0, reopened = 0, validPass = 0, validFail = 0, retired = 0, superseded = 0, unverifiable = 0, transitions = 0;

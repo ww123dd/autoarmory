@@ -16,6 +16,10 @@ function registryFile(dir) { return path.join(dir, 'session-registry.jsonl'); }
 function findInRegistry(dir, sessionId) { if (!sessionId || !fs.existsSync(registryFile(dir))) return null; const rows = readJsonl(registryFile(dir)); for (let index = rows.length - 1; index >= 0; index--) { const row = rows[index]; if (row.session_id === sessionId && row.session_file && fs.existsSync(row.session_file)) return row; } return null; }
 function pinSession(dir, event, sessionFile, located) { try { fs.mkdirSync(dir, { recursive: true }); fs.appendFileSync(registryFile(dir), JSON.stringify({ schema_version: 'autoarmory/session-registry/v1', session_id: event.session_id || null, session_file: sessionFile, cwd: event.cwd || null, match: located.match || null, pinned_at: new Date().toISOString() }) + '\n', 'utf8'); } catch (_) {} }
 function gapRetryCount(dir, sessionId) { try { if (!fs.existsSync(path.join(dir, 'shadow-gaps.jsonl'))) return 0; return readJsonl(path.join(dir, 'shadow-gaps.jsonl')).filter(function (row) { return row.session_id === sessionId; }).length; } catch (_) { return 0; } }
+function readJsonlBakSafe(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
+  catch (_) { try { return JSON.parse(fs.readFileSync(file + '.bak', 'utf8')); } catch (_) { return null; } }
+}
 function recordGap(dir, event, reason, diagnostics) {
   try {
     fs.mkdirSync(dir, { recursive: true });
@@ -34,7 +38,8 @@ function recordGap(dir, event, reason, diagnostics) {
       retry_count: gapRetryCount(dir, event && event.session_id) + 1,
       give_up: gapRetryCount(dir, event && event.session_id) + 1 >= 3,
       match: diagnostics && diagnostics.match || null,
-      fallback_candidate: diagnostics && diagnostics.fallback_candidate || null
+      fallback_candidate: diagnostics && diagnostics.fallback_candidate || null,
+      classification: diagnostics && (diagnostics.match === 'cwd_candidate' ? 'id_not_bound_cwd_only' : (diagnostics.candidate_count > 0 && !diagnostics.exact_matches && !diagnostics.tail_matches ? 'id_not_in_recent_rollouts' : 'no_recent_rollouts')) || null
     }) + '\n', 'utf8');
   } catch (_) {}
 }
@@ -198,7 +203,11 @@ function runStopShadow(event, options) {
 
   const newCandidates = fs.existsSync(newDraftsFile) ? readJsonl(newDraftsFile) : [];
   const projectionStateFile = path.join(dir, 'projection-state.json');
-  let projectionState = fs.existsSync(projectionStateFile) ? JSON.parse(fs.readFileSync(projectionStateFile, 'utf8')) : null;
+  // Concurrent Stops (or an operator tool) can replace this file between the
+  // existsSync and the read; a hard failure here used to surface as
+  // internal_error gaps. Fall back to the .bak copy, then to a fresh state.
+  let projectionState = null;
+  try { projectionState = fs.existsSync(projectionStateFile) ? readJsonlBakSafe(projectionStateFile) : null; } catch (_) { projectionState = null; }
   const caseDraftsFile = path.join(dir, 'case-drafts.jsonl');
   if (!projectionState && fs.existsSync(caseDraftsFile)) {
     const existing = readJsonl(caseDraftsFile);
@@ -252,6 +261,18 @@ function runStopShadow(event, options) {
   }
 
   const attribution = projectionState.attribution || { session_preserved: 0, session_filled: 0, session_lost: 0 };
+  // Capture rate over the recent heartbeat window: the share of Stops that
+  // actually scanned a session. A gate over a biased minority of traffic is a
+  // sampler, so this number is tracked, not assumed.
+  let captureRate = null, captureWindow = 0, captureRan = 0;
+  try {
+    const heartbeat = path.join(dir, 'last-run.jsonl');
+    const rows = fs.existsSync(heartbeat) ? readJsonl(heartbeat).slice(-500) : [];
+    const withSession = rows.filter(function (row) { return row && row.session_id; });
+    captureWindow = withSession.length;
+    captureRan = withSession.filter(function (row) { return row.status === 'ran'; }).length;
+    if (captureWindow > 0) captureRate = Number((captureRan / captureWindow).toFixed(4));
+  } catch (_) {}
   writeJson(path.join(dir, 'stop-shadow-summary.json'), {
     schema_version: 'autoarmory/stop-shadow-summary/v1',
     captured_at: new Date().toISOString(),
@@ -272,6 +293,9 @@ function runStopShadow(event, options) {
     session_verifier_mismatch: 0,
     session_verifier_missing: 0,
     duplicate_run_draft_count: 0,
+    capture_rate: captureRate,
+    capture_window_count: captureWindow,
+    capture_ran_count: captureRan,
     policy_invariants: { stop_hook_blocked_session_count: 0, llm_judge_calls: 0, auto_close_count: 0, manual_case_creation_count: 0 }
   });
   return { ok: true, session_id: event.session_id || null, drafts: newCandidates.length, projection_total: projectionState.projection_total || 0, current_session_draft_count: currentSessionDraftCount, new_draft_count: newCandidates.length, attribution_preserved_count: attribution.session_preserved || 0, attribution_lost_count: attribution.session_lost || 0, attribution_filled_from_event_count: attribution.session_filled || 0, high_signal: newHighSignal.length, diagnostics: Object.assign({}, located, { session_file: sessionFile }) };

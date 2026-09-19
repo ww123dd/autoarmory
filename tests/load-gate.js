@@ -75,4 +75,16 @@ must(cli.status === 2 && /--repo/.test(cli.stderr), 'CLI without --repo must fai
 cli = spawnSync(process.execPath, [script, '--repo', valid.repo, '--change-id', 'change-valid', '--json'], { encoding: 'utf8' });
 must(cli.status === 2 && /--state/.test(cli.stderr), 'CLI without --state must fail closed');
 
+// verdict-events.jsonl is the verdict state-transition log. Claim identity
+// events (from_decision_id/to_decision_id) must be skipped by refresh, not
+// misread as an undefined transition state (2.47.0).
+fs.appendFileSync(path.join(valid.state, 'verdict-events.jsonl'), JSON.stringify({ schema_version: 'autoarmory/verdict-event/v1', at: new Date().toISOString(), change_id: 'change-valid', from_decision_id: 'old-decision', to_decision_id: 'new-decision', reason: 'claim_changed' }) + String.fromCharCode(10), 'utf8');
+const refreshReport = gate.refresh(valid.state, new Date().toISOString(), { repo: valid.repo });
+must(refreshReport.decisions >= 1, 'refresh must still see reuse records after dirty event rows');
+const decisionState = JSON.parse(fs.readFileSync(path.join(valid.state, 'decision-state.json'), 'utf8'));
+const validRow = decisionState.decisions.find(function (item) { return item.change_id === 'change-valid'; });
+must(validRow && validRow.state === 'valid-pass', 'claim-style event rows must be skipped, verdict state must stay valid-pass');
+const eventRows = fs.readFileSync(path.join(valid.state, 'verdict-events.jsonl'), 'utf8').trim().split(String.fromCharCode(10)).filter(Boolean).map(function (line) { return JSON.parse(line); });
+must(eventRows.filter(function (row) { return 'to' in row; }).every(function (row) { return typeof row.to === 'string'; }), 'refresh must never write an undefined transition state (dirty claim rows carry no to key and are skipped)');
+
 console.log('load gate tests passed: missing, explicit repo, valid-pass allow, unverified block, legacy supersession, expired block, CLI context');
