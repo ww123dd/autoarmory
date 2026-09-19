@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.31.0
+
+Bind verdict identity to the claim and recompute effective state from runs and trust.
+
+- reuse-records now carry `decision_id`, `claim_sha256`, `expected_sha256`, `verifier_lock_sha256` and `source_verifier_id`.
+- A changed claim produces a new decision/mechanism id and a `claim_changed` verdict event instead of being skipped by `change_id`.
+- Effective verdicts are recomputed from the latest mechanism run, pinned expected value, lock digest and expiry: `fresh`, `stale`, `valid-fail`, `reopened`, `expired`, `superseded`.
+- Added tracked `verifiers.manifest.json`; verifier preflight verifies the local lock against the manifest and fails closed on drift.
+- Real tableau verdict is now correctly reported as `stale` with gate `block`, not a current `closed`/`allow`.
+
 ## 2.30.0
 
 All real chains verified running end to end on live history.

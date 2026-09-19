@@ -7,4 +7,4 @@
 - separate `verdict_freshness` (`fresh` / `stale` / `expired` / `missing`) and `gate_decision` (`allow` / `degrade` / `block`)
 - explicit `local_only_dependencies`
 
-A zero `high_signal_total` is valid when the projection policy has run and the candidate/starvation metrics are present. Chain liveness and verdict freshness are separate outputs: a stale verdict does not make the capture/history/reading chains fail.
+It reports effective verdict state (`fresh` / `stale` / `valid-fail` / `reopened` / `expired` / `superseded`) separately from chain liveness. A zero `high_signal_total` is valid when the projection policy has run and the candidate/starvation metrics are present. Chain liveness and verdict freshness are separate outputs: a stale verdict does not make the capture/history/reading chains fail.

@@ -37,6 +37,7 @@ try {
 } catch (error) {
   failures.push('external verifier lock anchor unavailable: ' + error.message);
 }
+record('verifier-manifest', run([path.join(repo, 'scripts', 'verifier-manifest.js'), '--json']), 0);
 const lockFile = path.join(repo, 'verifiers.lock.json');
 let declaredVerifiers = [];
 try { declaredVerifiers = JSON.parse(fs.readFileSync(lockFile, 'utf8')).verifiers || []; } catch (error) { failures.push('verifier profile unreadable: ' + error.message); }

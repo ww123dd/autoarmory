@@ -1,0 +1,66 @@
+{
+  "schema_version": "autoarmory/verifier-manifest/v1",
+  "expected_lock_sha256": "4db13c85da3602cc64c5df5922fb3b1f46fce3edc09bd9ebe30ef6935c0d2231",
+  "verifiers": [
+    {
+      "id": "doris-readonly-count",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "8d9896c85b20a167dc15871061a35049af7629d861d024cc33f113f3e8f57bce",
+      "config_sha256": "8c9169d8d316d20bc0d8e10a201ef561ad141f0bb6371a61b5927f9615bdf1d8"
+    },
+    {
+      "id": "esc3-pid-file-live",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "632474517da4d0b9151fcfe9349c429ff6ca8bb9e7f29ff80006fae5af2861c0",
+      "config_sha256": "fceeba39b37ceb98cc71aec9f13ee60160dd71b764d5567e164bce073c911aaf"
+    },
+    {
+      "id": "file-sha256-license",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
+      "config_sha256": "28def98c491fc3ff2ebd898616b9d610d30803461e7445d6f2ce2847eb9c9b54"
+    },
+    {
+      "id": "git-commit-exists",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "836c570b08083519e82a6a230ae689d3ce21a2cebfd76abc6fcce361d57feefc",
+      "config_sha256": "83741b8283f3b4be47b2c9caccaa9687d1e146fc6c986960820e7c06ebff5862"
+    },
+    {
+      "id": "local-http-health",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "343e118752be383141d2a30a90e2bb009676c8ebf785440124349e025386e982",
+      "config_sha256": "7a505cbcb6ea7e7bec46626769182907a447bbc78b9dd494edde874f75eeb223"
+    },
+    {
+      "id": "windows-registry-value",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "d6706e3bc50f246434976080f1d91412ebfef71cee6c8d6a0e22a0090238663f",
+      "config_sha256": "4e66957735b4aa38ebeb1954daeb4e05847d78d5ddf3b67f8aa493290c7637b7"
+    },
+    {
+      "id": "windows-service-state",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "faefd62b57601d92d35d2fa6922f23876e5da3362242594ba68feb02b61c7826",
+      "config_sha256": "4bc74e239a481fa6f241817764983f3e9afa9c07974242595d3caab4d581e636"
+    },
+    {
+      "id": "tls-peer-certificate",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "448e93d2653de69e5188c6225a9f11e9e7f0e42c6bb2dc063cb4093d59e44ec3",
+      "config_sha256": "12779c5beb4f3f3f0f23114768ba6fd9e50bb3fb59cb5f1d7e0ddd6201701096"
+    },
+    {
+      "id": "meta-skill-load-count",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "4605eed7ceaf213af2a2b32065ae62a992cf867ea79a78fd9d92a3648b883517",
+      "config_sha256": "22918e30a036b49386d45e093716820b59eda2cda7b917f31bb3cdd6ba8b40ee"
+    },
+    {
+      "id": "tableau-release-zip",
+      "adapter_sha256": "f085eb4d4f0fc934d98801af389ed0777442352b55a5cad4f9845ab298176097",
+      "bridge_sha256": "7df40f974faa61c971bc66be7cd893bc503d2eb4bf398305642469ede6e520c6",
+      "config_sha256": "be227064788b77c17bc9936f520548c572376d4bbe3adcb04414b10fc1f3c17e"
+    }
+  ]
+}

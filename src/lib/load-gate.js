@@ -2,11 +2,13 @@
 const fs=require('fs');const path=require('path');
 const {readJsonl,readJson,appendJsonl,writeJson}=require('./util');
 const stateLock=require('./state-lock');
+const verdictView=require('./verdict-view');
 
 // Legacy risk-based consult kept for backward compatibility: callers that only
 // know a change_id and a low/high risk hint. New callers should use
 // consultAction, which routes through the versioned action-class policy.
-function consult(stateDir,changeId,options){const opts=typeof options==='string'?{risk:options}:(options||{});const file=path.join(stateDir,'reuse-records',changeId+'.json');const risk=opts.risk||'low';if(!fs.existsSync(file))return{decision:risk==='high'?'block':'degrade',change_id:changeId,verdict:'verdict_missing',reason:'no reuse-record for change_id',warning:'capability has no closed verdict'};let record;try{record=JSON.parse(fs.readFileSync(file,'utf8'));}catch(error){return{decision:risk==='high'?'block':'degrade',change_id:changeId,verdict:'unverifiable',reason:'reuse-record unreadable: '+error.message};}const status=record.status||'unverifiable';if(record.expires_at&&Date.now()>=Date.parse(record.expires_at))return{decision:risk==='high'?'block':'degrade',change_id:changeId,verdict:'expired',reason:'evidence window expired',warning:'historical verdict retained but expired'};if(status==='closed')return{decision:'allow',change_id:changeId,verdict:status,verifier:record.verifier||null,run:record.run||null};if(status==='expired'||status==='retired'||status==='reopen_required')return{decision:'block',change_id:changeId,verdict:status,reason:record.reason||status};return{decision:risk==='high'?'block':'degrade',change_id:changeId,verdict:status,reason:record.reason||'verdict is not closed',warning:'use is allowed only with degraded trust'};}
+function consult(stateDir,changeId,options){const opts=typeof options==='string'?{risk:options}:(options||{});const risk=opts.risk||'low';const effective=verdictView.verdictFor(changeId,verdictView.readReuseIndex(stateDir),{stateDir:stateDir,repo:opts.repo,decisionId:opts.decisionId});const state=effective.effective_state;if(state==='fresh'||state==='closed')return{decision:'allow',change_id:changeId,verdict:'closed',verifier:effective.verifier||null,run:effective.run||null};if(state==='verdict_missing'||state==='missing')return{decision:risk==='high'?'block':'degrade',change_id:changeId,verdict:'verdict_missing',reason:effective.reason||'no reuse-record for change_id',warning:'capability has no closed verdict'};if(state==='expired')return{decision:risk==='high'?'block':'degrade',change_id:changeId,verdict:state,reason:effective.reason||state,warning:'historical verdict retained but expired'};
+if(state==='retired'||state==='reopened'||state==='superseded'||state==='valid-fail')return{decision:'block',change_id:changeId,verdict:state,reason:effective.reason||state};return{decision:risk==='high'?'block':'degrade',change_id:changeId,verdict:state,reason:effective.reason||'verdict is not closed',warning:'use is allowed only with degraded trust'};}
 
 // Decision interface v1 (docs/contracts/decision-interface-v1.md).
 // Verifier runs produce facts; a verdict is a decision's claim bound to a run;
@@ -87,8 +89,10 @@ function consultAction(stateDir,options){
   };
   if(policy.classes.indexOf(actionClass)===-1)return decide('unknown-action-class','enforce',{},'unknown_action_class');
   const mode=policy.mode[actionClass];
-  if(mode!=='observe'&&mode!=='enforce')return decide(effectiveVerdict(readReuseRecord(stateDir,opts.changeId),now).state,'enforce',{'*':'block'});
-  return decide(effectiveVerdict(readReuseRecord(stateDir,opts.changeId),now).state,mode,policy.rules[actionClass]||{});
+  const effective=verdictView.verdictFor(opts.changeId,verdictView.readReuseIndex(stateDir),{stateDir:stateDir,repo:opts.repo,decisionId:opts.decisionId});
+  const state=(effective.effective_state==='fresh'||effective.effective_state==='closed')?'valid-pass':(effective.effective_state==='missing'?'no-verdict':effective.effective_state);
+  if(mode!=='observe'&&mode!=='enforce')return decide(state,'enforce',{'*':'block'});
+  return decide(state,mode,policy.rules[actionClass]||{});
 }
 
 // Scheduled fact refresh: recompute effective states for every reuse-record,
