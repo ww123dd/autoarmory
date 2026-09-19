@@ -26,8 +26,11 @@ function compile(sediments) {
       why_lower_layer_insufficient: item.why_lower_layer_insufficient || null,
       mechanism_jurisdiction: item.mechanism_jurisdiction || null,
       outside_funnel_risk: item.outside_funnel_risk || null,
+      owner: item.owner || null,
+      consumer: item.consumer || null,
+      enforcement: Object.assign({ point: mixed ? 'stop_hook' : null, entry: mixed ? 'src/lib/hook-gate.js' : null, mode: 'advisory', coverage: 'none' }, item.enforcement || {}),
       precheck: gate,
-      status: gate.ok ? 'candidate' : 'draft'
+      status: gate.status === 'accepted' ? 'candidate' : (gate.status === 'advisory' ? 'advisory' : 'draft')
     };
   });
 }

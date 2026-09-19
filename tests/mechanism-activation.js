@@ -18,6 +18,8 @@ const base = {
   evidence_refs: ['message-1'],
   scope: { project: 'autoarmory', task_type: 'skill-optimization' },
   enforcement: { point: 'stop_hook', mode: 'block', coverage: 'none', entry: 'scripts/hook-gate.js' },
+  owner: 'global-owner',
+  consumer: 'operator',
   precheck: { ok: true, status: 'accepted', errors: [] }
 };
 const advisory = activation.audit(base, { repo: repo });
@@ -32,6 +34,12 @@ const missingVerifier = activation.audit(Object.assign({}, base, { verifier_id: 
 must(missingVerifier.status === 'candidate' && missingVerifier.blockers.includes('verifier_not_registered'), 'unregistered verifier must not activate');
 const advisoryMode = activation.audit(Object.assign({}, base, { enforcement: Object.assign({}, base.enforcement, { mode: 'advisory', coverage: 'complete' }) }), { repo: repo });
 must(advisoryMode.status === 'candidate' && advisoryMode.blockers.includes('enforcement_mode_not_block'), 'advisory mode must not activate');
+const noOwner = activation.audit(Object.assign({}, base, { owner: undefined }), { repo: repo });
+must(noOwner.status === 'candidate' && noOwner.blockers.includes('owner_missing'), 'missing owner must not activate');
+const noConsumer = activation.audit(Object.assign({}, base, { consumer: undefined }), { repo: repo });
+must(noConsumer.status === 'candidate' && noConsumer.blockers.includes('consumer_missing'), 'missing consumer must not activate');
+const noEnforcement = activation.audit(Object.assign({}, base, { enforcement: undefined }), { repo: repo });
+must(noEnforcement.status === 'candidate' && noEnforcement.blockers.includes('enforcement_missing'), 'missing enforcement must not activate');
 const noPrecheck = activation.audit(Object.assign({}, base, { precheck: undefined }), { repo: repo });
 must(noPrecheck.status === 'candidate' && noPrecheck.blockers.includes('mechanism_precheck_failed'), 'missing mechanism precheck must not activate');
 const candidatesFile = path.join(repo, 'mechanism-candidates.jsonl');

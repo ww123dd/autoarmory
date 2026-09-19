@@ -2,6 +2,28 @@
 
 The mechanism layer must not define the problem set.
 
+## Decision tree
+
+```text
+preference / process / judgment
+-> template or skill
+
+hard invariant
+-> code + test + gate
+
+external fact that drifts
+-> mechanism + verifier + lifecycle
+
+permission / ownership
+-> owner / approval / policy
+
+architecture debt / design error
+-> direct repair
+
+one-off issue
+-> record or repair
+```
+
 ## Step 0 fields
 
 Every mechanism proposal must provide:
@@ -17,20 +39,26 @@ Every mechanism proposal must provide:
     "lifetime_accounting": true,
     "enforcement_required": true
   },
+  "owner": "owner-id",
+  "consumer": "consumer-id",
+  "enforcement": {
+    "mode": "block",
+    "coverage": "complete"
+  },
   "outside_funnel_risk": "..."
 }
 ```
 
 `mechanism-precheck` rejects:
 
-- missing severity;
-- missing lowest-layer alternatives;
+- missing severity, owner, consumer, lowest-layer alternatives, or outside-funnel risk;
 - no explanation of why the lower layer is insufficient;
 - any missing jurisdiction condition;
 - `not_now` proposals.
 
-Rejected lower-layer proposals carry `route_to`, so they return to the lowest
-layer instead of creating a mechanism.
+If enforcement is missing or incomplete, the proposal is `advisory`, not
+`candidate`. `active` requires a real entry, verifier, scope, expiry, reopen,
+owner, and consumer.
 
 ## Outside-funnel review
 

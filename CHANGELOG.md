@@ -1,3 +1,12 @@
+## 2.53.0
+
+Extend the mechanism precheck with owner/consumer/enforcement and a full decision tree.
+
+- Mechanism precheck now requires owner, consumer, and an enforcement object. Missing or incomplete enforcement yields `advisory`, never `candidate`.
+- Activation now blocks missing owner, consumer, or enforcement explicitly.
+- Candidate schema requires severity, lowest-layer options, jurisdiction, owner, consumer, enforcement, and outside-funnel risk.
+- User-level CLAUDE.md and the AutoArmory skill now state severity-first, lowest-layer-first, mechanism-must-justify-lower-layer, and periodic outside-funnel review.
+
 ## 2.52.0
 
 Add a mechanism admission precheck and periodic outside-funnel review.

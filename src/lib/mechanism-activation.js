@@ -39,6 +39,9 @@ function audit(candidate, options) {
   if (enforcement.mode !== 'block') blockers.push('enforcement_mode_not_block');
   if (coverage !== 'complete') blockers.push('enforcement_coverage_incomplete');
   if (!list(value.evidence_refs).length) blockers.push('evidence_missing');
+  if (typeof value.owner !== 'string' || !value.owner.trim()) blockers.push('owner_missing');
+  if (typeof value.consumer !== 'string' || !value.consumer.trim()) blockers.push('consumer_missing');
+  if (!enforcement || typeof enforcement !== 'object' || !enforcement.point) blockers.push('enforcement_missing');
   if (!value.precheck || value.precheck.ok !== true) blockers.push('mechanism_precheck_failed');
   if (!value.scope || typeof value.scope !== 'object' || Array.isArray(value.scope) || Object.keys(value.scope).length === 0) blockers.push('scope_missing');
   return {
