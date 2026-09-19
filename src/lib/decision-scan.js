@@ -201,7 +201,8 @@ function scan(stateDir, options) {
     return (Number(b.signal_score) || 0) - (Number(a.signal_score) || 0) || String(a.change_id).localeCompare(String(b.change_id));
   });
   if (Number.isFinite(limit) && limit > 0) candidates = candidates.slice(0, limit);
-  const drafts = scanDrafts(candidates, { stateDir: root, repo: repo, transitionIndex: transitionIndex(root) });
+  const transitionRows = transitionIndex(root);
+  const drafts = scanDrafts(candidates, { stateDir: root, repo: repo, transitionIndex: transitionRows });
   const missingTransition = drafts.filter(function (item) { return item.disposition === 'missing_transition'; });
   const trueNoCapability = drafts.filter(function (item) { return item.disposition === 'true_no_capability'; });
   const ready = drafts.filter(function (item) { return item.disposition === 'ready_for_verifier'; });
@@ -211,6 +212,14 @@ function scan(stateDir, options) {
   const blockedExpected = drafts.filter(function (item) { return item.reason_codes.indexOf('blocked_by_expected_provenance') !== -1; });
   const transitionPresent = drafts.filter(function (item) { return item.transition_present === true; });
   const transitionTrusted = transitionPresent.filter(function (item) { return item.transition_source_strength === 'declared' || item.transition_source_strength === 'derived'; });
+  const pinnedClaims = drafts.filter(function (item) { return item.expected_provenance === 'pinned_verifier'; });
+  const pinnedResolved = pinnedClaims.filter(function (item) { return item.provenance_validation && item.provenance_validation.ok === true; });
+  const baselineClaims = drafts.filter(function (item) { return item.expected_provenance === 'baseline_manifest'; });
+  const baselineResolved = baselineClaims.filter(function (item) { return item.provenance_validation && item.provenance_validation.ok === true; });
+  const execRecordsFile = path.join(root, 'exec-records.jsonl');
+  const execRecordsWritten = fs.existsSync(execRecordsFile) ? readRows(execRecordsFile).length : 0;
+  const derivedFromHistoryCount = Object.keys(transitionRows).filter(function (key) { const row = transitionRows[key]; return row && row.transition_source === 'historical_mechanism_run'; }).length;
+  const invalidProvenanceCount = drafts.filter(function (item) { return item.reason_codes.indexOf('blocked_by_expected_provenance') !== -1; }).length;
   const report = {
     schema_version: 'autoarmory/decision-scan/v1',
     state_root: root,
@@ -230,6 +239,15 @@ function scan(stateDir, options) {
     transition_derived_rate: transitionPresent.length ? Number((transitionPresent.filter(function (item) { return item.transition_source_strength === 'derived'; }).length / transitionPresent.length).toFixed(6)) : 0,
     ready_for_verifier_count: ready.length,
     true_no_capability_count: trueNoCapability.length,
+    baseline_manifest_claim_count: baselineClaims.length,
+    baseline_manifest_resolved_count: baselineResolved.length,
+    baseline_manifest_resolved_rate: baselineClaims.length ? Number((baselineResolved.length / baselineClaims.length).toFixed(6)) : null,
+    pinned_verifier_claim_count: pinnedClaims.length,
+    pinned_verifier_resolved_count: pinnedResolved.length,
+    pinned_verifier_resolved_rate: pinnedClaims.length ? Number((pinnedResolved.length / pinnedClaims.length).toFixed(6)) : null,
+    exec_records_written_count: execRecordsWritten,
+    derived_from_history_count: derivedFromHistoryCount,
+    invalid_provenance_count: invalidProvenanceCount,
     no_capability_count: trueNoCapability.length,
     blocked_by_owner_count: blockedOwner.length,
     blocked_by_expected_provenance_count: blockedExpected.length,

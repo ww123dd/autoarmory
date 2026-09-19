@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.40.2
+
+Report physical provenance and future/history supply metrics.
+
+- `decision-scan` now reports `baseline_manifest_resolved_rate`, `pinned_verifier_resolved_rate`, `exec_records_written_count`, `derived_from_history_count` and `invalid_provenance_count`.
+- Real current state: pinned_verifier claims 99/99 resolved; exec-records written 1; derived-from-history transitions 3; invalid provenance 1310. No real baseline_manifest claim exists yet, so its rate is null rather than being inferred.
 ## 2.40.1
 
 Keep transition candidates cumulative across proposal runs.
