@@ -51,7 +51,9 @@ function orchestrate(stateDir, options) {
   const repo = path.resolve(opts.repo || '.');
   const readyFile = path.join(root, 'decision-scan', 'ready-for-verifier.jsonl');
   const pendingDir = path.join(root, 'pending');
-  const rows = readRows(readyFile);
+  let rows = readRows(readyFile);
+  if (opts.changeId) rows = rows.filter(function (row) { return row.change_id === opts.changeId; });
+  if (Number.isFinite(Number(opts.limit)) && Number(opts.limit) > 0) rows = rows.slice(0, Number(opts.limit));
   const report = {
     schema_version: 'autoarmory/decision-orchestrator/v1',
     state_root: root,

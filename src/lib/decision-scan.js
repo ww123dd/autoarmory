@@ -47,6 +47,7 @@ function inferArtifactType(draft) {
   if (draft && draft.artifact_type) return draft.artifact_type;
   const text = ((draft && draft.commands || []).join(' ') + ' ' + (draft && draft.changed_files || []).join(' ')).toLowerCase();
   if (/transcript|session|rollout/.test(text)) return 'transcript-window';
+  if (/(pytest|npm test|node(?:\.exe)?\s+tests|tsc|npm run build)/i.test(text)) return 'test-command';
   if (/examples[\\/]adapters|bridge\.js|enumeration/.test(text)) return 'repo-enumeration';
   if (/sha256|hash/.test(text)) return 'file';
   if (/\bgit\b/.test(text)) return 'git-commit';
@@ -68,6 +69,10 @@ function claimShapeFor(draft) {
   if (!inputs.sha256) { const match = commandText.match(/\b[a-f0-9]{64}\b/i); if (match) inputs.sha256 = match[0]; }
   if (!inputs.url) { const match = commandText.match(/https?:\/\/[^\s'"]+/i); if (match) inputs.url = match[0]; }
   if (!inputs.commit) { const match = commandText.match(/\b[a-f0-9]{7,40}\b/i); if (match && /\bgit\b/i.test(commandText)) inputs.commit = match[0]; }
+  if (inferArtifactType(draft) === 'test-command') {
+    if (!inputs.command && commands.length) inputs.command = commands[0];
+    if (!inputs.cwd) inputs.cwd = draft.cwd || '.';
+  }
   return {
     transition: draft.expected_transition || null,
     artifact_type: inferArtifactType(draft),
@@ -108,6 +113,11 @@ function classifyDraft(draft, context) {
   const owner = ownerFor(effectiveDraft, ctx.stateDir);
   const claim = claimShapeFor(effectiveDraft);
   const resolution = resolverFor(effectiveDraft, ctx);
+  if (!claim.expected_provenance && effectiveDraft.transition_source_strength === 'derived' && resolution.kind === 'registered' && resolution.capability && Array.isArray(resolution.capability.expected_provenance) && resolution.capability.expected_provenance.indexOf('pinned_verifier') !== -1) {
+    claim.expected_provenance = 'pinned_verifier';
+    effectiveDraft.expected_provenance = 'pinned_verifier';
+    effectiveDraft.provenance_source = 'derived_pinned_verifier';
+  }
   const transitionPresent = !!effectiveDraft.expected_transition;
   const reasonCodes = [];
   let disposition = 'unverifiable';
@@ -161,6 +171,7 @@ function classifyDraft(draft, context) {
     disposition: disposition,
     reason_codes: uniqueReasonCodes,
     no_capability: resolution.kind === 'no_capability' ? resolution.missing : null,
+    provenance_source: effectiveDraft.provenance_source || null,
     provenance_validation: effectiveDraft.provenance_validation || null,
     claim_declaration_source: declaration ? 'claims_manifest' : null,
     pipeline_stage: 'nomination_only'

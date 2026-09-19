@@ -89,8 +89,19 @@ function drain(options) {
     else if (verifier.kind === 'registered') {
       const descDir = path.join(dir, 'history-runner-descriptors'); fs.mkdirSync(descDir, { recursive: true }); const descriptorPath = path.join(descDir, changeId + '.json'); const descriptor = descriptorFor(job, verifier.ref, identity); writeJson(descriptorPath, descriptor);
       const declare = spawnSync(process.execPath, [path.join(repo, 'scripts', 'mechanism-declare.js'), '--descriptor', descriptorPath, '--state', dir, '--repo', repo, '--json'], { cwd: repo, encoding: 'utf8', windowsHide: true });
-      if (declare.status !== 0) record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'failed', stage: 'declare', reason: (declare.stderr || declare.stdout || '').trim(), resolved_at: new Date().toISOString() };
-      else { const run = spawnSync(process.execPath, [path.join(repo, 'scripts', 'mechanism-record.js'), '--mechanism', descriptor.mechanism.id, '--case', descriptor.case.id, '--state', dir, '--repo', repo, '--close', '--json'], { cwd: repo, encoding: 'utf8', windowsHide: true, timeout: 90000 }); if (run.status === 0) { let parsed = {}; try { parsed = JSON.parse(run.stdout || '{}'); } catch (_) {} const identity = verifierIdentity(repo, verifier.ref, job); record = Object.assign({ schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'closed', verifier: verifier.ref, mechanism_id: descriptor.mechanism.id, case_id: descriptor.case.id, run: parsed.run || null, closure: parsed.closure || null, expires_at: descriptor.mechanism.expires_at || null, resolved_at: new Date().toISOString() }, identity); } else record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'failed', stage: 'run', reason: (run.stderr || run.stdout || '').trim(), resolved_at: new Date().toISOString() }; }
+      const declareText = (declare.stderr || declare.stdout || '').trim();
+      let declareOk = declare.status === 0;
+      if (!declareOk && /already exists/.test(declareText)) {
+        const cases = readJsonl(path.join(dir, 'cases.jsonl'));
+        const mechanisms = readJsonl(path.join(dir, 'mechanisms.jsonl'));
+        declareOk = cases.some(function (item) { return item.id === descriptor.case.id; }) && mechanisms.some(function (item) { return item.id === descriptor.mechanism.id && item.verifier_id === descriptor.mechanism.verifier_id; });
+      }
+      if (!declareOk) record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'failed', stage: 'declare', reason: declareText, resolved_at: new Date().toISOString() };
+      else {
+        const run = spawnSync(process.execPath, [path.join(repo, 'scripts', 'mechanism-record.js'), '--mechanism', descriptor.mechanism.id, '--case', descriptor.case.id, '--state', dir, '--repo', repo, '--close', '--json'], { cwd: repo, encoding: 'utf8', windowsHide: true, timeout: 90000 });
+        if (run.status === 0) { let parsed = {}; try { parsed = JSON.parse(run.stdout || '{}'); } catch (_) {} const currentIdentity = verifierIdentity(repo, verifier.ref, job); record = Object.assign({ schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'closed', verifier: verifier.ref, mechanism_id: descriptor.mechanism.id, case_id: descriptor.case.id, run: parsed.run || null, closure: parsed.closure || null, expires_at: descriptor.mechanism.expires_at || null, resolved_at: new Date().toISOString() }, currentIdentity); }
+        else record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'failed', stage: 'run', reason: (run.stderr || run.stdout || '').trim(), resolved_at: new Date().toISOString() };
+      }
     } else if (verifier.kind === 'unverifiable') {
       record = { schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: 'unverifiable', reason: verifier.reason, resolved_at: new Date().toISOString() };
     } else {

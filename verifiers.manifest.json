@@ -1,6 +1,6 @@
 {
   "schema_version": "autoarmory/verifier-manifest/v1",
-  "expected_lock_sha256": "d8ad1675276533fe40ee517eb0f1e6ad93d585c954de6a1b6816dedaf6d4dc83",
+  "expected_lock_sha256": "87bbe86838a6c4ac2a4467255c1e73e3f9983d56d9109579c8c790677745ca20",
   "verifiers": [
     {
       "id": "doris-readonly-count",
@@ -434,6 +434,49 @@
           "required": []
         },
         "owner": "repo-owner"
+      }
+    },
+    {
+      "id": "project-test-result",
+      "adapter_sha256": "97a1b29d8ae836e7fa261a6f5a893e2646437912c40149dfc057a9b9852f2756",
+      "bridge_sha256": "0ea647cc3781920d705e6d08673f3356099ae600855c0f1adb1fe0493e16b1af",
+      "config_sha256": "ac7b087f9abd1cb33f163d454a7b4cb1bed65c499565499506856fd41c846abc",
+      "capabilities": {
+        "assertion_schema": {
+          "paths": [
+            "passed"
+          ],
+          "ops": [
+            "eq"
+          ]
+        },
+        "transition_types": [
+          "TEST->PASS"
+        ],
+        "action_class": [
+          "load",
+          "publish",
+          "ddl",
+          "deploy"
+        ],
+        "required_inputs": [
+          "command",
+          "cwd"
+        ],
+        "optional_inputs": [
+          "timeout_ms"
+        ],
+        "expected_provenance": [
+          "pinned_verifier",
+          "baseline_manifest"
+        ],
+        "owner": "repo-owner",
+        "scope_schema": {
+          "required": [
+            "repo"
+          ]
+        },
+        "artifact_type": "test-command"
       }
     }
   ]

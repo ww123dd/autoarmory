@@ -4,7 +4,7 @@ The verifier core is intentionally thin. Each new source should add a small brid
 
 Every profile entry declares a human-readable `version` and an `invocation_contract_version` next to its pinned digests. The digests and the contract version form `runner_sha256`; the human-readable `version` is compatibility metadata and is deliberately excluded from it, so bumping it never invalidates a verdict on its own.
 
-Current local profile contains twelve heterogeneous fact sources:
+Current local profile contains thirteen heterogeneous fact sources:
 
 | verifier | fact source | bridge lines |
 |---|---|---:|
@@ -20,8 +20,9 @@ Current local profile contains twelve heterogeneous fact sources:
 | `tls-peer-certificate` | X.509 certificate fingerprint presented by a TLS peer | 50 |
 | `enumeration-completeness` | recursive file enumeration against a pinned count/manifest | 57 |
 | `verification-gap` | independent check count inside a pinned transcript window | 43 |
+| `project-test-result` | allowlisted project test command executed by a pinned instance adapter | 35 |
 
-Ten of the twelve are thin bridges over the same `state-query` adapter. Two are heavy: the MCP transport bridge speaks the MCP stdio protocol on behalf of a registered server, and `local-transcript` is a multi-kind local observability registry rather than a one-off instrument. That ratio is the engine test:
+Ten of the thirteen are thin bridges over the shared `state-query` adapter; `project-test-result` uses `state-query-instance` so the claim can carry command/cwd while the allowlist and assertion stay pinned. Two are heavy: the MCP transport bridge speaks the MCP stdio protocol on behalf of a registered server, and `local-transcript` is a multi-kind local observability registry rather than a one-off instrument. That ratio is the engine test:
 
 - if each source needs a small bridge, the core is reusable;
 - if each source needs a new 100+ line adapter, the implementation is still a one-off instrument.

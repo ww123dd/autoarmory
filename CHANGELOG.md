@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.40.0
+
+Add the first registry supply from the transition queue: `project-test-result`.
+
+- Added `examples/adapters/project-test/bridge.js` and `scripts/verify/state-query-instance.js`: a pinned instance-capable adapter lets the claim supply `command`/`cwd` while the allowlist, assertion, timeout and bridge digest stay in the trust root.
+- Added `project-test-result` capability: `TEST->PASS`, `test-command`, required `command+cwd`, `pinned_verifier` provenance, owner `repo-owner`.
+- `decision-scan` now upgrades derived test transitions to `pinned_verifier` when the matched capability allows it, so derived TEST->PASS claims can reach `ready_for_verifier`.
+- Real state ready count rose from 1 to 98 after the first TEST family supply; one real TEST->PASS loop was closed through the new verifier with `session_link_status=linked`, `valid-pass`, and `load-gate=allow`.
+- `history-runner` is idempotent when a deterministic case/mechanism already exists from a previous failed attempt; it reuses the same claim identity instead of failing at declaration.
 ## 2.39.2
 
 Make expected provenance physical and normalize commands before transition proposal.
