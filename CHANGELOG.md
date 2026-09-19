@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.44.0
+
+Extract AutoArmory summons, skill sediments and mechanism candidates.
+
+- Added `scripts/extract-autoarmory-summons.js` / `src/lib/summon-extractor.js`: real user messages containing AutoArmory are source-linked and classified.
+- Added `scripts/extract-skill-sediments.js` / `src/lib/sediment-extractor.js`: summons become absorb/reject/defer sediment candidates with evidence refs and verification runs.
+- Added `scripts/compile-mechanism-candidates.js` / `src/lib/mechanism-candidate-compiler.js`: absorb sediments compile into mechanism candidates; no verifier/enforcement/scope/evidence means the candidate cannot become active.
+- First real mechanism candidate: `vibe-coding` / `single_clean_condition_vs_mixed_state` / `UNVERIFIED->CHECKED` / `verification-gap` / `stop_hook`, currently `advisory` with `coverage=none` because the entry point is not fully wired.
+- Real output archived under the session output folder (20260919_AutoArmory机制沉淀/) with a manifest.
 ## 2.43.0
 
 Add legacy identity audit and priority projection.
