@@ -4,6 +4,7 @@ const path = require('path');
 const mechanism = require('./mechanism');
 const { readJsonl, writeJson, writeJsonl } = require('./util');
 const historyRunner = require('./history-runner');
+const priorityEngine = require('./priority-engine');
 
 function reuseForMechanism(stateDir, mechanismId) {
   const root = path.join(stateDir, 'reuse-records');
@@ -75,6 +76,7 @@ function drain(stateDir, options) {
   const opts = options || {};
   const report = recheck(stateDir, Object.assign({}, opts, { apply: true }));
   const runner = historyRunner.drain({ stateDir: path.resolve(stateDir), repo: path.resolve(opts.repo || '.') });
-  return { schema_version: 'autoarmory/mechanism-recheck-drain/v1', recheck: report, runner: runner };
+  const priority = priorityEngine.run(path.resolve(stateDir), path.resolve(opts.repo || '.'));
+  return { schema_version: 'autoarmory/mechanism-recheck-drain/v1', recheck: report, runner: runner, priority: priority };
 }
 module.exports = { recheck, drain, reuseForMechanism, pendingJob };

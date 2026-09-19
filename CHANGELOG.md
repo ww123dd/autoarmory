@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.43.0
+
+Add legacy identity audit and priority projection.
+
+- Added `scripts/legacy-identity.js` / `src/lib/legacy-identity.js`: complete identities are marked `present`; legacy records are marked `missing` without changing status or inventing `claim_sha256`/`expires_at`.
+- Restricted outcome回流 to user-action sources only: `accepted`, `rejected`, `overturned`, `retracted`; `mechanism_status`, `expires_at`, `runner_freshness`, `artifact_drift`, LLM and agent-inferred outcomes are refused.
+- Added `scripts/priority-engine.js` / `src/lib/priority-engine.js`: projects verifier scorecard + tripwire + ready claims into `earned` / `manual` / `observe` actions and an ordered `next_claims` list. It does not execute actions.
+- Wired outcome scorecard, tripwire and priority projection into the existing mechanism-recheck drain.
+- Added `tests/legacy-identity.js` and `tests/priority-engine.js`.
 ## 2.42.0
 
 Add outcome回流 and tripwire.

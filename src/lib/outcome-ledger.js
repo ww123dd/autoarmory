@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { appendJsonl, readJsonl, sha256 } = require('./util');
 
-const TYPES = ['accepted', 'rejected', 'overturned', 'reopened', 'expired', 'retracted'];
-const SOURCES = ['user', 'approval_command', 'reject_command', 'user_correction', 'mechanism_status', 'expires_at', 'runner_freshness', 'artifact_drift'];
+const TYPES = ['accepted', 'rejected', 'overturned', 'retracted'];
+const SOURCES = ['user', 'approval_command', 'reject_command', 'user_correction'];
 function resolveDecision(stateDir, decisionId) {
   const root = path.join(stateDir, 'reuse-records');
   if (!fs.existsSync(root)) throw new Error('reuse-records not found');
@@ -25,6 +25,7 @@ function recordOutcome(stateDir, input) {
   if (!value.actor) throw new Error('outcome.actor is required');
   if (!value.reason) throw new Error('outcome.reason is required');
   const decision = resolveDecision(stateDir, value.decision_id);
+  if (!decision.claim_sha256) throw new Error('claim_identity_missing for decision: ' + value.decision_id);
   const record = {
     schema_version: 'autoarmory/outcome-record/v1',
     type: type,
