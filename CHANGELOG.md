@@ -1,3 +1,12 @@
+## 2.50.0
+
+Migrate the 数仓开发 column-verification delivery rule from Stop-hook regex to a registered checker.
+
+- Added `src/lib/column-verify-checker.js` and `tests/column-verify-checker.js`.
+- Added `examples/adapters/column-verify/bridge.js` and sanitized vectors in `docs/evidence/column-verify-vectors.jsonl`.
+- Added `scripts/column-verify-replay.js`: 73 historical blocks separate into 44 current true positives, 60 SQL deliveries, 29 alias-only/non-delivery exclusions, and zero false positives over the SQL negative corpus.
+- Registered the mechanism as `skill: 数仓开发` with observe-only enforcement.
+
 ## 2.49.0
 
 Bind verification-gap to live Stop events and freeze the lifecycle vocabulary.

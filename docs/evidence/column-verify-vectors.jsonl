@@ -1,0 +1,7 @@
+{"id":"positive-simple","delivery_text":"SELECT etl_date, vasen_year FROM t;","expect_should_block":true}
+{"id":"positive-block","delivery_text":"```sql\nSELECT etl_date FROM t;\n```","expect_should_block":true}
+{"id":"positive-year","delivery_text":"SELECT vasen_year FROM t;","expect_should_block":true}
+{"id":"negative-verified","delivery_text":"SELECT etl_date FROM t;","has_verification":true,"expect_should_block":false}
+{"id":"negative-hedge","delivery_text":"SELECT etl_date FROM t;","has_hedge":true,"expect_should_block":false}
+{"id":"negative-alias","delivery_text":"SELECT sdate AS etl_date FROM t;","expect_should_block":false}
+{"id":"negative-unrelated","delivery_text":"SELECT gs_ordernum FROM t;","expect_should_block":false}

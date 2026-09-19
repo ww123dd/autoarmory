@@ -1,0 +1,8 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const checker=require('../../../src/lib/column-verify-checker');
+function fail(reason){process.stdout.write(JSON.stringify({ok:false,reason:String(reason)}));process.exit(3);}
+function readStdin(){return new Promise((resolve,reject)=>{let data='';process.stdin.on('data',c=>data+=c);process.stdin.on('end',()=>resolve(data));process.stdin.on('error',reject);});}
+async function main(){let payload;try{payload=JSON.parse(await readStdin())}catch(e){fail('invalid bridge payload: '+e.message)}const statement=typeof payload.statement==='string'?payload.statement:'';const server=payload.server||{};if(!statement)fail('statement is required');if(server.readonly!==true)fail('server descriptor is not declared readonly');let spec;try{spec=JSON.parse(statement)}catch(e){fail('statement is not a JSON spec: '+e.message)}if(!spec||spec.kind!=='column-verify')fail('spec.kind must be column-verify');const file=spec.vectors_file?path.resolve(spec.vectors_file):null;if(!file||!fs.existsSync(file))fail('spec.vectors_file not found');const bytes=fs.readFileSync(file);const digest=crypto.createHash('sha256').update(bytes).digest('hex');if(!spec.vectors_sha256||spec.vectors_sha256!==digest)fail('vectors digest mismatch');let rows;try{rows=bytes.toString('utf8').split(/\r?\n/).filter(Boolean).map(JSON.parse)}catch(e){fail('invalid vectors JSONL: '+e.message)}const observed=checker.replay(rows);observed.vectors_sha256=digest;process.stdout.write(JSON.stringify({ok:true,observed:observed}));process.exit(0)}
+main().catch(e=>fail(e.message));
