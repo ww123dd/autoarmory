@@ -1,6 +1,6 @@
 'use strict';
 
-const { readJsonl } = require('./util');
+const { readJsonl, readJsonlDedup } = require('./util');
 
 // Factual, record-backed session digest. Every line is derived from change
 // records; nothing here interprets intent - the records capture what was done,
@@ -65,7 +65,7 @@ function digest(records, options) {
 }
 
 function digestFromEngine(engineDir, options) {
-  return digest(readJsonl(require('path').join(engineDir, 'change-records.jsonl')), options);
+  return digest(readJsonlDedup(require('path').join(engineDir, 'change-records.jsonl'), function (row) { return row.id; }), options);
 }
 
 module.exports = { digest, digestFromEngine };

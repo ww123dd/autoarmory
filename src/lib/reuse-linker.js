@@ -1,11 +1,11 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { readJsonl, writeJson } = require('./util');
+const { readJsonl, readJsonlDedup, writeJson } = require('./util');
 
 function readRows(file) {
   if (!fs.existsSync(file)) return [];
-  try { return readJsonl(file); }
+  try { return readJsonlDedup(file, function (row) { return [row.change_id || row.id, row.session_id || '', row.turn_id || '', row.source_message_id || ''].join('|'); }); }
   catch (_) { return []; }
 }
 

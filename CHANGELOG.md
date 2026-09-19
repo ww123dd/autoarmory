@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.41.0
+
+Stop the Stop-path write amplification.
+
+- Canonical `change-records.jsonl` and `change-inventory.jsonl` are append-only again; the post-append `dedupeJsonl` full rewrites were removed.
+- `writeText`/`writeJson`/`writeJsonl` accept `{backup:false}`, and large canonical/projection writes no longer create `.bak` copies.
+- Added `writeProjection`: projections are content-addressed snapshots plus a latest pointer/hardlink, so unchanged projections reuse the existing snapshot and do not grow a second full copy.
+- `stop-shadow` case drafts and decision-scan projections now use `writeProjection`.
+- Added per-session state files (`change-inspector/sessions/<hash>.json`); global `state.json` no longer carries global `seen_ids`/`signatures` maps, and Stop appends only the increment.
+- Added read-time dedupe (`readJsonlDedup`) for canonical readers, so duplicate rows are tolerated without whole-file rewrites.
+- Added `tests/storage-amplification.js`: append-only canonical, no large `.bak`, snapshot reuse, read-time dedupe and per-session state.
 ## 2.40.5
 
 Convert extracted structured results into derived transitions.

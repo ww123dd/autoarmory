@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { parseArgs, printJson, readJsonl } = require('../src/lib/util');
+const { parseArgs, printJson, readJsonl, readJsonlDedup } = require('../src/lib/util');
 const digest = require('../src/lib/session-digest');
 const loadGate = require('../src/lib/load-gate');
 const verdictView = require('../src/lib/verdict-view');
@@ -39,7 +39,7 @@ function check(name, pass, evidence, sources, files, reason) {
 let lastStop = null;
 try { lastStop = JSON.parse(fs.readFileSync(path.join(root, 'last-stop.json'), 'utf8')); } catch (_) {}
 const canonical = path.join(engineDir, 'change-records.jsonl');
-const records = fs.existsSync(canonical) ? readJsonl(canonical) : [];
+const records = fs.existsSync(canonical) ? readJsonlDedup(canonical, function (row) { return row.id; }) : [];
 check('capture', !!lastStop && lastStop.status === 'ran' && records.length > 0, 'last-stop=' + (lastStop && lastStop.status) + ' records=' + records.length, [canonical], ['last-stop.json'], 'stop did not run or canonical is empty');
 
 const sessionsRoot = path.join(os.homedir(), '.codex', 'sessions');

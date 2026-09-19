@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { readJsonlStrict, writeJsonl } = require('./util');
+const { readJsonlStrict, readJsonlDedup, writeJsonl } = require('./util');
 const sessionShadow = require('./session-shadow');
 const { normalizeCommand } = require('./command-normalizer');
 
@@ -46,7 +46,7 @@ function deriveTransitionCandidates(stateDir) {
   const resultsFile = path.join(stateDir, 'structured-results.jsonl');
   if (!fs.existsSync(resultsFile)) return [];
   const results = readJsonlStrict(resultsFile);
-  const records = fs.existsSync(path.join(stateDir, 'change-inspector', 'change-records.jsonl')) ? readJsonlStrict(path.join(stateDir, 'change-inspector', 'change-records.jsonl')) : [];
+  const records = fs.existsSync(path.join(stateDir, 'change-inspector', 'change-records.jsonl')) ? readJsonlDedup(path.join(stateDir, 'change-inspector', 'change-records.jsonl'), function (row) { return row.id; }) : [];
   const drafts = fs.existsSync(path.join(stateDir, 'decision-scan', 'decision-drafts.jsonl')) ? readJsonlStrict(path.join(stateDir, 'decision-scan', 'decision-drafts.jsonl')) : [];
   const recordByRef = {};
   for (const record of records) {

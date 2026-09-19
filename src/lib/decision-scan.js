@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { readJsonl, writeJsonl, writeJson } = require('./util');
+const { readJsonl, readJsonlDedup, writeJson, writeProjection } = require('./util');
 const { resolveClaim } = require('./verifier-resolver');
 const changeInspector = require('./change-inspector');
 const provenanceValidator = require('./provenance-validator');
@@ -190,7 +190,7 @@ function scan(stateDir, options) {
   const repo = path.resolve(opts.repo || '.');
   const engineDir = path.join(root, 'change-inspector');
   const recordsFile = path.join(engineDir, 'change-records.jsonl');
-  const records = readRows(recordsFile);
+  const records = fs.existsSync(recordsFile) ? readJsonlDedup(recordsFile, function (row) { return row.id; }) : [];
   const insufficient = records.length === 0;
   let candidates = [];
   if (!insufficient) {
@@ -271,15 +271,15 @@ function scan(stateDir, options) {
   if (opts.apply === true && !insufficient) {
     const out = path.join(root, 'decision-scan');
     fs.mkdirSync(out, { recursive: true });
-    writeJsonl(path.join(out, 'decision-drafts.jsonl'), drafts);
-    writeJsonl(path.join(out, 'ready-for-verifier.jsonl'), ready);
-    writeJsonl(path.join(out, 'missing-transition.jsonl'), missingTransition);
-    writeJsonl(path.join(out, 'true-no-capability.jsonl'), trueNoCapability);
-    writeJsonl(path.join(out, 'no-capability.jsonl'), trueNoCapability);
-    writeJsonl(path.join(out, 'unverifiable.jsonl'), unverifiable);
-    writeJsonl(path.join(out, 'blocked-by-access.jsonl'), blockedAccess);
-    writeJsonl(path.join(out, 'blocked-by-owner.jsonl'), blockedOwner);
-    writeJsonl(path.join(out, 'blocked-by-expected-provenance.jsonl'), blockedExpected);
+    writeProjection(path.join(out, 'decision-drafts.jsonl'), drafts, { retain: 2 });
+    writeProjection(path.join(out, 'ready-for-verifier.jsonl'), ready, { retain: 2 });
+    writeProjection(path.join(out, 'missing-transition.jsonl'), missingTransition, { retain: 2 });
+    writeProjection(path.join(out, 'true-no-capability.jsonl'), trueNoCapability, { retain: 2 });
+    writeProjection(path.join(out, 'no-capability.jsonl'), trueNoCapability, { retain: 2 });
+    writeProjection(path.join(out, 'unverifiable.jsonl'), unverifiable, { retain: 2 });
+    writeProjection(path.join(out, 'blocked-by-access.jsonl'), blockedAccess, { retain: 2 });
+    writeProjection(path.join(out, 'blocked-by-owner.jsonl'), blockedOwner, { retain: 2 });
+    writeProjection(path.join(out, 'blocked-by-expected-provenance.jsonl'), blockedExpected, { retain: 2 });
     writeJson(path.join(out, 'summary.json'), Object.assign({}, report, { drafts: undefined, generated_at: new Date().toISOString() }));
   }
   return report;
