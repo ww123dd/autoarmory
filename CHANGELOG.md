@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.40.3
+
+Extract structured results deterministically and classify invalid provenance.
+
+- Added `src/lib/result-extractor.js` / `scripts/result-extract.js`: deterministic parsing of exit codes, npm errors, passed/failed summaries, PASS/FAIL and ok; ambiguous text stays unstructured.
+- Added `src/lib/provenance-validator.js` / `tests/provenance-validator.js`: invalid provenance is classified as missing/unreadable ref, unsupported kind, hash mismatch, approval missing, commit missing, pinned verifier missing, or missing expected provenance.
+- `decision-scan` reports `invalid_provenance_by_category`, `exec_records_written_count`, `derived_from_history_count`, and pinned/baseline provenance resolution rates.
+- Real current state: structured results extracted=1; exec-records written=1; derived_from_history=3; pinned verifier resolved 99/99; invalid provenance is classified rather than collapsed into one number.
 ## 2.40.2
 
 Report physical provenance and future/history supply metrics.

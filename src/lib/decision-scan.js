@@ -4,7 +4,7 @@ const path = require('path');
 const { readJsonl, writeJsonl, writeJson } = require('./util');
 const { resolveClaim } = require('./verifier-resolver');
 const changeInspector = require('./change-inspector');
-const baselineManifest = require('./baseline-manifest');
+const provenanceValidator = require('./provenance-validator');
 
 function readRows(file) {
   if (!fs.existsSync(file)) return [];
@@ -129,7 +129,7 @@ function classifyDraft(draft, context) {
     else if (!claim.expected_provenance) { disposition = 'blocked'; reasonCodes.push('blocked_by_expected_provenance'); }
     else if (effectiveDraft.transition_source_strength && ['declared', 'derived'].indexOf(effectiveDraft.transition_source_strength) === -1) { disposition = 'unverifiable'; reasonCodes.push('transition_source_candidate_only'); }
     else {
-      const provenanceCheck = baselineManifest.validateProvenance(ctx.stateDir, Object.assign({}, claim, { change_id: changeId, owner: owner.owner }), { repo: ctx.repo, verifier_id: resolution.ref });
+      const provenanceCheck = provenanceValidator.validate(ctx.stateDir, Object.assign({}, claim, { change_id: changeId, owner: owner.owner }), { repo: ctx.repo, verifier_id: resolution.ref });
       if (!provenanceCheck.ok) { disposition = 'blocked'; reasonCodes.push('blocked_by_expected_provenance'); }
       else disposition = 'ready_for_verifier';
       effectiveDraft.provenance_validation = provenanceCheck;
@@ -220,6 +220,11 @@ function scan(stateDir, options) {
   const execRecordsWritten = fs.existsSync(execRecordsFile) ? readRows(execRecordsFile).length : 0;
   const derivedFromHistoryCount = Object.keys(transitionRows).filter(function (key) { const row = transitionRows[key]; return row && row.transition_source === 'historical_mechanism_run'; }).length;
   const invalidProvenanceCount = drafts.filter(function (item) { return item.reason_codes.indexOf('blocked_by_expected_provenance') !== -1; }).length;
+  const invalidProvenanceByCategory = {};
+  for (const item of blockedExpected) {
+    const categories = item.provenance_validation && item.provenance_validation.categories ? item.provenance_validation.categories : (item.expected_provenance ? ['unknown'] : ['missing_expected_provenance']);
+    for (const category of categories) invalidProvenanceByCategory[category] = (invalidProvenanceByCategory[category] || 0) + 1;
+  }
   const report = {
     schema_version: 'autoarmory/decision-scan/v1',
     state_root: root,
@@ -248,6 +253,7 @@ function scan(stateDir, options) {
     exec_records_written_count: execRecordsWritten,
     derived_from_history_count: derivedFromHistoryCount,
     invalid_provenance_count: invalidProvenanceCount,
+    invalid_provenance_by_category: invalidProvenanceByCategory,
     no_capability_count: trueNoCapability.length,
     blocked_by_owner_count: blockedOwner.length,
     blocked_by_expected_provenance_count: blockedExpected.length,
