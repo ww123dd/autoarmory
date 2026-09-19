@@ -7,35 +7,15 @@ const execRecordFlow = require('./exec-record-flow');
 const historicalDerived = require('./historical-derived');
 const resultExtractor = require('./result-extractor');
 
-const FAMILIES = [
-  { id: 'project_test', transition: 'TEST->PASS', pattern: /(pytest|npm test|node tests|tsc|verify_all|npm run build)/i },
-  { id: 'file_hash', transition: 'HASH->MATCH', pattern: /(sha256|hash)/i },
-  { id: 'process_state', transition: 'STATE->RUNNING', pattern: /(get-process|pid|tasklist|\bservice\b)/i },
-  { id: 'git_commit', transition: 'COMMIT->EXISTS', pattern: /(git commit|git rev-parse)/i },
-  { id: 'http_health', transition: 'HTTP->HEALTHY', pattern: /(curl|invoke-webrequest|https?:\/\/)/i },
-  { id: 'sql_count', transition: 'COUNT->EXPECTED', pattern: /(\bselect\b|\bshow\b|\bdesc\b|\bdoris\b)/i },
-  { id: 'enumeration', transition: 'TRUNCATED->ENUMERATED', pattern: /(manifest|get-childitem.*-recurse|enumeration)/i }
-];
-const META = [
-  ['meta_command', /\[Console\]::OutputEncoding/i],
-  ['file_write', /(set-content|add-content|out-file|begin patch|apply-patch)/i],
-  ['search_command', /(^|[;&|]\s*)(rg|select-string|findstr)\b/i],
-  ['read_command', /(^|[;&|]\s*)(get-content|cat|type)\b/i],
-  ['cd', /(^|[;&|]\s*)cd\s+/i]
-];
+const commandFamily = require('./command-family');
 
+// Classification comes from the command-family registry via command-normalizer;
+// the private FAMILIES/META tables this module used to carry were unreachable
+// dead code (the normalizer result is always truthy) and were removed in 2.46.0.
 function normalizeCommand(command) {
   const normalized = normalizeVerifierCommand(command);
   if (normalized) return { primary_command: normalized.primary_command, command_family: normalized.command_family, candidate_transition: normalized.candidate_transition, observed_facts: normalized.observed_facts };
-  const text = String(command || '').trim();
-  if (!text) return { primary_command: null, command_family: null, candidate_transition: null, observed_facts: {} };
-  for (const family of FAMILIES) {
-    if (family.pattern.test(text)) return { primary_command: text, command_family: family.id, candidate_transition: family.transition, observed_facts: { command: text, command_family: family.id } };
-  }
-  for (const item of META) {
-    if (item[1].test(text)) return { primary_command: null, command_family: null, candidate_transition: null, observed_facts: { command: text, meta_kind: item[0] } };
-  }
-  return { primary_command: null, command_family: null, candidate_transition: null, observed_facts: { command: text, meta_kind: 'unknown' } };
+  return { primary_command: null, command_family: null, candidate_transition: null, observed_facts: {} };
 }
 function propose(draft, options) {
   const commands = Array.isArray(draft.commands) ? draft.commands : [];
@@ -98,4 +78,4 @@ function proposeFile(stateDir, options) {
   }
   return { schema_version: 'autoarmory/transition-proposal/v1', input_file: input, proposed: rows.length, trusted_count: rows.filter(function (row) { return row.source_strength === 'declared' || row.source_strength === 'derived'; }).length, candidate_count: rows.filter(function (row) { return row.source_strength === 'candidate'; }).length, by_family: byFamily, by_source_strength: byStrength, by_family_source_strength: byFamilyStrength, rows: rows };
 }
-module.exports = { normalizeCommand, propose, proposeFile, FAMILIES };
+module.exports = { normalizeCommand, propose, proposeFile, FAMILIES: commandFamily.FAMILIES };

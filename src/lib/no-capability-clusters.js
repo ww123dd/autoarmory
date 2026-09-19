@@ -6,17 +6,8 @@ const { readJsonlStrict, writeJson } = require('./util');
 function array(value) { return Array.isArray(value) ? value : []; }
 function uniq(values) { return Array.from(new Set(values.filter(Boolean).map(String))).sort(); }
 function firstToken(command) { return String(command || '').trim().split(/\s+/)[0] || null; }
-function commandFamily(command) {
-  const text = String(command || '');
-  if (/(pytest|npm test|node tests|tsc|verify_all|npm run build)/i.test(text)) return 'project_test_or_build';
-  if (/(sha256|hash)/i.test(text)) return 'file_hash';
-  if (/(git status|git diff|git rev-parse|git commit)/i.test(text)) return 'git_state';
-  if (/(select\s|show\s|desc\s|sql|doris)/i.test(text)) return 'sql';
-  if (/(curl|invoke-webrequest|https?:\/\/)/i.test(text)) return 'http';
-  if (/(process|pid|tasklist|get-process|service)/i.test(text)) return 'process';
-  if (/(playwright|puppeteer|browser|dom|selector)/i.test(text)) return 'dom';
-  return 'unknown';
-}
+const commandFamily = require('./command-family');
+function commandFamilyOf(command) { return commandFamily.classify(command).family; }
 function scriptPath(command) {
   const match = String(command || '').match(/(?:node\s+)?([A-Za-z0-9_./\\-]+\.(?:js|ts|py|ps1|sh))/i);
   return match ? match[1].replace(/\\/g, '/') : null;
@@ -29,7 +20,7 @@ function features(draft) {
     extensions: uniq(files.map(function (file) { const ext = path.extname(file).toLowerCase(); return ext || '(none)'; })),
     dirs: uniq(files.map(function (file) { const dir = path.dirname(String(file).replace(/\\/g, '/')); return dir === '.' ? '(root)' : dir.split('/').slice(0, 2).join('/'); })),
     external_files: files.some(function (file) { return path.isAbsolute(file) && !String(file).toLowerCase().startsWith(process.cwd().toLowerCase()); }),
-    command_family: uniq(commands.map(commandFamily)),
+    command_family: uniq(commands.map(commandFamilyOf)),
     first_tokens: uniq(commands.map(firstToken)),
     script_paths: uniq(commands.map(scriptPath)),
     signals: uniq(array(draft.signals)),
@@ -46,9 +37,9 @@ function clusterKey(f) {
   return JSON.stringify({ family: f.command_family, transition: f.transition, artifact: f.artifact_type, ext: f.extensions, access: f.access_required, provenance: f.provenance });
 }
 function suggestedKind(f) {
-  if (f.command_family.indexOf('project_test_or_build') !== -1) return 'project-test-result';
-  if (f.command_family.indexOf('file_hash') !== -1) return 'file-sha256';
-  if (f.command_family.indexOf('git_state') !== -1) return 'git-commit-exists';
+  if (f.command_family.indexOf('test') !== -1 || f.command_family.indexOf('build') !== -1) return 'project-test-result';
+  if (f.command_family.indexOf('hash') !== -1) return 'file-sha256';
+  if (f.command_family.indexOf('git') !== -1) return 'git-commit-exists';
   if (f.command_family.indexOf('sql') !== -1) return 'sql-assertion';
   if (f.command_family.indexOf('http') !== -1) return 'http-assertion';
   if (f.command_family.indexOf('process') !== -1) return 'process-state';
@@ -56,7 +47,7 @@ function suggestedKind(f) {
   return 'unknown';
 }
 function feasibility(f) {
-  if (['project_test_or_build', 'file_hash', 'git_state'].some(function (x) { return f.command_family.indexOf(x) !== -1; })) return 'high';
+  if (['test', 'build', 'hash', 'git'].some(function (x) { return f.command_family.indexOf(x) !== -1; })) return 'high';
   if (f.command_family.indexOf('http') !== -1 || f.command_family.indexOf('process') !== -1) return 'medium';
   return 'low';
 }

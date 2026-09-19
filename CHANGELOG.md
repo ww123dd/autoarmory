@@ -1,3 +1,13 @@
+## 2.46.0
+
+One command-family registry; three private classifier tables retired.
+
+- Added `src/lib/command-family.js`: the single source for family ids, patterns, default transitions and legacy aliases. Canonical ids are frozen (`test build hash git process http sql enumeration dom write read search meta unknown`); legacy ids (`project_test`, `file_hash`, `git_state`, `sql_count`, `file_enumeration`, ...) resolve as read-side aliases only, and `project_test_or_build` splits by command so build is never swallowed into test.
+- `command-normalizer` and `transition-proposer` now classify through the registry. The proposer's private FAMILIES/META tables were unreachable dead code (the normalizer result is always truthy) and were removed. `no-capability-clusters` classifies through the registry too; its `suggestedKind`/`feasibility` match on canonical ids.
+- Real-corpus replay (84026 commands, frozen at `backup/pre-2.41.0-522d77c`): 80039 assignments identical after aliasing; every one of the 3987 differences falls into eight documented reason categories (`docs/evidence/command-family-replay.json`), including two legacy false-positive classes the registry fixes - bare `tsc` matching `tsconfig.json` reads (1472) and bare `dist/artifact/bundle` substrings producing BUILD->PASS (1443). Negative control: unknown command stays `unknown`.
+- Contract tripwire in `tests/stop-shadow.js`: the Stop hook must spawn the recheck runner `detached: true`; a `detached: false` debug change had silently made Stop wait on verifier execution.
+- Verdict/outcome redundancy audit: `load-gate.effectiveVerdict` is already a documented delegation to `verdict-view` (kept); `outcome-scorecard` (verifier axis), `mechanism-lifecycle-metrics` (mechanism axis) and `verifier-scorecard` (recomputability) project different axes and were not merged.
+
 ## 2.45.0
 
 Add mechanism activation, enforcement contract and lifecycle metrics.

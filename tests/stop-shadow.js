@@ -150,4 +150,12 @@ const pendingFiles = fs.existsSync(path.join(pendingState, 'pending')) ? fs.read
 must(pendingFiles.length === 1, 'high-signal change must enqueue one pending job');
 const pendingJob = JSON.parse(fs.readFileSync(path.join(pendingState, 'pending', pendingFiles[0]), 'utf8'));
 must(pendingJob.change_id && pendingJob.session_id && pendingJob.signals.indexOf('risk_signal') !== -1 && pendingJob.signals.indexOf('check_gap') !== -1, 'pending job carries change identity, provenance and signals');
-console.log('stop shadow tests passed: automatic session scan, idempotent drafts, shadow_gap fallback, no verifier/run/close/verdict');
+// Contract tripwire: the Stop hook must never synchronously wait on the
+// background runner. A detached:false here would make every Stop block on
+// mechanism-recheck --drain (which executes verifiers with up to 90s timeouts).
+const stopShadowSource = fs.readFileSync(path.join(repo, 'scripts', 'stop-shadow.js'), 'utf8');
+must(/detached:\s*true/.test(stopShadowSource), 'stop-shadow must spawn the recheck runner detached (Stop must not wait on verifier execution)');
+must(stopShadowSource.indexOf('detached: false') === -1, 'stop-shadow must not contain a detached:false spawn');
+must(/AUTOARMORY_RUNNER_OFF/.test(stopShadowSource), 'stop-shadow runner spawn must stay disablable');
+
+console.log('stop shadow tests passed: automatic session scan, idempotent drafts, shadow_gap fallback, no verifier/run/close/verdict, detached runner');

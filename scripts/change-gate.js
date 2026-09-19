@@ -16,7 +16,7 @@ function argValue(name, fallback) {
   return index === -1 ? fallback : process.argv[index + 1];
 }
 function git(repo, args, options) {
-  const result = spawnSync('git', args, { cwd: repo, encoding: 'utf8', input: options && options.input });
+  const result = spawnSync('git', args, { cwd: repo, encoding: 'utf8', input: options && options.input, maxBuffer: 128 * 1024 * 1024 });
   if (result.status !== 0) throw new Error('git ' + args.join(' ') + ': ' + (result.stderr || '').trim());
   return result.stdout || '';
 }

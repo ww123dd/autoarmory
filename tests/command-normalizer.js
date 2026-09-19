@@ -14,7 +14,9 @@ const cases = [
   ['Get-Process node', 'process', 'STATE->RUNNING'],
   ['curl https://example.com/health', 'http', 'HTTP->HEALTHY'],
   ['SELECT count(*) FROM t', 'sql', 'COUNT->EXPECTED'],
-  ['Get-ChildItem -Recurse | Select-String manifest', 'file_enumeration', 'TRUNCATED->ENUMERATED']
+  ['Get-ChildItem -Recurse | Select-String manifest', 'enumeration', 'TRUNCATED->ENUMERATED'],
+  ['npm run build', 'build', 'BUILD->PASS'],
+  ['npx tsc --noEmit', 'build', 'BUILD->PASS']
 ];
 for (const item of cases) {
   const result = normalizeCommand(item[0]);

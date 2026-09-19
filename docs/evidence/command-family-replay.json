@@ -1,0 +1,33 @@
+{
+  "schema_version": "autoarmory/command-family-replay/v1",
+  "generated_at": "2026-09-19T15:10:04.424Z",
+  "baseline_source_commit": "522d77c",
+  "compared": 84026,
+  "exact_match_after_alias": 80039,
+  "old_classifier_disagreements": 16241,
+  "mismatch_categories": {
+    "clusters_missing_family": 3150,
+    "meta_promoted_for_clustering": 36696,
+    "build_bare_substring_tokens_dropped": 1443,
+    "pattern_unified": 11296,
+    "build_split_from_test": 1808,
+    "family_order_unified": 306,
+    "tsc_substring_false_positive": 1472,
+    "dom_word_boundary": 99
+  },
+  "mismatch_reasons": {
+    "build_split_from_test": "command-normalizer lumped tsc/npm run build/bundle into family test; the registry splits them into build",
+    "build_bare_substring_tokens_dropped": "legacy build matched bare dist/artifact/bundle substrings (e.g. Write-Output lines about artifacts became BUILD->PASS); the registry keeps only real build-tool commands and the command falls back to its true family",
+    "clusters_legacy_split": "no-capability-clusters reported project_test_or_build; the registry resolves test|build per command",
+    "clusters_missing_family": "no-capability-clusters had no enumeration/build/dom family, so those commands were unknown there; the registry classifies them",
+    "pattern_unified": "no-capability-clusters used broader sql/process patterns (bare tokens like \"sql\"); the registry keeps the stricter command-normalizer patterns and the command returns to its true family",
+    "dom_word_boundary": "no-capability-clusters matched dom as a substring (e.g. Get-Random); the registry requires word boundaries",
+    "tsc_substring_false_positive": "the legacy test family matched bare \"tsc\" inside paths and filenames (tsconfig.json was read constantly in this corpus, e.g. \"Get-Content tsconfig.json\" became TEST->PASS); the registry anchors tool names to command position, so these return to their true family",
+    "family_order_unified": "the legacy classifiers checked families in different orders (normalizer: process before http; clusters: http before process), so hybrid commands resolved differently; the registry keeps the normalizer order",
+    "meta_promoted_for_clustering": "no-capability-clusters reported unknown; the registry classifies write/read/search/meta as canonical families",
+    "legacy_rename": "same family, legacy id renamed by the alias map"
+  },
+  "unexplained_count": 0,
+  "unexplained_sample": [],
+  "negative_control": "pass"
+}

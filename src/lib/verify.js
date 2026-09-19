@@ -196,7 +196,8 @@ function runAdapter(repo, adapterPath, payload, timeoutMs) {
     cwd: repo,
     encoding: 'utf8',
     input: JSON.stringify(payload),
-    timeout: timeoutMs
+    timeout: timeoutMs,
+    windowsHide: true
   });
   if (result.error) return { ok: false, reason: 'adapter failed to start: ' + result.error.message };
   if (result.status !== 0) {
