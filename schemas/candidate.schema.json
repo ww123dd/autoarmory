@@ -29,7 +29,12 @@
       "type": "string"
     },
     "action_tier": {
-      "enum": ["read_only", "local_write", "irreversible_write", "external_side_effect"]
+      "enum": [
+        "read_only",
+        "local_write",
+        "irreversible_write",
+        "external_side_effect"
+      ]
     },
     "target": {
       "type": "object",
@@ -152,6 +157,26 @@
         },
         "provenance": {
           "type": "object"
+        }
+      }
+    },
+    "owner_scope": {
+      "type": "string"
+    },
+    "owner_proposal": {
+      "type": "object"
+    },
+    "owner_confirmation": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "approved",
+            "rejected"
+          ]
+        },
+        "batch_id": {
+          "type": "string"
         }
       }
     }

@@ -1,0 +1,23 @@
+'use strict';
+const ownership=require('../src/lib/ownership-inheritance');
+function must(c,m){if(!c)throw new Error(m);}
+const explicit=ownership.inferOwner({id:'a',owner_scope:'global',owner_confirmation:{status:'approved'}});
+must(explicit.owner_scope==='global'&&explicit.source==='explicit','explicit owner must win');
+const skill=ownership.inferOwner({id:'b',change:{skill:'vibe-coding'}});
+must(skill.owner_scope==='vibe-coding'&&skill.source==='inherited'&&skill.confirmed===false,'change.skill must be a marked, unconfirmed inherited default');
+const pathOwner=ownership.inferOwner({id:'c',evidence:['C:/Users/Administrator/.codex/skills/数仓开发/SKILL.md#L10']});
+must(pathOwner.owner_scope==='数仓开发'&&pathOwner.source==='inherited','skill path must inherit the skill owner');
+const unknown=ownership.inferOwner({id:'d'});
+must(unknown.owner_scope===null&&unknown.source==='unknown','missing context must be unknown, not silently global');
+const cross=ownership.inferOwner({id:'e',change:{skill:'vibe-coding'},evidence:['.codex/skills/数仓开发/SKILL.md#L1']});
+must(cross.source==='cross_domain'&&cross.candidates.includes('vibe-coding')&&cross.candidates.includes('数仓开发'),'conflicting hints must be cross-domain');
+const batch=ownership.proposeBatch([{id:'a',change:{skill:'vibe-coding'}},{id:'b',change:{skill:'vibe-coding'}},{id:'c',change:{skill:'数仓开发'}},{id:'d'}]);
+must(batch.default_owner==='vibe-coding'&&batch.exceptions.length===2,'batch must show one default and its exceptions');
+must(/默认归 vibe-coding/.test(batch.question)&&/2 条跨域/.test(batch.question),'batch question must be explicit and reviewable');
+const confirmed=ownership.confirmBatch(batch,{approved:true,approved_by:'user',owner_by_candidate:{c:'数仓开发'}});
+const byId={};for(const row of confirmed)byId[row.candidate_id]=row;
+must(byId.a.owner_scope==='vibe-coding'&&byId.a.owner_confirmation.status==='approved','default rows must be confirmed in batch');
+must(byId.c.owner_scope==='数仓开发'&&byId.c.owner_confirmation.overridden===true,'exceptions must take the explicit override');
+must(byId.d.owner_scope===null,'unknown exception must remain unconfirmed');
+const fs=require('fs');const os=require('os');const path=require('path');const {spawnSync}=require('child_process');const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ownership-cli-'));const input=path.join(temp,'candidates.jsonl');const output=path.join(temp,'confirmed.jsonl');fs.writeFileSync(input,[{id:'a',change:{skill:'vibe-coding'}},{id:'b',change:{skill:'vibe-coding'}},{id:'c',change:{skill:'数仓开发'}}].map(JSON.stringify).join('\n')+'\n','utf8');const cli=path.resolve(__dirname,'..','scripts','ownership-batch.js');let run=spawnSync(process.execPath,[cli,'--candidates',input,'--json'],{encoding:'utf8'});must(run.status===0&&JSON.parse(run.stdout).default_owner==='vibe-coding','ownership CLI must propose a batch default');run=spawnSync(process.execPath,[cli,'--candidates',input,'--confirm','--approved-by','user','--owners','{"c":"数仓开发"}','--out',output,'--json'],{encoding:'utf8'});must(run.status===0,'ownership CLI must confirm the batch');const cliConfirmed=fs.readFileSync(output,'utf8').trim().split(/\r?\n/).map(JSON.parse);must(cliConfirmed[0].owner_scope==='vibe-coding'&&cliConfirmed[2].owner_scope==='数仓开发','ownership CLI must write confirmed owners');
+console.log('ownership inheritance tests passed: marked default, path inheritance, cross-domain exception, batch confirmation');

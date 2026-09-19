@@ -1,6 +1,7 @@
 'use strict';
 
 const { sha256 } = require('./util');
+const ownership = require('./ownership-inheritance');
 const IMPLEMENTABLE = new Set([
   'add_admission_gate',
   'add_counterexample_replay',
@@ -24,6 +25,8 @@ function admit(candidates, options) {
   for (const candidate of candidates || []) {
     let status = 'candidate';
     let reason = 'gate proof required before admission';
+    let reasonCode = 'gate_proof_required';
+    const owner = ownership.inferOwner(candidate);
     if (candidate.action === 'mark_duplicate') {
       status = 'duplicate';
       reason = 'explicit duplicate ingestion marker';
@@ -36,6 +39,12 @@ function admit(candidates, options) {
       status = 'observed';
       reason = 'no concrete implementable action yet';
     } else {
+      const ownerConfirmed = !!(candidate.owner_scope && candidate.owner_confirmation && candidate.owner_confirmation.status === 'approved');
+      if (!ownerConfirmed) {
+        status = 'holding';
+        reasonCode = owner.source === 'unknown' ? 'owner_inheritance_unknown' : (owner.source === 'cross_domain' ? 'cross_domain_owner_confirmation_required' : 'owner_confirmation_required');
+        reason = reasonCode === 'owner_inheritance_unknown' ? 'owner cannot be inferred; batch confirmation required' : (reasonCode === 'cross_domain_owner_confirmation_required' ? 'owner hints disagree; explicit cross-domain confirmation required' : 'inherited owner is a proposal and must be batch-confirmed before admission');
+      } else {
       const key = evidenceKey(candidate);
       if (seen.has(key)) {
         status = 'duplicate';
@@ -43,10 +52,12 @@ function admit(candidates, options) {
       } else {
         seen.add(key);
         status = 'admitted';
-        reason = 'gate passed and action has concrete acceptance criteria';
+        reason = 'gate passed, owner confirmed, and action has concrete acceptance criteria';
+        reasonCode = null;
+      }
       }
     }
-    decisions.push({ schema_version: 'autoarmory/admission/v1', id: 'adm-' + sha256(candidate.id + ':' + status).slice(0, 12), candidate_id: candidate.id, failure_mode: candidate.failure_mode || null, action: candidate.action || null, status: status, reason: reason, evidence: candidate.evidence || [] });
+    decisions.push({ schema_version: 'autoarmory/admission/v1', id: 'adm-' + sha256(candidate.id + ':' + status).slice(0, 12), candidate_id: candidate.id, failure_mode: candidate.failure_mode || null, action: candidate.action || null, status: status, reason: reason, reason_code: reasonCode, owner_scope: candidate.owner_scope || owner.owner_scope || null, owner_source: owner.source || null, evidence: candidate.evidence || [] });
   }
   return { schema_version: 'autoarmory/admission/v1', decisions: decisions, summary: decisions.reduce(function (acc, item) { acc[item.status] = (acc[item.status] || 0) + 1; return acc; }, {}) };
 }

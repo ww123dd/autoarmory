@@ -1,3 +1,12 @@
+## 2.51.0
+
+Implement C+B ownership inheritance and batch confirmation.
+
+- Added `src/lib/ownership-inheritance.js`: explicit owner, inherited skill owner, path-derived owner, unknown and cross-domain proposals.
+- Added `scripts/ownership-batch.js`: one batch question, explicit exception overrides, and confirmed candidate output.
+- Hardened `admit()`: gate proof alone is insufficient; unconfirmed, unknown, or cross-domain ownership stays in `holding`.
+- Updated the AutoArmory skill step 4 from per-item open questioning to visible inheritance plus batch confirmation.
+
 ## 2.50.0
 
 Migrate the 数仓开发 column-verification delivery rule from Stop-hook regex to a registered checker.
