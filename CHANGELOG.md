@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.38.0
+
+Add automatic mechanism recheck and the Claude Stop hook.
+
+- Added `scripts/mechanism-recheck.js` / `src/lib/mechanism-recheck.js`: recomputes `mechanism.status`, runner freshness, artifact drift, expiry and reopen triggers; only mechanisms with a registered verifier and complete claim identity are enqueued, and the existing history-runner consumes them.
+- Stop-shadow now drains mechanism rechecks in the background instead of running history-runner directly, so stale registered verifiers can be re-run without registering new verifiers.
+- Connected the Claude Stop hook in `~/.claude/settings.json` to `scripts/stop-shadow.js`, alongside SkillCanary. Claude tool-use/tool-result rows normalize through the existing Claude path, and `tests/claude-stop-hook.js` verifies Stop -> stop-shadow -> normalized change record.
+- Added `tests/mechanism-recheck.js`: stale registered mechanism -> pending recheck job, claim identity required, idempotent rerun.
 ## 2.37.0
 
 Add observation mode, labeled resolver benchmarking, and the first real unattended closed loop.

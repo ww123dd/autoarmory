@@ -12,3 +12,4 @@ node scripts/hook-gate.js --event event.json --state <state-dir> --json
 ```
 
 Every decision is appended to `hook-decisions.jsonl`. Runtime registration in the host hook system is a separate integration step; this script is the executable contract.
+Claude Stop is now connected as an additional hook: it feeds Claude JSONL sessions into the same change-inspector normalization path. See ~/.claude/settings.json and 	ests/claude-stop-hook.js.

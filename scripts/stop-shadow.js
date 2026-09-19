@@ -75,7 +75,7 @@ else {
 }
 if (process.env.AUTOARMORY_RUNNER_OFF !== '1') {
   try {
-    const runner = spawn(process.execPath, [path.join(__dirname, 'history-runner.js'), '--drain', '--state', stateDir, '--repo', path.resolve(__dirname, '..')], { detached: true, stdio: 'ignore', windowsHide: true });
+    const runner = spawn(process.execPath, [path.join(__dirname, 'mechanism-recheck.js'), '--drain', '--state', stateDir, '--repo', path.resolve(__dirname, '..')], { detached: true, stdio: 'ignore', windowsHide: true });
     runner.unref();
   } catch (_) {}
 }

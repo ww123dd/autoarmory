@@ -97,6 +97,7 @@ function drain(options) {
       const outcome = mechanicalRecord(job, verifier, repo); const identity = verifierIdentity(repo, verifier.ref, job); record = Object.assign({ schema_version: 'autoarmory/reuse-record/v1', change_id: changeId, status: outcome.status, verifier: verifier.ref, run: outcome.run || null, reason: outcome.reason || null, resolved_at: new Date().toISOString() }, identity);
     }
     record.claim_instance = job.claim_instance || null;
+    record.expected_transition = job.expected_transition || null;
     record.expected_value = Object.prototype.hasOwnProperty.call(job, 'expected_value') ? job.expected_value : null;
     record.expected_provenance = job.expected_provenance || (verifier.kind === 'registered' ? 'pinned_verifier' : null);
     record.session_id = job.session_id || null;
