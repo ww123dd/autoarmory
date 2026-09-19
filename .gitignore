@@ -2,3 +2,4 @@ node_modules/
 .selfforge/
 *.log
 verifiers.lock.json
+.skillcanary/
