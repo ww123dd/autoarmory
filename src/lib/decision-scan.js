@@ -1,11 +1,13 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 const { readJsonl, writeJsonl, writeJson } = require('./util');
 const { resolveClaim } = require('./verifier-resolver');
 const changeInspector = require('./change-inspector');
 const provenanceValidator = require('./provenance-validator');
 
+function gitCommit(repo) { const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8', windowsHide: true }); return result.status === 0 ? String(result.stdout || '').trim() : null; }
 function readRows(file) {
   if (!fs.existsSync(file)) return [];
   try { return readJsonl(file); }
@@ -230,6 +232,9 @@ function scan(stateDir, options) {
     state_root: root,
     repo: repo,
     source_file: recordsFile,
+    generated_at: new Date().toISOString(),
+    commit: gitCommit(repo),
+    limit: Number.isFinite(limit) ? limit : null,
     source_records: records.length,
     candidate_count: candidates.length,
     inventory_draft_count: drafts.length,

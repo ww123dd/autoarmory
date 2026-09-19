@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.40.4
+
+Make decision-scan reports self-identifying.
+
+- `decision-scan` reports `generated_at`, `commit`, `limit`, and `source_records`; `summary.json` inherits the same fields.
+- Regression test requires the metadata fields to be present.
+- This prevents later reviewers from trusting a stale summary without knowing its source revision or scan bound.
 ## 2.40.3
 
 Extract structured results deterministically and classify invalid provenance.

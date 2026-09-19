@@ -45,4 +45,5 @@ write(path.join(declaredState, 'owners.json'), JSON.stringify({ owners: {} }) + 
 write(path.join(declaredState, 'claims.manifest.json'), JSON.stringify({ claims: { [declaredChangeId]: { expected_transition: 'TRUNCATED->ENUMERATED', artifact_type: 'repo-enumeration', claim_instance: { root: 'examples/adapters', pattern: 'bridge\\.js$', expected_count: 12 }, expected_value: true, expected_provenance: 'pinned_verifier', owner: 'team-a', action_class: 'load', scope: { repo: 'autoarmory' } } } }) + '\n');
 const declaredReport = decisionScan.scan(declaredState, { repo: repo, apply: false, limit: 10 });
 must(declaredReport.ready_for_verifier_count === 1 && declaredReport.drafts[0].claim_declaration_source === 'claims_manifest', 'trusted claims manifest must make a real change ready without manual verifier selection');
+must(declaredReport.generated_at && Object.prototype.hasOwnProperty.call(declaredReport, 'commit') && declaredReport.limit === 10, 'decision-scan report must carry generated_at, commit and limit');
 console.log('decision scan tests passed: capability match, no_capability, blocked_by_access/owner, insufficient stream, no activation');
