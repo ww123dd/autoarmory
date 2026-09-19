@@ -1,0 +1,18 @@
+{
+  "schema_version": "autoarmory/tripwire-vectors/v1",
+  "verifiers": {
+    "project-test-result": {
+      "positive": { "instance": { "command": "node tests/jsonl-strict.js", "cwd": "." }, "expect_status": "captured", "expect_passed": true },
+      "negative": { "instance": { "command": "rm -rf production", "cwd": "." }, "expect_status": "unverifiable" },
+      "drift": { "assertion_value": false }
+    },
+    "enumeration-completeness": {
+      "positive": { "params": {}, "expect_status": "captured", "expect_complete": true },
+      "drift": { "assertion_value": false }
+    },
+    "verification-gap": {
+      "positive": { "params": {}, "expect_status": "captured", "expect_complete": true },
+      "drift": { "assertion_value": false }
+    }
+  }
+}

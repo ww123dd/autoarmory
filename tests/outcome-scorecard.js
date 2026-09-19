@@ -1,0 +1,24 @@
+'use strict';
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const fixtureHelper = require('./helpers/mechanism-fixture');
+const ledger = require('../src/lib/outcome-ledger');
+const scorecard = require('../src/lib/outcome-scorecard');
+function must(condition, message) { if (!condition) throw new Error(message); }
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autoarmory-outcome-scorecard-'));
+const fixture = fixtureHelper.createFixture(root, 'score');
+fixtureHelper.registerCaseAndMechanism(fixture);
+const run = fixtureHelper.recordRun(fixture, 'run-score');
+const closure = fixtureHelper.closeRun(fixture, run);
+const reuse = fixtureHelper.reuseRecord(fixture, 'change-score', { run: run, closure: closure });
+ledger.recordOutcome(fixture.state, { decision_id: reuse.decision_id, type: 'accepted', actor: 'user', source: 'user', reason: 'accepted' });
+ledger.recordOutcome(fixture.state, { decision_id: reuse.decision_id, type: 'accepted', actor: 'user', source: 'user', reason: 'accepted again' });
+ledger.recordOutcome(fixture.state, { decision_id: reuse.decision_id, type: 'overturned', actor: 'user', source: 'user_correction', reason: 'later counterexample' });
+const report = scorecard.scorecard(fixture.state);
+must(report.outcome_count === 3 && report.rows.length === 1, 'scorecard must aggregate by verifier');
+const row = report.rows[0];
+must(row.verifier_id === 'fixture' && row.correct_count === 2 && row.overturned_count === 1 && row.false_close_count === 1 && row.sample_size === 3, 'scorecard must count correct/overturned/false-close');
+must(row.earned_candidate === false, 'overturned verifier must not be earned candidate');
+must(scorecard.writeScorecard(fixture.state, report), 'scorecard must be writable');
+console.log('outcome scorecard tests passed: per-verifier correct/overturned/false-close and earned candidate');

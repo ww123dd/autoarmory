@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.42.0
+
+Add outcome回流 and tripwire.
+
+- Added `outcome-records.jsonl` via `scripts/outcome-record.js` / `src/lib/outcome-ledger.js`; outcomes are restricted to allowed types/sources, require decision/claim linkage, and reject LLM/agent-inferred sources.
+- Added per-verifier outcome statistics: `correct_count`, `rejected_count`, `overturned_count`, `reopen_count`, `expire_count`, `retract_count`, `false_close_count`, `sample_size`, `last_outcome_at`, and `earned_candidate`.
+- Added `scripts/outcome-scorecard.js` / `src/lib/outcome-scorecard.js`.
+- Added `scripts/tripwire.js` / `src/lib/tripwire.js` / `docs/evidence/tripwire-vectors-v1.json`: positive/negative/drift vectors for project-test-result, enumeration-completeness and verification-gap.
+- Real outcome回流 recorded: tableau `reopened` from `mechanism_status`; scorecard reports `reopen_count=1`.
+- Tripwire passes; `earned_candidate` remains false for any verifier with an overturn or reopen.
 ## 2.41.0
 
 Stop the Stop-path write amplification.
