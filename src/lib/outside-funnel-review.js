@@ -1,0 +1,6 @@
+'use strict';
+const fs=require('fs'),path=require('path'),crypto=require('crypto');const {appendJsonl,readJsonl}=require('./util');
+const FILE='outside-funnel-review.jsonl';
+function record(stateDir,input){const value=input||{};const errors=[];if(['must_fix_now','backlog'].indexOf(value.severity)===-1)errors.push('severity is required');if(!value.problem)errors.push('problem is required');if(!value.why_funnel_missed)errors.push('why_funnel_missed is required');if(!value.layer)errors.push('layer is required');if(!value.evidence_ref)errors.push('evidence_ref is required');if(errors.length)throw new Error(errors.join('; '));const row={schema_version:'autoarmory/outside-funnel-review/v1',review_id:'ofr-'+crypto.createHash('sha256').update([value.severity,value.problem,value.observed_at||Date.now()].join(':')).digest('hex').slice(0,12),severity:value.severity,problem:value.problem,why_funnel_missed:value.why_funnel_missed,layer:value.layer,evidence_ref:value.evidence_ref,status:'open',observed_at:value.observed_at||new Date().toISOString()};fs.mkdirSync(stateDir,{recursive:true});appendJsonl(path.join(stateDir,FILE),[row]);return row;}
+function read(stateDir){const file=path.join(stateDir,FILE);return fs.existsSync(file)?readJsonl(file):[];}
+module.exports={FILE,record,read};

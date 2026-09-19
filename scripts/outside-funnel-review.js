@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+const path=require('path');const {parseArgs,printJson}=require('../src/lib/util');const review=require('../src/lib/outside-funnel-review');
+function fail(message){process.stderr.write(message+'\n');process.exit(2);}const args=parseArgs(process.argv.slice(2));if(!args.state)fail('--state <state-root> is required');if(args.list){const rows=review.read(path.resolve(args.state));if(args.json)printJson({schema_version:'autoarmory/outside-funnel-review-list/v1',count:rows.length,rows:rows});else process.stdout.write('outside-funnel findings='+rows.length+'\n');process.exit(0);}try{const row=review.record(path.resolve(args.state),{severity:args.severity,problem:args.problem,why_funnel_missed:args['why-funnel-missed'],layer:args.layer,evidence_ref:args['evidence-ref']});if(args.json)printJson(row);else process.stdout.write('recorded '+row.review_id+'\n');}catch(error){fail(error.message);}

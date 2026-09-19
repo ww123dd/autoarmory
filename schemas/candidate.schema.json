@@ -179,6 +179,28 @@
           "type": "string"
         }
       }
+    },
+    "severity": {
+      "enum": [
+        "must_fix_now",
+        "backlog",
+        "not_now"
+      ]
+    },
+    "lower_layer_options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "why_lower_layer_insufficient": {
+      "type": "string"
+    },
+    "mechanism_jurisdiction": {
+      "type": "object"
+    },
+    "outside_funnel_risk": {
+      "type": "string"
     }
   }
 }

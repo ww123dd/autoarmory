@@ -1,9 +1,11 @@
 'use strict';
 const crypto = require('crypto');
+const precheck = require('./mechanism-precheck');
 function compile(sediments) {
   return (Array.isArray(sediments) ? sediments : []).filter(function (item) { return item && item.decision === 'absorb'; }).map(function (item) {
     const text = [item.proposed_change].concat(item.absorb_parts || []).filter(Boolean).join('\n');
     const mixed = /验证缺口|混合态|单一干净|单一条件/.test(text);
+    const gate = precheck.evaluate(item);
     return {
       schema_version: 'autoarmory/mechanism-candidate/v1',
       mechanism_id: 'mechanism-candidate-' + crypto.createHash('sha256').update(item.sediment_id + ':' + (item.proposed_change || '')).digest('hex').slice(0, 16),
@@ -19,7 +21,13 @@ function compile(sediments) {
       expires_at: null,
       reopen_trigger: [{ kind: 'case_changed' }],
       evidence_refs: item.evidence_refs || [],
-      status: 'candidate'
+      severity: item.severity || null,
+      lower_layer_options: item.lower_layer_options || [],
+      why_lower_layer_insufficient: item.why_lower_layer_insufficient || null,
+      mechanism_jurisdiction: item.mechanism_jurisdiction || null,
+      outside_funnel_risk: item.outside_funnel_risk || null,
+      precheck: gate,
+      status: gate.ok ? 'candidate' : 'draft'
     };
   });
 }

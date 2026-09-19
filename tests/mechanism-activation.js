@@ -17,7 +17,8 @@ const base = {
   verifier_id: 'fixture',
   evidence_refs: ['message-1'],
   scope: { project: 'autoarmory', task_type: 'skill-optimization' },
-  enforcement: { point: 'stop_hook', mode: 'block', coverage: 'none', entry: 'scripts/hook-gate.js' }
+  enforcement: { point: 'stop_hook', mode: 'block', coverage: 'none', entry: 'scripts/hook-gate.js' },
+  precheck: { ok: true, status: 'accepted', errors: [] }
 };
 const advisory = activation.audit(base, { repo: repo });
 must(advisory.status === 'candidate' && advisory.coverage === 'none', 'incomplete enforcement must remain candidate');
@@ -31,6 +32,8 @@ const missingVerifier = activation.audit(Object.assign({}, base, { verifier_id: 
 must(missingVerifier.status === 'candidate' && missingVerifier.blockers.includes('verifier_not_registered'), 'unregistered verifier must not activate');
 const advisoryMode = activation.audit(Object.assign({}, base, { enforcement: Object.assign({}, base.enforcement, { mode: 'advisory', coverage: 'complete' }) }), { repo: repo });
 must(advisoryMode.status === 'candidate' && advisoryMode.blockers.includes('enforcement_mode_not_block'), 'advisory mode must not activate');
+const noPrecheck = activation.audit(Object.assign({}, base, { precheck: undefined }), { repo: repo });
+must(noPrecheck.status === 'candidate' && noPrecheck.blockers.includes('mechanism_precheck_failed'), 'missing mechanism precheck must not activate');
 const candidatesFile = path.join(repo, 'mechanism-candidates.jsonl');
 write(candidatesFile, JSON.stringify(base) + '\n');
 const cli = path.resolve(__dirname, '..', 'scripts', 'mechanism-activation.js');

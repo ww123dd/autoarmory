@@ -1,3 +1,12 @@
+## 2.52.0
+
+Add a mechanism admission precheck and periodic outside-funnel review.
+
+- Added `src/lib/mechanism-precheck.js`: severity, lowest-layer alternatives, why lower-layer is insufficient, mechanism jurisdiction, and outside-funnel risk are mandatory before a mechanism candidate exists.
+- Missing precheck fields now produce `draft`, not `candidate`; activation also blocks `mechanism_precheck_failed`.
+- Added `src/lib/outside-funnel-review.js` and CLI for severe problems the pipeline structurally cannot see.
+- Updated the AutoArmory skill with a Step 0 selection gate: severity first, lowest layer first, prove the lower layer is insufficient, and inspect outside the funnel periodically.
+
 ## 2.51.0
 
 Implement C+B ownership inheritance and batch confirmation.
